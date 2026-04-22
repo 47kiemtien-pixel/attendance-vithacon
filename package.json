@@ -1,0 +1,56 @@
+{
+  "name": "attendance-system-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Desktop app dong goi he thong cham cong",
+  "author": "Minh Thien IT",
+  "main": "electron/main.js",
+  "scripts": {
+    "build:client": "npm --prefix client run build",
+    "desktop:start": "electron .",
+    "desktop:pack": "npm run build:client && electron-builder --win nsis"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dayjs": "^1.11.10",
+    "exceljs": "^4.4.0",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "electron": "^37.2.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.minhthien.attendance",
+    "productName": "Chấm công Việt Thành",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "client/dist/**/*",
+      "server/**/*.js",
+      "server/data/**/*",
+      "package.json",
+      "!client/node_modules{,/**/*}",
+      "!server/node_modules{,/**/*}",
+      "!client/package-lock.json",
+      "!server/package-lock.json",
+      "!client/package.json",
+      "!server/package.json"
+    ],
+    "win": {
+      "icon": "build/icon.png",
+      "signAndEditExecutable": false,
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    }
+  }
+}

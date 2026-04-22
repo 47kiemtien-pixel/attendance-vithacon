@@ -1,0 +1,25 @@
+[
+  {
+    "id": "1",
+    "name": "Thiệp",
+    "position": "Thợ chính",
+    "location": "Công trường Quận 1",
+    "dailyRate": 650000,
+    "phone": "",
+    "cccd": ""
+  },
+  {
+    "id": "2",
+    "name": "Cả",
+    "position": "Phụ hồ",
+    "location": "Công trường Quận 7",
+    "dailyRate": 650000
+  },
+  {
+    "id": "3",
+    "name": "Hồng",
+    "position": "Thợ điện",
+    "location": "Công trường Quận 1",
+    "dailyRate": 650000
+  }
+]

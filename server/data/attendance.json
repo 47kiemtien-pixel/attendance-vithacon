@@ -1,0 +1,64 @@
+[
+  {
+    "date": "2026-04-21",
+    "records": [
+      {
+        "workerId": "2",
+        "status": "Full",
+        "dailyRate": 650000,
+        "position": "Thợ nhôm kính",
+        "location": "Đắk Lắk"
+      },
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 700000,
+        "position": "Thợ hàn",
+        "location": "Gia Lai"
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 650000,
+        "position": "Thợ nhôm kính",
+        "location": "Đắk Lắk"
+      }
+    ]
+  },
+  {
+    "date": "2026-04-01",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Half",
+        "dailyRate": 700000,
+        "position": "Thợ hàn",
+        "location": "Gia Lai"
+      }
+    ]
+  },
+  {
+    "date": "2026-04-02",
+    "records": [
+      {
+        "workerId": "2",
+        "status": "Full",
+        "dailyRate": 700000,
+        "position": "Thợ hàn",
+        "location": "Gia Lai"
+      }
+    ]
+  },
+  {
+    "date": "2026-04-22",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 700000,
+        "position": "Thợ hàn",
+        "location": "Gia Lai"
+      }
+    ]
+  }
+]
