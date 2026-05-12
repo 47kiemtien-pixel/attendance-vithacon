@@ -3,7 +3,8 @@ import { getWorkers, getAttendance, saveAttendanceRecord, getSettings } from '..
 import dayjs from 'dayjs';
 import { 
   CalendarCheck, ChevronLeft, ChevronRight, X, User, 
-  Briefcase, MapPin, Wallet, StickyNote, CircleDollarSign 
+  Briefcase, MapPin, Wallet, StickyNote, CircleDollarSign,
+  DollarSign, Truck
 } from 'lucide-react';
 
 const formatCurrency = (val) => {
@@ -41,6 +42,7 @@ const Attendance = () => {
   const [editPosition, setEditPosition] = useState('');
   const [editLocation, setEditLocation] = useState('');
   const [editNote, setEditNote] = useState('');
+  const [editTravelCost, setEditTravelCost] = useState('');
   const [selectedPresetId, setSelectedPresetId] = useState('');
   const [saving, setSaving] = useState(false);
   const [viewMode, setViewMode] = useState('week');
@@ -140,6 +142,7 @@ const Attendance = () => {
     setEditPosition(record?.position ?? '');
     setEditLocation(record?.location ?? '');
     setEditNote(record?.note ?? '');
+    setEditTravelCost(record?.travelCost ?? '');
     setSelectedPresetId('');
     setIsModalOpen(true);
   };
@@ -155,7 +158,8 @@ const Attendance = () => {
         Number(editRate) || 0,
         editPosition,
         editLocation,
-        editNote
+        editNote,
+        Number(editTravelCost) || 0
       );
       await fetchData();
       setIsModalOpen(false);
@@ -266,18 +270,17 @@ const Attendance = () => {
                       const record = getDayRecord(worker.id, item.iso);
                       const status = record?.status;
                       const tone = 
-                        status === 'Full' ? 'full' : 
-                        status === 'Half' ? 'half' : 
-                        status === 'Holiday' ? 'holiday' : 
                         status === 'Leave' ? 'leave' : 
-                        status === 'Absent' ? 'absent' : '';
+                        status === 'Absent' ? 'absent' : 
+                        status === 'Travel' ? 'travel' : '';
                       
                       const label = 
                         status === 'Full' ? 'Đủ công' : 
                         status === 'Half' ? 'Nửa công' : 
                         status === 'Holiday' ? 'Nghỉ lễ' : 
                         status === 'Leave' ? 'Nghỉ phép' : 
-                        status === 'Absent' ? 'Nghỉ' : '';
+                        status === 'Absent' ? 'Nghỉ' : 
+                        status === 'Travel' ? 'Di chuyển' : '';
 
                       return (
                         <td key={item.key} className={item.isOutsideMonth ? 'date-cell-muted' : ''}>
@@ -350,6 +353,9 @@ const Attendance = () => {
                   <button type="button" className={`attendance-btn ${editStatus === 'Leave' ? 'active-leave' : ''}`} onClick={() => setEditStatus('Leave')}>
                     Phép
                   </button>
+                  <button type="button" className={`attendance-btn ${editStatus === 'Travel' ? 'active-travel' : ''}`} onClick={() => setEditStatus('Travel')}>
+                    Di chuyển
+                  </button>
                 </div>
               </div>
 
@@ -397,16 +403,31 @@ const Attendance = () => {
                     </div>
                   </div>
 
-                  <div className="form-group">
-                    <label className="form-label">Mức lương / ngày</label>
-                    <div className="input-with-icon">
-                      <Wallet size={16} />
-                      <input
-                        className="form-input embedded-input"
-                        value={formatCurrency(editRate)}
-                        onChange={(e) => setEditRate(parseCurrency(e.target.value))}
-                        placeholder="Ví dụ: 650,000"
-                      />
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label">Mức lương / ngày</label>
+                      <div className="input-with-icon">
+                        <Wallet size={16} />
+                        <input
+                          className="form-input embedded-input"
+                          value={formatCurrency(editRate)}
+                          onChange={(e) => setEditRate(parseCurrency(e.target.value))}
+                          placeholder="Ví dụ: 650,000"
+                        />
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Tiền xe / Di chuyển</label>
+                      <div className="input-with-icon">
+                        <Truck size={16} />
+                        <input
+                          type="number"
+                          className="form-input embedded-input"
+                          value={editTravelCost}
+                          onChange={(e) => setEditTravelCost(e.target.value)}
+                          placeholder="0"
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -423,8 +444,21 @@ const Attendance = () => {
                 </div>
               )}
 
-              {(editStatus === 'Holiday' || editStatus === 'Leave' || editStatus === 'Absent') && (
+              {(editStatus === 'Holiday' || editStatus === 'Leave' || editStatus === 'Absent' || editStatus === 'Travel') && (
                 <div className="attendance-form-stack">
+                  <div className="form-group">
+                    <label className="form-label">Tiền xe / Di chuyển</label>
+                    <div className="input-with-icon">
+                      <Truck size={16} />
+                      <input
+                        type="number"
+                        className="form-input embedded-input"
+                        value={editTravelCost}
+                        onChange={(e) => setEditTravelCost(e.target.value)}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
                   <div className="form-group">
                     <label className="form-label">Ghi chú</label>
                     <textarea 

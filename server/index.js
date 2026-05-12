@@ -70,6 +70,7 @@ async function buildWorkerReportDocx(worker, dateRange, attendance) {
     ];
 
     let totalFull = 0;
+    let totalTravelCost = 0;
     for (let i = 0; i < daysCount; i++) {
         const d = startDate.add(i, 'day');
         const dayRec = attendance.find(a => a.date === d.format('YYYY-MM-DD'));
@@ -77,9 +78,13 @@ async function buildWorkerReportDocx(worker, dateRange, attendance) {
         let statusText = '-';
         let statusColor = '64748B';
         if (rec) {
+            totalTravelCost += Number(rec.travelCost || 0);
             if (rec.status === 'Full') { statusText = 'CÔNG'; totalFull += 1; statusColor = '15803d'; }
             else if (rec.status === 'Half') { statusText = '1/2 CÔNG'; totalFull += 0.5; statusColor = 'B45309'; }
             else if (rec.status === 'Holiday') { statusText = 'NGHỈ LỄ'; statusColor = 'B91C1C'; }
+            else if (rec.status === 'Leave') { statusText = 'PHÉP'; statusColor = '2563EB'; }
+            else if (rec.status === 'Absent') { statusText = 'NGHỈ'; statusColor = '991B1B'; }
+            else if (rec.status === 'Travel') { statusText = 'DI CHUYỂN'; statusColor = '7C3AED'; }
         }
         tableRows.push(new TableRow({
             children: [
@@ -115,14 +120,38 @@ async function buildWorkerReportDocx(worker, dateRange, attendance) {
                 }),
                 new Table({ rows: tableRows, width: { size: 100, type: WidthType.PERCENTAGE } }),
                 new Paragraph({ text: '', spacing: { before: 300 } }),
-                new Paragraph({
-                    children: [
-                        new TextRun({ text: `Tổng số công: `, bold: true, size: 24, color: slate }),
-                        new TextRun({ text: `${totalFull}`, bold: true, size: 36, color: navy }),
-                    ],
-                    alignment: AlignmentType.RIGHT,
-                    spacing: { after: 600 },
+                new Table({
+                    width: { size: 100, type: WidthType.PERCENTAGE },
+                    borders: { top: BorderStyle.NONE, bottom: BorderStyle.NONE, left: BorderStyle.NONE, right: BorderStyle.NONE, insideHorizontal: BorderStyle.NONE, insideVertical: BorderStyle.NONE },
+                    rows: [
+                        new TableRow({
+                            children: [
+                                new TableCell({ 
+                                    children: [
+                                        totalTravelCost > 0 ? new Paragraph({
+                                            children: [
+                                                new TextRun({ text: 'Tiền xe/Di chuyển: ', size: 20, color: slate }),
+                                                new TextRun({ text: `${totalTravelCost.toLocaleString('vi-VN')}đ`, bold: true, size: 24, color: 'B45309' }),
+                                            ]
+                                        }) : new Paragraph({ text: '' })
+                                    ] 
+                                }),
+                                new TableCell({ 
+                                    children: [
+                                        new Paragraph({
+                                            children: [
+                                                new TextRun({ text: `Tổng số công: `, bold: true, size: 24, color: slate }),
+                                                new TextRun({ text: `${totalFull}`, bold: true, size: 36, color: navy }),
+                                            ],
+                                            alignment: AlignmentType.RIGHT,
+                                        })
+                                    ] 
+                                }),
+                            ]
+                        })
+                    ]
                 }),
+                new Paragraph({ text: '', spacing: { before: 600 } }),
                 new Table({
                     width: { size: 100, type: WidthType.PERCENTAGE },
                     borders: { top: BorderStyle.NONE, bottom: BorderStyle.NONE, left: BorderStyle.NONE, right: BorderStyle.NONE, insideHorizontal: BorderStyle.NONE, insideVertical: BorderStyle.NONE },
@@ -152,15 +181,15 @@ async function createServer(options = {}) {
 
     // Workers
     app.get('/api/workers', async (req, res) => res.json(await store.getWorkers()));
-    app.post('/api/workers', async (req, res) => res.json(await store.createWorker(req.body))); // Fixed: createWorker
+    app.post('/api/workers', async (req, res) => res.json(await store.createWorker(req.body)));
     app.put('/api/workers/:id', async (req, res) => res.json(await store.updateWorker(req.params.id, req.body)));
 
     // Attendance
     app.get('/api/attendance', async (req, res) => res.json(await store.getAttendance()));
-    app.post('/api/attendance', async (req, res) => res.json(await store.replaceAttendanceForDate(req.body.date, req.body.records))); // Fixed: replaceAttendanceForDate
+    app.post('/api/attendance', async (req, res) => res.json(await store.replaceAttendanceForDate(req.body.date, req.body.records)));
     app.post('/api/attendance/record', async (req, res) => {
-        const { date, workerId, status, dailyRate, position, location, note } = req.body;
-        const result = await store.upsertAttendanceRecord(date, workerId, { status, dailyRate, position, location, note }); // Fixed: upsertAttendanceRecord
+        const { date, workerId, status, dailyRate, position, location, note, travelCost } = req.body;
+        const result = await store.upsertAttendanceRecord(date, workerId, { status, dailyRate, position, location, note, travelCost });
         res.json(result || { success: true });
     });
 
@@ -177,19 +206,23 @@ async function createServer(options = {}) {
             const attendance = await store.getAttendance();
             const workbook = new ExcelJS.Workbook();
             const sheet = workbook.addWorksheet(`Tháng ${month}-${year}`);
-            sheet.addRow(['STT', 'Họ và tên', ...Array.from({ length: 31 }, (_, i) => i + 1), 'Tổng công']);
+            sheet.addRow(['STT', 'Họ và tên', ...Array.from({ length: 31 }, (_, i) => i + 1), 'Tổng công', 'Tổng tiền xe']);
             workers.forEach((w, idx) => {
                 let total = 0;
+                let travelTotal = 0;
                 const rowData = [idx + 1, w.name];
                 for(let d=1; d<=31; d++) {
                     const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                     const att = attendance.find(a => a.date === dateStr);
                     const rec = att?.records.find(r => String(r.workerId) === String(w.id));
+                    travelTotal += Number(rec?.travelCost || 0);
                     if (rec?.status === 'Full') { total += 1; rowData.push(1); }
                     else if (rec?.status === 'Half') { total += 0.5; rowData.push(0.5); }
+                    else if (rec?.status === 'Absent' || rec?.status === 'Leave' || rec?.status === 'Travel' || rec?.status === 'Holiday') { rowData.push(0); }
                     else rowData.push('');
                 }
                 rowData.push(total);
+                rowData.push(travelTotal);
                 sheet.addRow(rowData);
             });
             res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -210,10 +243,11 @@ async function createServer(options = {}) {
             const attendance = await store.getAttendance();
             const workbook = new ExcelJS.Workbook();
             const sheet = workbook.addWorksheet('Bao Cao');
-            sheet.addRow(['THỨ / NGÀY', 'ĐỊA ĐIỂM', 'TRẠNG THÁI', 'GHI CHÚ']);
+            sheet.addRow(['THỨ / NGÀY', 'ĐỊA ĐIỂM', 'TRẠNG THÁI', 'GHI CHÚ', 'TIỀN XE']);
             let current = dayjs(startDate);
             const end = dayjs(endDate);
             let total = 0;
+            let travelTotal = 0;
             while(current.isBefore(end) || current.isSame(end)) {
                 const dateStr = current.format('YYYY-MM-DD');
                 const att = attendance.find(a => a.date === dateStr);
@@ -221,11 +255,19 @@ async function createServer(options = {}) {
                 let status = '-';
                 if(rec?.status === 'Full') { status = 'CÔNG'; total += 1; }
                 else if(rec?.status === 'Half') { status = '1/2 CÔNG'; total += 0.5; }
-                sheet.addRow([current.format('DD/MM/YYYY'), rec?.location || '-', status, rec?.note || '-']);
+                else if(rec?.status === 'Absent') { status = 'NGHỈ'; }
+                else if(rec?.status === 'Travel') { status = 'DI CHUYỂN'; }
+                else if(rec?.status === 'Holiday') { status = 'NGHỈ LỄ'; }
+                else if(rec?.status === 'Leave') { status = 'PHÉP'; }
+                
+                const tCost = Number(rec?.travelCost || 0);
+                travelTotal += tCost;
+                
+                sheet.addRow([current.format('DD/MM/YYYY'), rec?.location || '-', status, rec?.note || '-', tCost > 0 ? tCost : '-']);
                 current = current.add(1, 'day');
             }
             sheet.addRow([]);
-            sheet.addRow(['TỔNG CỘNG', '', total]);
+            sheet.addRow(['TỔNG CỘNG', '', total, 'Tổng tiền xe:', travelTotal]);
             res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             res.setHeader('Content-Disposition', `attachment; filename=Bao_Cao_Excel_${encodeURIComponent(worker.name)}.xlsx`);
             await workbook.xlsx.write(res);

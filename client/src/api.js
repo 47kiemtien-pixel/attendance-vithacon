@@ -85,9 +85,9 @@ export const saveAttendance = async (date, records) => {
     return response.data;
 };
 
-export const saveAttendanceRecord = async (date, workerId, status, dailyRate, position, location, note) => {
+export const saveAttendanceRecord = async (date, workerId, status, dailyRate, position, location, note, travelCost) => {
     const response = await apiClient.post('/attendance/record', { 
-        date, workerId, status, dailyRate, position, location, note 
+        date, workerId, status, dailyRate, position, location, note, travelCost 
     });
     return response.data;
 };
