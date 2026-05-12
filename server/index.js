@@ -104,7 +104,7 @@ function buildMonthlyWorkbook(month, year, workers, attendance) {
         for (let i = 1; i <= daysInMonth; i += 1) {
             const dateStr = `${year}-${month}-${String(i).padStart(2, '0')}`;
             const dayRecord = attendance.find((entry) => entry.date === dateStr);
-            const workerRecord = dayRecord?.records.find((record) => record.workerId === worker.id);
+            const workerRecord = dayRecord?.records.find((record) => String(record.workerId) === String(worker.id));
             if (workerRecord) workerRecordsThisMonth.push({ day: i, ...workerRecord });
         }
 
@@ -134,7 +134,7 @@ function buildMonthlyWorkbook(month, year, workers, attendance) {
 
         profileValues.forEach((profile, profileIndex) => {
             const rowData = {
-                name: profileIndex === 0 ? worker.name : '',
+                name: profileIndex === 0 ? worker.name.toUpperCase() : '',
                 position: profile.position,
                 location: profile.location,
                 rate: profile.rate
@@ -150,8 +150,12 @@ function buildMonthlyWorkbook(month, year, workers, attendance) {
                     } else if (recordForDay.status === 'Half') {
                         rowData[`day_${i}`] = 0.5;
                         totalDays += 0.5;
+                    } else if (recordForDay.status === 'Holiday') {
+                        rowData[`day_${i}`] = 'L'; // Lễ
+                    } else if (recordForDay.status === 'Leave') {
+                        rowData[`day_${i}`] = 'P'; // Phép
                     } else {
-                        rowData[`day_${i}`] = 0;
+                        rowData[`day_${i}`] = '';
                     }
                 } else {
                     rowData[`day_${i}`] = '';
@@ -161,12 +165,12 @@ function buildMonthlyWorkbook(month, year, workers, attendance) {
             rowData.total_days = totalDays;
             rowData.total_salary = totalDays * profile.rate;
             const row = worksheet.addRow(rowData);
-            row.height = 25;
+            row.height = 30;
 
             if (profileIndex === 0) startRowIndex = row.number;
 
             const isAlternateRow = workerIndex % 2 !== 0;
-            const alternateFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFDFDFD' } };
+            const alternateFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9FAFB' } };
 
             row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
                 cell.border = cellBorder;
@@ -179,24 +183,25 @@ function buildMonthlyWorkbook(month, year, workers, attendance) {
                 if (colNumber > 4 && colNumber <= 4 + daysInMonth) {
                     const day = colNumber - 4;
                     if (weekends.includes(day)) {
-                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } };
+                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
                     }
-                    if (cell.value === 0) {
-                        cell.font = { color: { argb: 'FFEF4444' }, bold: true };
+                    if (cell.value === 1) {
+                        cell.font = { color: { argb: 'FF059669' }, bold: true };
                     } else if (cell.value === 0.5) {
-                        cell.font = { color: { argb: 'FFF59E0B' }, bold: true };
-                    } else if (cell.value === 1) {
-                        cell.font = { color: { argb: 'FF10B981' } };
+                        cell.font = { color: { argb: 'FFD97706' }, bold: true };
+                    } else if (cell.value === 'L') {
+                        cell.font = { color: { argb: 'FFDC2626' }, bold: true };
+                    } else if (cell.value === 'P') {
+                        cell.font = { color: { argb: 'FF2563EB' }, bold: true };
                     }
                 }
             });
 
-            row.getCell('rate').numFmt = '#,##0 "VND"';
-            row.getCell('total_salary').numFmt = '#,##0 "VND"';
-            row.getCell('total_salary').font = { bold: true, color: { argb: 'FF1F2937' } };
+            row.getCell('rate').numFmt = '#,##0';
+            row.getCell('total_salary').numFmt = '#,##0';
+            row.getCell('total_salary').font = { bold: true, color: { argb: 'FF1E3A8A' } };
             row.getCell('total_salary').alignment = { vertical: 'middle', horizontal: 'right' };
             row.getCell('total_days').font = { bold: true };
-            row.getCell('total_days').alignment = { vertical: 'middle', horizontal: 'center' };
         });
 
         if (profileValues.length > 1 && startRowIndex !== -1) {
@@ -206,7 +211,7 @@ function buildMonthlyWorkbook(month, year, workers, attendance) {
             mergedCell.alignment = { vertical: 'middle', horizontal: 'left' };
             mergedCell.border = cellBorder;
             if (workerIndex % 2 !== 0) {
-                mergedCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFDFDFD' } };
+                mergedCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9FAFB' } };
             }
         }
     });
@@ -228,53 +233,50 @@ function buildWorkerReportWorkbook(worker, dateRange, attendance) {
 
     // Colors
     const blueColor = 'FF1E40AF';
-    const lightBlueBg = 'FFF1F5F9';
     const textDark = 'FF111827';
     const textMuted = 'FF4B5563';
     
-    // Add Logo
+    // Add Logo if exists
     const logoPath = path.join(__dirname, '../client/public/logo.png');
     if (fs.existsSync(logoPath)) {
-        const logoId = workbook.addImage({
-            buffer: fs.readFileSync(logoPath),
-            extension: 'png',
-        });
-        // Position logo at top left (A1)
-        worksheet.addImage(logoId, {
-            tl: { col: 0.1, row: 0.2 },
-            ext: { width: 85, height: 85 }
-        });
+        try {
+            const logoId = workbook.addImage({
+                buffer: fs.readFileSync(logoPath),
+                extension: 'png',
+            });
+            worksheet.addImage(logoId, {
+                tl: { col: 0.1, row: 0.1 },
+                ext: { width: 85, height: 85 }
+            });
+        } catch (e) {
+            console.warn('Could not add logo to Excel:', e.message);
+        }
     }
 
-    // Row 1-3: Header area
-    worksheet.getRow(1).height = 30;
-    worksheet.getRow(2).height = 25;
-    worksheet.getRow(3).height = 25;
-
-    // Company Info (Shifted to column B/C to make room for logo if needed)
+    // Header section
     worksheet.mergeCells('B1:D1');
-    const compName1 = worksheet.getCell('B1');
-    compName1.value = 'CÔNG TY TNHH CƠ KHÍ XÂY DỰNG VIỆT THÀNH';
-    compName1.font = { name: 'Arial', bold: true, size: 14, color: { argb: blueColor } };
-    compName1.alignment = { vertical: 'middle', horizontal: 'left' };
+    const compName = worksheet.getCell('B1');
+    compName.value = 'CÔNG TY TNHH CƠ KHÍ XÂY DỰNG VIỆT THÀNH';
+    compName.font = { name: 'Arial', bold: true, size: 14, color: { argb: blueColor } };
+    compName.alignment = { vertical: 'middle', horizontal: 'left' };
 
     worksheet.mergeCells('B2:C2');
     const compSub = worksheet.getCell('B2');
     compSub.value = 'THƯƠNG MẠI & DỊCH VỤ VITHACON';
-    compSub.font = { name: 'Arial', bold: true, size: 11, color: { argb: blueColor } };
+    compSub.font = { name: 'Arial', bold: true, size: 11, color: { argb: textDark } };
     compSub.alignment = { vertical: 'middle', horizontal: 'left' };
 
     worksheet.mergeCells('D2:D2');
-    const periodTitle = worksheet.getCell('D2');
-    periodTitle.value = 'BẢNG CHẤM CÔNG';
-    periodTitle.font = { name: 'Arial', bold: true, size: 22, color: { argb: blueColor } };
-    periodTitle.alignment = { vertical: 'middle', horizontal: 'right' };
+    const titleMain = worksheet.getCell('D2');
+    titleMain.value = 'BẢNG CHẤM CÔNG';
+    titleMain.font = { name: 'Arial', bold: true, size: 24, color: { argb: blueColor } };
+    titleMain.alignment = { vertical: 'middle', horizontal: 'right' };
 
     worksheet.mergeCells('B3:C3');
-    const webCell = worksheet.getCell('B3');
-    webCell.value = 'Website: vithacon.vn | Hotline: 09xx.xxx.xxx';
-    webCell.font = { name: 'Arial', size: 10, color: { argb: textMuted } };
-    webCell.alignment = { vertical: 'middle', horizontal: 'left' };
+    const contactInfo = worksheet.getCell('B3');
+    contactInfo.value = 'Website: vithacon.vn | Email: info@vithacon.vn';
+    contactInfo.font = { name: 'Arial', size: 10, color: { argb: textMuted } };
+    contactInfo.alignment = { vertical: 'middle', horizontal: 'left' };
 
     worksheet.mergeCells('D3:D3');
     const periodLabel = dateRange.label || `Từ ${dayjs(dateRange.start).format('DD/MM/YYYY')} đến ${dayjs(dateRange.end).format('DD/MM/YYYY')}`;
@@ -284,18 +286,18 @@ function buildWorkerReportWorkbook(worker, dateRange, attendance) {
     periodCell.alignment = { vertical: 'middle', horizontal: 'right' };
 
     worksheet.mergeCells('A4:D4');
-    worksheet.getRow(4).height = 6;
+    worksheet.getRow(4).height = 8;
     worksheet.getCell('A4').border = { bottom: { style: 'medium', color: { argb: blueColor } } };
 
-    // Worker info section
+    // Worker info row
     worksheet.addRow([]); // Spacer
     const infoHeader = worksheet.addRow(['', 'HỌ VÀ TÊN', 'MÃ THỢ', 'THỜI GIAN']);
     infoHeader.font = { name: 'Arial', bold: true, size: 10, color: { argb: textMuted } };
     infoHeader.height = 20;
 
-    const workerCode = `VH-${String(worker.id).slice(-3).toUpperCase()}`;
+    const workerCode = `VH-${String(worker.id).slice(-4).toUpperCase()}`;
     const timeRange = `${dayjs(dateRange.start).format('DD/MM')} - ${dayjs(dateRange.end).format('DD/MM/YYYY')}`;
-    const infoValues = worksheet.addRow(['', worker.name, workerCode, timeRange]);
+    const infoValues = worksheet.addRow(['', worker.name.toUpperCase(), workerCode, timeRange]);
     infoValues.font = { name: 'Arial', bold: true, size: 18, color: { argb: textDark } };
     infoValues.height = 35;
     
@@ -303,7 +305,7 @@ function buildWorkerReportWorkbook(worker, dateRange, attendance) {
 
     // Table Header
     const tableHeader = worksheet.addRow(['THỨ / NGÀY', 'ĐỊA ĐIỂM', 'TRẠNG THÁI', 'GHI CHÚ']);
-    tableHeader.height = 35;
+    tableHeader.height = 30;
     tableHeader.eachCell((cell) => {
         cell.font = { name: 'Arial', bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: blueColor } };
@@ -321,22 +323,21 @@ function buildWorkerReportWorkbook(worker, dateRange, attendance) {
     const startDate = dayjs(dateRange.start);
     const endDate = dayjs(dateRange.end);
     const days = endDate.diff(startDate, 'day') + 1;
-
     const vnDays = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
 
     for (let i = 0; i < days; i++) {
         const d = startDate.add(i, 'day');
         const dateStr = d.format('YYYY-MM-DD');
         const dayRecord = attendance.find(a => a.date === dateStr);
-        const record = dayRecord?.records.find(r => r.workerId === worker.id);
+        const record = dayRecord?.records.find(r => String(r.workerId) === String(worker.id));
 
         const row = worksheet.addRow([
             `${vnDays[d.day()]} (${d.format('DD/MM')})`,
             record?.location || '-',
-            '', // Status placeholder
+            '', // Status
             record?.note || '-'
         ]);
-        row.height = 40;
+        row.height = 35;
 
         const statusCell = row.getCell(3);
         if (record) {
@@ -400,7 +401,7 @@ function buildWorkerReportWorkbook(worker, dateRange, attendance) {
     const signCell = summaryValues.getCell(5);
     signCell.font = { name: 'Arial', bold: true, size: 28, color: { argb: textDark } };
 
-    // Signature Area
+    // Footer
     worksheet.addRow([]);
     worksheet.addRow([]);
     const footerDate = worksheet.addRow(['', '', '', `Ngày ...... tháng ...... năm 202...`]);
