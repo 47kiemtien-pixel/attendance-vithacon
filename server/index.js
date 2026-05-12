@@ -3,664 +3,282 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const ExcelJS = require('exceljs');
-const helmet = require('helmet');
 const path = require('path');
+const fs = require('fs');
 const dayjs = require('dayjs');
+const ExcelJS = require('exceljs');
+const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, WidthType, VerticalAlign, ImageRun, BorderStyle, Header, Footer, HeightRule } = require('docx');
 const { createJsonStore } = require('./stores/json-store');
-const { hashPassword, normalizeEmail, verifyPassword } = require('./lib/auth');
-const { createAuthMiddleware, signAccessToken } = require('./middleware/auth');
-
-function resolveStoreDriver(options = {}) {
-    if (options.storeDriver) return options.storeDriver;
-    if (process.env.ATTENDANCE_DATA_DRIVER) return process.env.ATTENDANCE_DATA_DRIVER;
-    if (process.env.DATABASE_URL || process.env.PGHOST || process.env.PGDATABASE) return 'postgres';
-    return 'json';
-}
 
 async function createStore(options = {}) {
-    const driver = resolveStoreDriver(options);
-    const dataDir = options.dataDir || process.env.ATTENDANCE_DATA_DIR || path.join(__dirname, 'data');
-
-    if (driver === 'postgres') {
-        const { createPostgresStore } = require('./stores/postgres-store');
-        return createPostgresStore({
-            ...options,
-            dataDir
-        });
-    }
-
+    const dataDir = options.dataDir || path.join(__dirname, 'data');
     return createJsonStore(dataDir);
 }
 
-function buildMonthlyWorkbook(month, year, workers, attendance) {
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet(`Thang ${month}-${year}`, {
-        views: [{ state: 'frozen', xSplit: 4, ySplit: 2 }]
-    });
-
-    const headerStyle = {
-        font: { name: 'Arial', bold: true, color: { argb: 'FFFFFFFF' }, size: 11 },
-        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } },
-        alignment: { vertical: 'middle', horizontal: 'center', wrapText: true },
-        border: {
-            top: { style: 'thin', color: { argb: 'FFFFFFFF' } },
-            left: { style: 'thin', color: { argb: 'FFFFFFFF' } },
-            bottom: { style: 'thin', color: { argb: 'FFFFFFFF' } },
-            right: { style: 'thin', color: { argb: 'FFFFFFFF' } }
-        }
-    };
-
-    const daysInMonth = dayjs(`${year}-${month}-01`).daysInMonth();
-    const columns = [
-        { header: 'Ho Ten', key: 'name', width: 25 },
-        { header: 'Vi Tri', key: 'position', width: 20 },
-        { header: 'Dia Diem', key: 'location', width: 20 },
-        { header: 'Luong/Ngay', key: 'rate', width: 15 }
-    ];
-
-    const weekends = [];
-    for (let i = 1; i <= daysInMonth; i += 1) {
-        const dateStr = `${year}-${month}-${String(i).padStart(2, '0')}`;
-        const dayOfWeek = dayjs(dateStr).day();
-        if (dayOfWeek === 0 || dayOfWeek === 6) weekends.push(i);
-        columns.push({ header: String(i), key: `day_${i}`, width: 6 });
-    }
-    columns.push({ header: 'Tong Cong', key: 'total_days', width: 12 });
-    columns.push({ header: 'Thanh Tien', key: 'total_salary', width: 18 });
-
-    worksheet.columns = columns;
-    worksheet.spliceRows(1, 0, []);
-    worksheet.mergeCells(1, 1, 1, columns.length);
-    const titleCell = worksheet.getCell(1, 1);
-    titleCell.value = `BANG CHAM CONG THANG ${month}/${year}`;
-    titleCell.font = { name: 'Arial', size: 16, bold: true, color: { argb: 'FF1F497D' } };
-    titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
-    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6EEF8' } };
-    worksheet.getRow(1).height = 40;
-
-    const headerRow = worksheet.getRow(2);
-    headerRow.height = 30;
-    headerRow.eachCell((cell, colNumber) => {
-        cell.style = headerStyle;
-        if (colNumber > 4 && colNumber <= 4 + daysInMonth) {
-            const day = colNumber - 4;
-            if (weekends.includes(day)) {
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3730A3' } };
-            }
-        }
-    });
-
-    const cellBorder = {
-        top: { style: 'thin', color: { argb: 'FFDDDDDD' } },
-        left: { style: 'thin', color: { argb: 'FFDDDDDD' } },
-        bottom: { style: 'thin', color: { argb: 'FFDDDDDD' } },
-        right: { style: 'thin', color: { argb: 'FFDDDDDD' } }
-    };
-
-    workers.forEach((worker, workerIndex) => {
-        const workerRecordsThisMonth = [];
-
-        for (let i = 1; i <= daysInMonth; i += 1) {
-            const dateStr = `${year}-${month}-${String(i).padStart(2, '0')}`;
-            const dayRecord = attendance.find((entry) => entry.date === dateStr);
-            const workerRecord = dayRecord?.records.find((record) => String(record.workerId) === String(worker.id));
-            if (workerRecord) workerRecordsThisMonth.push({ day: i, ...workerRecord });
-        }
-
-        const profiles = {};
-        if (workerRecordsThisMonth.length === 0) {
-            profiles.default = {
-                position: worker.position,
-                location: worker.location,
-                rate: worker.dailyRate,
-                records: []
-            };
-        } else {
-            workerRecordsThisMonth.forEach((record) => {
-                const position = record.position || worker.position || '';
-                const location = record.location || worker.location || '';
-                const rate = record.dailyRate || worker.dailyRate || 0;
-                const key = `${position}_${location}_${rate}`;
-                if (!profiles[key]) {
-                    profiles[key] = { position, location, rate, records: [] };
-                }
-                profiles[key].records.push(record);
-            });
-        }
-
-        const profileValues = Object.values(profiles);
-        let startRowIndex = -1;
-
-        profileValues.forEach((profile, profileIndex) => {
-            const rowData = {
-                name: profileIndex === 0 ? worker.name.toUpperCase() : '',
-                position: profile.position,
-                location: profile.location,
-                rate: profile.rate
-            };
-
-            let totalDays = 0;
-            for (let i = 1; i <= daysInMonth; i += 1) {
-                const recordForDay = profile.records.find((record) => record.day === i);
-                if (recordForDay) {
-                    if (recordForDay.status === 'Full') {
-                        rowData[`day_${i}`] = 1;
-                        totalDays += 1;
-                    } else if (recordForDay.status === 'Half') {
-                        rowData[`day_${i}`] = 0.5;
-                        totalDays += 0.5;
-                    } else if (recordForDay.status === 'Holiday') {
-                        rowData[`day_${i}`] = 'L'; // Lễ
-                    } else if (recordForDay.status === 'Leave') {
-                        rowData[`day_${i}`] = 'P'; // Phép
-                    } else {
-                        rowData[`day_${i}`] = '';
-                    }
-                } else {
-                    rowData[`day_${i}`] = '';
-                }
-            }
-
-            rowData.total_days = totalDays;
-            rowData.total_salary = totalDays * profile.rate;
-            const row = worksheet.addRow(rowData);
-            row.height = 30;
-
-            if (profileIndex === 0) startRowIndex = row.number;
-
-            const isAlternateRow = workerIndex % 2 !== 0;
-            const alternateFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9FAFB' } };
-
-            row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-                cell.border = cellBorder;
-                cell.alignment = { vertical: 'middle', horizontal: 'left' };
-
-                if (isAlternateRow) cell.fill = alternateFill;
-                if (colNumber > 3) cell.alignment = { vertical: 'middle', horizontal: 'center' };
-                if (colNumber === 4) cell.alignment = { vertical: 'middle', horizontal: 'right' };
-
-                if (colNumber > 4 && colNumber <= 4 + daysInMonth) {
-                    const day = colNumber - 4;
-                    if (weekends.includes(day)) {
-                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
-                    }
-                    if (cell.value === 1) {
-                        cell.font = { color: { argb: 'FF059669' }, bold: true };
-                    } else if (cell.value === 0.5) {
-                        cell.font = { color: { argb: 'FFD97706' }, bold: true };
-                    } else if (cell.value === 'L') {
-                        cell.font = { color: { argb: 'FFDC2626' }, bold: true };
-                    } else if (cell.value === 'P') {
-                        cell.font = { color: { argb: 'FF2563EB' }, bold: true };
-                    }
-                }
-            });
-
-            row.getCell('rate').numFmt = '#,##0';
-            row.getCell('total_salary').numFmt = '#,##0';
-            row.getCell('total_salary').font = { bold: true, color: { argb: 'FF1E3A8A' } };
-            row.getCell('total_salary').alignment = { vertical: 'middle', horizontal: 'right' };
-            row.getCell('total_days').font = { bold: true };
-        });
-
-        if (profileValues.length > 1 && startRowIndex !== -1) {
-            const endRowIndex = startRowIndex + profileValues.length - 1;
-            worksheet.mergeCells(`A${startRowIndex}:A${endRowIndex}`);
-            const mergedCell = worksheet.getCell(`A${startRowIndex}`);
-            mergedCell.alignment = { vertical: 'middle', horizontal: 'left' };
-            mergedCell.border = cellBorder;
-            if (workerIndex % 2 !== 0) {
-                mergedCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9FAFB' } };
-            }
-        }
-    });
-
-    return workbook;
-}
-
-function buildWorkerReportWorkbook(worker, dateRange, attendance) {
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Bảng Chấm Công');
-
-    // Column widths
-    worksheet.columns = [
-        { width: 22 }, // Thứ / Ngày
-        { width: 22 }, // Địa điểm
-        { width: 25 }, // Trạng thái
-        { width: 35 }  // Ghi chú
-    ];
-
-    // Colors
-    const blueColor = 'FF1E40AF';
-    const textDark = 'FF111827';
-    const textMuted = 'FF4B5563';
-    
-    // Add Logo if exists
-    const logoPath = path.join(__dirname, '../client/public/logo.png');
+// DOCX Generation Logic
+async function buildWorkerReportDocx(worker, dateRange, attendance) {
+    const logoPath = path.join(__dirname, '..', 'client', 'public', 'logo.png');
+    let logoImage = null;
     if (fs.existsSync(logoPath)) {
-        try {
-            const logoId = workbook.addImage({
-                buffer: fs.readFileSync(logoPath),
-                extension: 'png',
-            });
-            worksheet.addImage(logoId, {
-                tl: { col: 0.1, row: 0.1 },
-                ext: { width: 85, height: 85 }
-            });
-        } catch (e) {
-            console.warn('Could not add logo to Excel:', e.message);
-        }
+        logoImage = new ImageRun({
+            data: fs.readFileSync(logoPath),
+            transformation: { width: 55, height: 55 },
+        });
     }
 
-    // Header section
-    worksheet.mergeCells('B1:D1');
-    const compName = worksheet.getCell('B1');
-    compName.value = 'CÔNG TY TNHH CƠ KHÍ XÂY DỰNG VIỆT THÀNH';
-    compName.font = { name: 'Arial', bold: true, size: 14, color: { argb: blueColor } };
-    compName.alignment = { vertical: 'middle', horizontal: 'left' };
-
-    worksheet.mergeCells('B2:C2');
-    const compSub = worksheet.getCell('B2');
-    compSub.value = 'THƯƠNG MẠI & DỊCH VỤ VITHACON';
-    compSub.font = { name: 'Arial', bold: true, size: 11, color: { argb: textDark } };
-    compSub.alignment = { vertical: 'middle', horizontal: 'left' };
-
-    worksheet.mergeCells('D2:D2');
-    const titleMain = worksheet.getCell('D2');
-    titleMain.value = 'BẢNG CHẤM CÔNG';
-    titleMain.font = { name: 'Arial', bold: true, size: 24, color: { argb: blueColor } };
-    titleMain.alignment = { vertical: 'middle', horizontal: 'right' };
-
-    worksheet.mergeCells('B3:C3');
-    const contactInfo = worksheet.getCell('B3');
-    contactInfo.value = 'Website: vithacon.vn | Email: info@vithacon.vn';
-    contactInfo.font = { name: 'Arial', size: 10, color: { argb: textMuted } };
-    contactInfo.alignment = { vertical: 'middle', horizontal: 'left' };
-
-    worksheet.mergeCells('D3:D3');
-    const periodLabel = dateRange.label || `Từ ${dayjs(dateRange.start).format('DD/MM/YYYY')} đến ${dayjs(dateRange.end).format('DD/MM/YYYY')}`;
-    const periodCell = worksheet.getCell('D3');
-    periodCell.value = periodLabel;
-    periodCell.font = { name: 'Arial', bold: true, size: 12, color: { argb: textDark } };
-    periodCell.alignment = { vertical: 'middle', horizontal: 'right' };
-
-    worksheet.mergeCells('A4:D4');
-    worksheet.getRow(4).height = 8;
-    worksheet.getCell('A4').border = { bottom: { style: 'medium', color: { argb: blueColor } } };
-
-    // Worker info row
-    worksheet.addRow([]); // Spacer
-    const infoHeader = worksheet.addRow(['', 'HỌ VÀ TÊN', 'MÃ THỢ', 'THỜI GIAN']);
-    infoHeader.font = { name: 'Arial', bold: true, size: 10, color: { argb: textMuted } };
-    infoHeader.height = 20;
-
-    const workerCode = `VH-${String(worker.id).slice(-4).toUpperCase()}`;
-    const timeRange = `${dayjs(dateRange.start).format('DD/MM')} - ${dayjs(dateRange.end).format('DD/MM/YYYY')}`;
-    const infoValues = worksheet.addRow(['', worker.name.toUpperCase(), workerCode, timeRange]);
-    infoValues.font = { name: 'Arial', bold: true, size: 18, color: { argb: textDark } };
-    infoValues.height = 35;
-    
-    worksheet.addRow([]); // Spacer
-
-    // Table Header
-    const tableHeader = worksheet.addRow(['THỨ / NGÀY', 'ĐỊA ĐIỂM', 'TRẠNG THÁI', 'GHI CHÚ']);
-    tableHeader.height = 30;
-    tableHeader.eachCell((cell) => {
-        cell.font = { name: 'Arial', bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: blueColor } };
-        cell.alignment = { vertical: 'middle', horizontal: 'center' };
-        cell.border = { 
-            top: { style: 'thin' }, left: { style: 'thin' }, 
-            bottom: { style: 'thin' }, right: { style: 'thin' } 
-        };
-    });
-
-    // Data rows
-    let totalFull = 0;
-    let totalHoliday = 0;
+    const navy = '1E3A8A';
+    const slate = '475569';
+    const borderGray = 'E2E8F0';
 
     const startDate = dayjs(dateRange.start);
     const endDate = dayjs(dateRange.end);
-    const days = endDate.diff(startDate, 'day') + 1;
+    const daysCount = endDate.diff(startDate, 'day') + 1;
     const vnDays = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
 
-    for (let i = 0; i < days; i++) {
+    const headerTable = new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: { top: BorderStyle.NONE, bottom: BorderStyle.NONE, left: BorderStyle.NONE, right: BorderStyle.NONE, insideHorizontal: BorderStyle.NONE, insideVertical: BorderStyle.NONE },
+        rows: [
+            new TableRow({
+                children: [
+                    new TableCell({
+                        width: { size: 15, type: WidthType.PERCENTAGE },
+                        children: [new Paragraph({ children: [logoImage] })],
+                    }),
+                    new TableCell({
+                        width: { size: 85, type: WidthType.PERCENTAGE },
+                        children: [
+                            new Paragraph({
+                                children: [new TextRun({ text: 'CÔNG TY TNHH CƠ KHÍ XÂY DỰNG THƯƠNG MẠI VIỆT THÀNH', bold: true, size: 22, color: navy })],
+                            }),
+                            new Paragraph({
+                                children: [new TextRun({ text: 'Địa chỉ: Milano ML127 KĐT Ecocity Premia, P. Tân An, Đắk Lắk', size: 16, color: slate })],
+                            }),
+                            new Paragraph({
+                                children: [new TextRun({ text: 'Điện thoại: 0972 524 799  |  Mail: vietthanh.me.con@gmail.com', size: 16, color: slate })],
+                            }),
+                        ],
+                        verticalAlign: VerticalAlign.CENTER,
+                    }),
+                ],
+            }),
+        ],
+    });
+
+    const tableRows = [
+        new TableRow({
+            children: [
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'THỨ / NGÀY', bold: true, color: 'FFFFFF' })], alignment: AlignmentType.CENTER })], shading: { fill: navy }, verticalAlign: VerticalAlign.CENTER }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'ĐỊA ĐIỂM CÔNG TÁC', bold: true, color: 'FFFFFF' })], alignment: AlignmentType.CENTER })], shading: { fill: navy }, verticalAlign: VerticalAlign.CENTER }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'TRẠNG THÁI', bold: true, color: 'FFFFFF' })], alignment: AlignmentType.CENTER })], shading: { fill: navy }, verticalAlign: VerticalAlign.CENTER }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'GHI CHÚ', bold: true, color: 'FFFFFF' })], alignment: AlignmentType.CENTER })], shading: { fill: navy }, verticalAlign: VerticalAlign.CENTER }),
+            ],
+            height: { value: 500, rule: HeightRule.ATLEAST },
+        }),
+    ];
+
+    let totalFull = 0;
+    for (let i = 0; i < daysCount; i++) {
         const d = startDate.add(i, 'day');
-        const dateStr = d.format('YYYY-MM-DD');
-        const dayRecord = attendance.find(a => a.date === dateStr);
-        const record = dayRecord?.records.find(r => String(r.workerId) === String(worker.id));
-
-        const row = worksheet.addRow([
-            `${vnDays[d.day()]} (${d.format('DD/MM')})`,
-            record?.location || '-',
-            '', // Status
-            record?.note || '-'
-        ]);
-        row.height = 35;
-
-        const statusCell = row.getCell(3);
-        if (record) {
-            if (record.status === 'Full') {
-                statusCell.value = 'ĐI LÀM (CÔNG)';
-                statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECFDF5' } };
-                statusCell.font = { color: { argb: 'FF065F46' }, bold: true, size: 10 };
-                totalFull += 1;
-            } else if (record.status === 'Half') {
-                statusCell.value = 'ĐI LÀM (1/2 CÔNG)';
-                statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECFDF5' } };
-                statusCell.font = { color: { argb: 'FF065F46' }, bold: true, size: 10 };
-                totalFull += 0.5;
-            } else if (record.status === 'Holiday') {
-                statusCell.value = 'NGHỈ LỄ';
-                statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF7ED' } };
-                statusCell.font = { color: { argb: 'FFC2410C' }, bold: true, size: 10 };
-                totalHoliday += 1;
-            } else if (record.status === 'Leave') {
-                statusCell.value = 'NGHỈ PHÉP';
-                statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEFF6FF' } };
-                statusCell.font = { color: { argb: 'FF1D4ED8' }, bold: true, size: 10 };
-            } else {
-                statusCell.value = '-';
-            }
-        } else {
-            statusCell.value = '-';
+        const dayRec = attendance.find(a => a.date === d.format('YYYY-MM-DD'));
+        const rec = dayRec?.records.find(r => String(r.workerId) === String(worker.id));
+        
+        let statusText = '-';
+        let statusColor = '64748B';
+        if (rec) {
+            if (rec.status === 'Full') { statusText = 'CÔNG'; statusColor = '15803d'; totalFull += 1; }
+            else if (rec.status === 'Half') { statusText = '1/2 CÔNG'; statusColor = 'B45309'; totalFull += 0.5; }
+            else if (rec.status === 'Holiday') { statusText = 'NGHỈ LỄ'; statusColor = 'B91C1C'; }
         }
 
-        row.eachCell((cell, colNumber) => {
-            cell.alignment = { vertical: 'middle', horizontal: colNumber === 3 ? 'center' : 'left' };
-            cell.border = { 
-                top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-                left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-                bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-                right: { style: 'thin', color: { argb: 'FFE5E7EB' } }
-            };
-        });
+        tableRows.push(new TableRow({
+            children: [
+                new TableCell({ children: [new Paragraph({ text: `${vnDays[d.day()]} (${d.format('DD/MM')})` })], verticalAlign: VerticalAlign.CENTER, borders: { left: BorderStyle.NONE, right: BorderStyle.NONE, top: { style: BorderStyle.SINGLE, color: borderGray }, bottom: { style: BorderStyle.SINGLE, color: borderGray } } }),
+                new TableCell({ children: [new Paragraph({ text: rec?.location || '-', alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER, borders: { left: BorderStyle.NONE, right: BorderStyle.NONE, top: { style: BorderStyle.SINGLE, color: borderGray }, bottom: { style: BorderStyle.SINGLE, color: borderGray } } }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: statusText, bold: true, color: statusColor })], alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER, borders: { left: BorderStyle.NONE, right: BorderStyle.NONE, top: { style: BorderStyle.SINGLE, color: borderGray }, bottom: { style: BorderStyle.SINGLE, color: borderGray } } }),
+                new TableCell({ children: [new Paragraph({ text: rec?.note || '-', alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER, borders: { left: BorderStyle.NONE, right: BorderStyle.NONE, top: { style: BorderStyle.SINGLE, color: borderGray }, bottom: { style: BorderStyle.SINGLE, color: borderGray } } }),
+            ],
+            height: { value: 450, rule: HeightRule.ATLEAST },
+        }));
     }
 
-    worksheet.addRow([]); // Spacer
-    worksheet.addRow([]); // Spacer
-
-    // Summary section
-    const summaryHeader = worksheet.addRow(['', '', 'TỔNG NGÀY CÔNG', 'TỔNG NGÀY NGHỈ LỄ', 'XÁC NHẬN']);
-    summaryHeader.font = { name: 'Arial', bold: true, size: 10, color: { argb: 'FF6B7280' } };
-    summaryHeader.alignment = { vertical: 'middle', horizontal: 'center' };
-
-    const summaryValues = worksheet.addRow(['', '', totalFull, totalHoliday, '✓']);
-    summaryValues.height = 55;
-    summaryValues.alignment = { vertical: 'middle', horizontal: 'center' };
-    
-    const fullCell = summaryValues.getCell(3);
-    fullCell.font = { name: 'Arial', bold: true, size: 28, color: { argb: 'FF10B981' } };
-    fullCell.border = { outline: true, bottom: { style: 'medium', color: { argb: 'FF10B981' } } };
-    
-    const holidayCell = summaryValues.getCell(4);
-    holidayCell.font = { name: 'Arial', bold: true, size: 28, color: { argb: 'FFF59E0B' } };
-    holidayCell.border = { outline: true, bottom: { style: 'medium', color: { argb: 'FFF59E0B' } } };
-    
-    const signCell = summaryValues.getCell(5);
-    signCell.font = { name: 'Arial', bold: true, size: 28, color: { argb: textDark } };
-
-    // Footer
-    worksheet.addRow([]);
-    worksheet.addRow([]);
-    const footerDate = worksheet.addRow(['', '', '', `Ngày ...... tháng ...... năm 202...`]);
-    footerDate.getCell(4).alignment = { horizontal: 'center' };
-    footerDate.getCell(4).font = { italic: true };
-
-    const signatureRow = worksheet.addRow(['', 'Người lập biểu', '', 'Giám đốc xác nhận']);
-    signatureRow.font = { bold: true };
-    signatureRow.eachCell(cell => cell.alignment = { horizontal: 'center' });
-
-    return workbook;
+    const doc = new Document({
+        styles: { default: { document: { run: { font: 'Arial', size: 20 } } } },
+        sections: [{
+            children: [
+                headerTable,
+                new Paragraph({ border: { bottom: { color: navy, size: 6, style: BorderStyle.SINGLE } }, spacing: { after: 300 } }),
+                new Paragraph({ children: [new TextRun({ text: 'BẢNG CHẤM CÔNG CHI TIẾT', bold: true, size: 40, color: '111827' })], alignment: AlignmentType.CENTER, spacing: { before: 200, after: 100 } }),
+                new Paragraph({
+                    children: [
+                        new TextRun({ text: 'NHÂN VIÊN: ', size: 20, color: slate }),
+                        new TextRun({ text: worker.name.toUpperCase(), bold: true, size: 20, color: '000000' }),
+                        new TextRun({ text: '    |    MÃ THỢ: ', size: 20, color: slate }),
+                        new TextRun({ text: `VH-${String(worker.id).padStart(3, '0')}`, bold: true, size: 20, color: '000000' }),
+                    ],
+                    alignment: AlignmentType.CENTER,
+                }),
+                new Paragraph({
+                    children: [new TextRun({ text: `Kỳ báo cáo: Từ ${dayjs(dateRange.start).format('DD/MM/YYYY')} đến ${dayjs(dateRange.end).format('DD/MM/YYYY')}`, italic: true, size: 16, color: slate })],
+                    alignment: AlignmentType.CENTER,
+                    spacing: { after: 400 },
+                }),
+                new Table({ rows: tableRows, width: { size: 100, type: WidthType.PERCENTAGE } }),
+                new Paragraph({ text: '', spacing: { before: 300 } }),
+                new Paragraph({
+                    children: [
+                        new TextRun({ text: `Tổng số công: `, bold: true, size: 24, color: slate }),
+                        new TextRun({ text: `${totalFull}`, bold: true, size: 36, color: navy }),
+                    ],
+                    alignment: AlignmentType.RIGHT,
+                    spacing: { after: 600 },
+                }),
+                new Table({
+                    width: { size: 100, type: WidthType.PERCENTAGE },
+                    borders: { top: BorderStyle.NONE, bottom: BorderStyle.NONE, left: BorderStyle.NONE, right: BorderStyle.NONE, insideHorizontal: BorderStyle.NONE, insideVertical: BorderStyle.NONE },
+                    rows: [
+                        new TableRow({
+                            children: [
+                                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'NGƯỜI LẬP BIỂU', bold: true, size: 20 })], alignment: AlignmentType.CENTER })] }),
+                                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'GIÁM ĐỐC XÁC NHẬN', bold: true, size: 20 })], alignment: AlignmentType.CENTER })] }),
+                            ],
+                        }),
+                        new TableRow({
+                            children: [
+                                new TableCell({ children: [new Paragraph({ text: '', spacing: { before: 1200 } })] }),
+                                new TableCell({ children: [new Paragraph({ text: '', spacing: { before: 1200 } })] }),
+                            ],
+                        }),
+                    ],
+                }),
+            ],
+        }],
+    });
+    return await Packer.toBuffer(doc);
 }
 
+// Server Core
 async function createServer(options = {}) {
     const app = express();
-    const port = options.port || Number(process.env.PORT) || 5000;
-    const host = options.host || process.env.HOST || '0.0.0.0';
-    const dataDir = options.dataDir || process.env.ATTENDANCE_DATA_DIR || path.join(__dirname, 'data');
-    const store = await createStore({ ...options, dataDir });
-    const auth = createAuthMiddleware({
-        authRequired: options.authRequired,
-        jwtSecret: options.jwtSecret
-    });
-    const jwtSecret = options.jwtSecret || process.env.JWT_SECRET || 'dev-insecure-secret-change-me';
-    const corsOrigin = process.env.CORS_ORIGIN || '*';
-
-    app.use(helmet({
-        crossOriginResourcePolicy: false
-    }));
-    app.use(cors({
-        origin: corsOrigin === '*' ? true : corsOrigin.split(',').map((item) => item.trim()),
-        credentials: true
-    }));
+    const port = 5005; 
+    const store = await createStore(options);
+    app.use(cors());
     app.use(bodyParser.json());
-    app.use(auth.attachUserIfPresent);
 
-    app.get('/api/health', (req, res) => {
-        res.json({ ok: true, driver: store.driver, host, port, authRequired: auth.authRequired });
-    });
+    // Workers API
+    app.get('/api/workers', async (req, res) => res.json(await store.getWorkers()));
+    app.post('/api/workers', async (req, res) => res.json(await store.addWorker(req.body)));
+    app.put('/api/workers/:id', async (req, res) => res.json(await store.updateWorker(req.params.id, req.body)));
 
-    app.get('/api/auth/status', async (req, res) => {
-        const userCount = await store.getUserCount();
-        res.json({
-            authRequired: auth.authRequired,
-            hasUsers: userCount > 0,
-            bootstrapAllowed: userCount === 0
-        });
-    });
-
-    app.post('/api/auth/bootstrap', async (req, res) => {
-        const userCount = await store.getUserCount();
-        if (userCount > 0) {
-            res.status(409).json({ message: 'Bootstrap already completed' });
-            return;
-        }
-
-        const { email, password, fullName } = req.body || {};
-        if (!email || !password) {
-            res.status(400).json({ message: 'Email and password are required' });
-            return;
-        }
-
-        const user = await store.createUser({
-            email: normalizeEmail(email),
-            fullName: fullName || 'Administrator',
-            passwordHash: hashPassword(password),
-            role: 'admin',
-            isActive: true
-        });
-
-        const token = signAccessToken(user, jwtSecret);
-        res.status(201).json({
-            token,
-            user: {
-                id: user.id,
-                email: user.email,
-                fullName: user.fullName,
-                role: user.role
-            }
-        });
-    });
-
-    app.post('/api/auth/login', async (req, res) => {
-        const { email, password } = req.body || {};
-        if (!email || !password) {
-            res.status(400).json({ message: 'Email and password are required' });
-            return;
-        }
-
-        const user = await store.findUserByEmail(email);
-        if (!user || !user.isActive || !verifyPassword(password, user.passwordHash)) {
-            res.status(401).json({ message: 'Invalid credentials' });
-            return;
-        }
-
-        const token = signAccessToken(user, jwtSecret);
-        res.json({
-            token,
-            user: {
-                id: user.id,
-                email: user.email,
-                fullName: user.fullName,
-                role: user.role
-            }
-        });
-    });
-
-    app.get('/api/auth/me', auth.requireAuth, async (req, res) => {
-        const user = await store.getUserById(req.auth.sub);
-        if (!user || !user.isActive) {
-            res.status(401).json({ message: 'User not found' });
-            return;
-        }
-
-        res.json({
-            id: user.id,
-            email: user.email,
-            fullName: user.fullName,
-            role: user.role
-        });
-    });
-
-    app.get('/api/workers', auth.requireAuth, async (req, res) => {
-        res.json(await store.getWorkers());
-    });
-
-    app.post('/api/workers', auth.requireAuth, async (req, res) => {
-        const newWorker = await store.createWorker(req.body);
-        res.status(201).json(newWorker);
-    });
-
-    app.put('/api/workers/:id', auth.requireAuth, async (req, res) => {
-        const worker = await store.updateWorker(req.params.id, req.body);
-        if (!worker) {
-            res.status(404).json({ message: 'Worker not found' });
-            return;
-        }
-        res.json(worker);
-    });
-
-    app.get('/api/settings', auth.requireAuth, async (req, res) => {
-        res.json(await store.getSettings());
-    });
-
-    app.post('/api/settings', auth.requireAuth, async (req, res) => {
-        await store.saveSettings(req.body);
-        res.json({ message: 'Settings saved successfully' });
-    });
-
-    app.get('/api/attendance', auth.requireAuth, async (req, res) => {
-        res.json(await store.getAttendance());
-    });
-
-    app.post('/api/attendance', auth.requireAuth, async (req, res) => {
+    // Attendance API
+    app.get('/api/attendance', async (req, res) => res.json(await store.getAttendance()));
+    app.post('/api/attendance', async (req, res) => {
         const { date, records } = req.body;
-        await store.replaceAttendanceForDate(date, records);
-        res.json({ message: 'Attendance saved successfully' });
+        res.json(await store.saveAttendance(date, records));
     });
-
-    app.post('/api/attendance/record', auth.requireAuth, async (req, res) => {
+    app.post('/api/attendance/record', async (req, res) => {
         const { date, workerId, status, dailyRate, position, location, note } = req.body;
-        await store.upsertAttendanceRecord(date, workerId, {
-            status,
-            dailyRate,
-            position,
-            location,
-            note
-        });
-        res.json({ message: 'Record updated' });
+        res.json(await store.saveAttendanceRecord(date, workerId, status, dailyRate, position, location, note));
     });
 
-    app.get('/api/backup', auth.requireAuth, async (req, res) => {
-        try {
-            res.json(await store.getBackup());
-        } catch (error) {
-            res.status(500).json({ error: error.message });
-        }
-    });
+    // Settings API
+    app.get('/api/settings', async (req, res) => res.json(await store.getSettings()));
+    app.post('/api/settings', async (req, res) => res.json(await store.saveSettings(req.body)));
 
-    app.post('/api/restore', auth.requireAuth, async (req, res) => {
-        try {
-            await store.restoreBackup(req.body);
-            res.json({ message: 'Restore completed successfully' });
-        } catch (error) {
-            res.status(500).json({ error: error.message });
-        }
-    });
+    // Auth Status (Stub)
+    app.get('/api/auth/status', (req, res) => res.json({ authRequired: false }));
 
-    app.get('/api/export', auth.requireAuth, async (req, res) => {
+    // Export Excel (All workers)
+    app.get('/api/export', async (req, res) => {
         try {
             const { month, year } = req.query;
             const workers = await store.getWorkers();
             const attendance = await store.getAttendance();
-            const workbook = buildMonthlyWorkbook(month, year, workers, attendance);
-
-            const buffer = await workbook.xlsx.writeBuffer();
-            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-            res.setHeader('Content-Disposition', `attachment; filename="Bang_Cham_Cong_${month}_${year}.xlsx"`);
-            res.send(buffer);
-        } catch (error) {
-            console.error('Export monthly error:', error);
-            if (!res.headersSent) {
-                res.status(500).json({ message: 'Internal server error during export', error: error.message });
-            }
-        }
-    });
-
-    app.get('/api/export/worker', auth.requireAuth, async (req, res) => {
-        try {
-            const { workerId, startDate, endDate, label } = req.query;
-            if (!workerId || !startDate || !endDate) {
-                return res.status(400).json({ message: 'Missing parameters' });
-            }
-
-            const workers = await store.getWorkers();
-            const worker = workers.find(w => w.id === workerId);
-            if (!worker) return res.status(404).json({ message: 'Worker not found' });
-
-            const attendance = await store.getAttendance();
-            const workbook = buildWorkerReportWorkbook(worker, { start: startDate, end: endDate, label }, attendance);
-
-            const buffer = await workbook.xlsx.writeBuffer();
-            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet(`Tháng ${month}-${year}`);
             
-            const rawName = worker.name || 'Cong_Nhan';
-            const safeName = rawName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '_');
-            res.setHeader('Content-Disposition', `attachment; filename="Bao_Cao_${safeName}.xlsx"`);
-            res.send(buffer);
-        } catch (error) {
-            console.error('Export worker error:', error);
-            if (!res.headersSent) {
-                res.status(500).json({ message: 'Internal server error during worker export', error: error.message });
+            sheet.addRow(['STT', 'Họ và tên', ...Array.from({ length: 31 }, (_, i) => i + 1), 'Tổng công']);
+            workers.forEach((w, idx) => {
+                let total = 0;
+                const rowData = [idx + 1, w.name];
+                for(let d=1; d<=31; d++) {
+                    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                    const att = attendance.find(a => a.date === dateStr);
+                    const rec = att?.records.find(r => String(r.workerId) === String(w.id));
+                    if (rec?.status === 'Full') { total += 1; rowData.push(1); }
+                    else if (rec?.status === 'Half') { total += 0.5; rowData.push(0.5); }
+                    else rowData.push('');
+                }
+                rowData.push(total);
+                sheet.addRow(rowData);
+            });
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', `attachment; filename=Bang_Cham_Cong_Thang_${month}.xlsx`);
+            await workbook.xlsx.write(res);
+            res.end();
+        } catch (e) { res.status(500).send(e.message); }
+    });
+
+    // Export Excel (Individual worker)
+    app.get('/api/export/worker', async (req, res) => {
+        try {
+            const { workerId, startDate, endDate } = req.query;
+            const workers = await store.getWorkers();
+            const worker = workers.find(w => String(w.id) === String(workerId));
+            const attendance = await store.getAttendance();
+            
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet('Bao Cao');
+            sheet.addRow(['THỨ / NGÀY', 'ĐỊA ĐIỂM', 'TRẠNG THÁI', 'GHI CHÚ']);
+            
+            let current = dayjs(startDate);
+            const end = dayjs(endDate);
+            let total = 0;
+            while(current.isBefore(end) || current.isSame(end)) {
+                const dateStr = current.format('YYYY-MM-DD');
+                const att = attendance.find(a => a.date === dateStr);
+                const rec = att?.records.find(r => String(r.workerId) === String(workerId));
+                let status = '-';
+                if(rec?.status === 'Full') { status = 'CÔNG'; total += 1; }
+                else if(rec?.status === 'Half') { status = '1/2 CÔNG'; total += 0.5; }
+                
+                sheet.addRow([current.format('DD/MM/YYYY'), rec?.location || '-', status, rec?.note || '-']);
+                current = current.add(1, 'day');
             }
+            sheet.addRow([]);
+            sheet.addRow(['TỔNG CỘNG', '', total]);
+            
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', `attachment; filename=Bao_Cao_Excel_${worker.name}.xlsx`);
+            await workbook.xlsx.write(res);
+            res.end();
+        } catch (e) { res.status(500).send(e.message); }
+    });
+
+    // Export Word Premium
+    app.get('/api/export/worker/docx', async (req, res) => {
+        try {
+            const { workerId, startDate, endDate } = req.query;
+            const workers = await store.getWorkers();
+            const worker = workers.find(w => String(w.id) === String(workerId));
+            const attendance = await store.getAttendance();
+            const buffer = await buildWorkerReportDocx(worker, { start: startDate, end: endDate }, attendance);
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+            res.setHeader('Content-Disposition', 'attachment; filename=Bao_Cao_Hoan_Thien.docx');
+            res.end(buffer, 'binary');
+        } catch (e) {
+            console.error(e);
+            res.status(500).send(e.message);
         }
     });
 
-    return { app, port, host, dataDir, store };
+    return { app, port };
 }
 
 async function startServer(options = {}) {
-    const { app, port, host, dataDir, store } = await createServer(options);
-
-    return new Promise((resolve, reject) => {
-        const server = app.listen(port, host, () => {
-            console.log(`Server is running on http://${host}:${port}`);
-            console.log(`Attendance data driver: ${store.driver}`);
-            console.log(`Attendance data directory: ${dataDir}`);
-            resolve(server);
-        });
-
-        server.on('error', reject);
-    });
+    const { app, port } = await createServer(options);
+    return app.listen(port, '0.0.0.0', () => { console.log(`Server started on ${port}`); });
 }
 
 module.exports = { createServer, startServer };
-
-if (require.main === module) {
-    startServer().catch((error) => {
-        console.error('Failed to start attendance server:', error);
-        process.exit(1);
-    });
-}
+if (require.main === module) startServer();

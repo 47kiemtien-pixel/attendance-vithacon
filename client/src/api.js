@@ -12,7 +12,7 @@ function resolveApiUrl() {
         return import.meta.env.VITE_API_URL;
     }
 
-    return 'http://127.0.0.1:5000/api';
+    return 'http://127.0.0.1:5005/api';
 }
 
 const API_URL = resolveApiUrl();
@@ -127,23 +127,71 @@ export const downloadReport = async (month, year) => {
 };
 
 export const downloadWorkerReport = async (workerId, startDate, endDate, label) => {
-    const response = await apiClient.get('/export/worker', {
-        params: { workerId, startDate, endDate, label },
-        responseType: 'blob'
-    });
+    try {
+        const response = await apiClient.get('/export/worker', {
+            params: { workerId, startDate, endDate, label },
+            responseType: 'blob'
+        });
 
-    const blob = new Blob([response.data], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
+        const blob = new Blob([response.data], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
 
-    link.href = url;
-    link.download = `Bao_Cao_Ca_Nhan.xlsx`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
+        link.href = url;
+        link.download = `Bao_Cao_Ca_Nhan.xlsx`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        if (error.response && error.response.data instanceof Blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    try {
+                        const errorData = JSON.parse(reader.result);
+                        const msg = errorData.message || errorData.error || 'Lỗi không xác định từ máy chủ';
+                        alert(`LỖI HỆ THỐNG: ${msg}`);
+                        reject(new Error(msg));
+                    } catch (e) {
+                        alert(`Lỗi máy chủ (500). Vui lòng kiểm tra lại dữ liệu.`);
+                        reject(error);
+                    }
+                };
+                reader.onerror = () => reject(error);
+                reader.readAsText(error.response.data);
+            });
+        } else {
+            throw error;
+        }
+    }
+};
+
+export const downloadWorkerReportDocx = async (workerId, startDate, endDate, label) => {
+    try {
+        const response = await apiClient.get('/export/worker/docx', {
+            params: { workerId, startDate, endDate, label },
+            responseType: 'blob'
+        });
+
+        const blob = new Blob([response.data], {
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+
+        link.href = url;
+        link.download = `Bao_Cao_Cham_Cong.docx`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        alert('Lỗi khi tải file Word. Vui lòng thử lại.');
+        throw error;
+    }
 };
 
 export const exportBackup = async () => {

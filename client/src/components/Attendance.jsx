@@ -67,16 +67,24 @@ const Attendance = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [workersRes, attendanceRes, settingsRes] = await Promise.all([
-        getWorkers(),
-        getAttendance(),
-        getSettings()
-      ]);
-      setWorkers(workersRes);
-      setAttendance(attendanceRes);
-      setPresets(settingsRes?.presetJobs || []);
+      // Fetch workers first as priority
+      const workersRes = await getWorkers();
+      setWorkers(workersRes || []);
+
+      // Then try to fetch others
+      try {
+        const [attendanceRes, settingsRes] = await Promise.all([
+          getAttendance(),
+          getSettings()
+        ]);
+        setAttendance(attendanceRes || []);
+        setPresets(settingsRes?.presetJobs || []);
+      } catch (innerError) {
+        console.error('Error fetching supplementary data:', innerError);
+      }
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Critical error fetching workers:', error);
+      alert('Không thể tải danh sách công nhân. Vui lòng kiểm tra kết nối máy chủ.');
     } finally {
       setLoading(false);
     }

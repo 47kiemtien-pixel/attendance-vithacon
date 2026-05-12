@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { downloadReport, downloadWorkerReport, getWorkers } from '../api';
+import { downloadReport, downloadWorkerReport, downloadWorkerReportDocx, getWorkers } from '../api';
 import dayjs from 'dayjs';
-import { FileSpreadsheet, Download, CalendarRange, FolderDown, User, Calendar } from 'lucide-react';
+import { FileSpreadsheet, Download, CalendarRange, FolderDown, User, Calendar, FileText } from 'lucide-react';
 
 const Reports = () => {
   const currentMonth = dayjs().format('MM');
@@ -49,6 +49,25 @@ const Reports = () => {
     downloadWorkerReport(selectedWorkerId, startDate, endDate, label).catch((error) => {
       console.error('Error exporting worker report:', error);
       alert('Không thể tải file Excel. Vui lòng thử lại.');
+    });
+  };
+
+  const handleWorkerExportDocx = () => {
+    if (!selectedWorkerId) {
+      alert('Vui lòng chọn công nhân.');
+      return;
+    }
+
+    let label = '';
+    if (exportType === 'week') {
+      label = `Tuần ${dayjs(startDate).format('DD/MM')} - ${dayjs(endDate).format('DD/MM/YYYY')}`;
+    } else if (exportType === 'month') {
+      label = `Tháng ${dayjs(startDate).format('MM/YYYY')}`;
+    }
+
+    downloadWorkerReportDocx(selectedWorkerId, startDate, endDate, label).catch((error) => {
+      console.error('Error exporting worker Word report:', error);
+      alert('Không thể tải file Word. Vui lòng thử lại.');
     });
   };
 
@@ -160,9 +179,14 @@ const Reports = () => {
               </div>
             </div>
 
-            <button className="btn btn-primary report-download-btn" style={{ marginTop: '1.5rem' }} onClick={handleWorkerExport}>
-              <Download size={18} /> Tải báo cáo cá nhân
-            </button>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '1.5rem' }}>
+              <button className="btn btn-primary report-download-btn" style={{ flex: 1 }} onClick={handleWorkerExport}>
+                <FileSpreadsheet size={18} /> Tải Excel
+              </button>
+              <button className="btn btn-outline report-download-btn" style={{ flex: 1 }} onClick={handleWorkerExportDocx}>
+                <FileText size={18} /> Tải Word (Mới)
+              </button>
+            </div>
           </div>
         </div>
       </section>
