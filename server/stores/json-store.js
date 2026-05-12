@@ -70,7 +70,7 @@ function createJsonStore(dataDir) {
 
             dayRecord.records = dayRecord.records.filter((record) => record.workerId !== workerId);
 
-            if (recordData && recordData.status && recordData.status !== 'Absent') {
+            if (recordData && recordData.status) {
                 dayRecord.records.push({ workerId, ...recordData });
             }
 

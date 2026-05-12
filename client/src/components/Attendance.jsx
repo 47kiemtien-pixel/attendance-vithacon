@@ -269,13 +269,15 @@ const Attendance = () => {
                         status === 'Full' ? 'full' : 
                         status === 'Half' ? 'half' : 
                         status === 'Holiday' ? 'holiday' : 
-                        status === 'Leave' ? 'leave' : '';
+                        status === 'Leave' ? 'leave' : 
+                        status === 'Absent' ? 'absent' : '';
                       
                       const label = 
                         status === 'Full' ? 'Đủ công' : 
                         status === 'Half' ? 'Nửa công' : 
                         status === 'Holiday' ? 'Nghỉ lễ' : 
-                        status === 'Leave' ? 'Nghỉ phép' : '';
+                        status === 'Leave' ? 'Nghỉ phép' : 
+                        status === 'Absent' ? 'Nghỉ' : '';
 
                       return (
                         <td key={item.key} className={item.isOutsideMonth ? 'date-cell-muted' : ''}>
@@ -321,7 +323,7 @@ const Attendance = () => {
           <div className="modal-content attendance-modal">
             <div className="modal-header">
               <div>
-                <div className="panel-kicker">Chấm công ngày {selectedCell.day}/{month}/{year}</div>
+                <div className="panel-kicker">Chấm công ngày {selectedCell.day}/{year}</div>
                 <h3>{selectedCell.worker.name}</h3>
               </div>
               <button className="close-btn" onClick={() => setIsModalOpen(false)}>

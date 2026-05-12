@@ -152,13 +152,17 @@ async function createServer(options = {}) {
 
     // Workers
     app.get('/api/workers', async (req, res) => res.json(await store.getWorkers()));
-    app.post('/api/workers', async (req, res) => res.json(await store.addWorker(req.body)));
+    app.post('/api/workers', async (req, res) => res.json(await store.createWorker(req.body))); // Fixed: createWorker
     app.put('/api/workers/:id', async (req, res) => res.json(await store.updateWorker(req.params.id, req.body)));
 
     // Attendance
     app.get('/api/attendance', async (req, res) => res.json(await store.getAttendance()));
-    app.post('/api/attendance', async (req, res) => res.json(await store.saveAttendance(req.body.date, req.body.records)));
-    app.post('/api/attendance/record', async (req, res) => res.json(await store.saveAttendanceRecord(req.body.date, req.body.workerId, req.body.status, req.body.dailyRate, req.body.position, req.body.location, req.body.note)));
+    app.post('/api/attendance', async (req, res) => res.json(await store.replaceAttendanceForDate(req.body.date, req.body.records))); // Fixed: replaceAttendanceForDate
+    app.post('/api/attendance/record', async (req, res) => {
+        const { date, workerId, status, dailyRate, position, location, note } = req.body;
+        const result = await store.upsertAttendanceRecord(date, workerId, { status, dailyRate, position, location, note }); // Fixed: upsertAttendanceRecord
+        res.json(result || { success: true });
+    });
 
     // Settings
     app.get('/api/settings', async (req, res) => res.json(await store.getSettings()));
@@ -195,20 +199,17 @@ async function createServer(options = {}) {
         } catch (e) { console.error('Excel Export Error:', e); res.status(500).send(e.message); }
     });
 
-    // Export Excel (Individual) - FIXED
+    // Export Excel (Individual)
     app.get('/api/export/worker', async (req, res) => {
         try {
             const { workerId, startDate, endDate } = req.query;
             if (!workerId) return res.status(400).send('Worker ID is required');
-            
             const workers = await store.getWorkers();
             const worker = workers.find(w => String(w.id) === String(workerId));
             if (!worker) return res.status(404).send('Worker not found');
-            
             const attendance = await store.getAttendance();
             const workbook = new ExcelJS.Workbook();
             const sheet = workbook.addWorksheet('Bao Cao');
-            
             sheet.addRow(['THỨ / NGÀY', 'ĐỊA ĐIỂM', 'TRẠNG THÁI', 'GHI CHÚ']);
             let current = dayjs(startDate);
             const end = dayjs(endDate);
@@ -225,15 +226,11 @@ async function createServer(options = {}) {
             }
             sheet.addRow([]);
             sheet.addRow(['TỔNG CỘNG', '', total]);
-            
             res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             res.setHeader('Content-Disposition', `attachment; filename=Bao_Cao_Excel_${encodeURIComponent(worker.name)}.xlsx`);
             await workbook.xlsx.write(res);
             res.end();
-        } catch (e) { 
-            console.error('Individual Excel Export Error:', e);
-            res.status(500).send(e.message); 
-        }
+        } catch (e) { console.error('Individual Excel Export Error:', e); res.status(500).send(e.message); }
     });
 
     // Export Word
