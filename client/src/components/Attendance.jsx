@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { getWorkers, getAttendance, saveAttendanceRecord, getSettings } from '../api';
 import dayjs from 'dayjs';
-import { CalendarCheck, ChevronLeft, ChevronRight, X, User, Briefcase, MapPin, Wallet } from 'lucide-react';
+import { 
+  CalendarCheck, ChevronLeft, ChevronRight, X, User, 
+  Briefcase, MapPin, Wallet, StickyNote, CircleDollarSign 
+} from 'lucide-react';
 
 const formatCurrency = (val) => {
   if (val === null || val === undefined || val === '') return '';
@@ -37,6 +40,7 @@ const Attendance = () => {
   const [editRate, setEditRate] = useState('');
   const [editPosition, setEditPosition] = useState('');
   const [editLocation, setEditLocation] = useState('');
+  const [editNote, setEditNote] = useState('');
   const [selectedPresetId, setSelectedPresetId] = useState('');
   const [saving, setSaving] = useState(false);
   const [viewMode, setViewMode] = useState('week');
@@ -127,6 +131,7 @@ const Attendance = () => {
     setEditRate(record?.dailyRate ?? '');
     setEditPosition(record?.position ?? '');
     setEditLocation(record?.location ?? '');
+    setEditNote(record?.note ?? '');
     setSelectedPresetId('');
     setIsModalOpen(true);
   };
@@ -141,7 +146,8 @@ const Attendance = () => {
         editStatus,
         Number(editRate) || 0,
         editPosition,
-        editLocation
+        editLocation,
+        editNote
       );
       await fetchData();
       setIsModalOpen(false);
@@ -193,6 +199,8 @@ const Attendance = () => {
         <div className="attendance-legend">
           <span><i className="legend-box legend-full" /> Đủ công</span>
           <span><i className="legend-box legend-half" /> Nửa công</span>
+          <span><i className="legend-box legend-holiday" /> Nghỉ lễ</span>
+          <span><i className="legend-box legend-leave" /> Nghỉ phép</span>
           <span><i className="legend-box legend-empty" /> Chưa chấm</span>
         </div>
       </section>
@@ -248,8 +256,18 @@ const Attendance = () => {
                     </td>
                     {visibleDateHeaders.map((item) => {
                       const record = getDayRecord(worker.id, item.iso);
-                      const tone = record?.status === 'Full' ? 'full' : record?.status === 'Half' ? 'half' : '';
-                      const text = record?.status === 'Full' ? '1' : record?.status === 'Half' ? '0.5' : '';
+                      const status = record?.status;
+                      const tone = 
+                        status === 'Full' ? 'full' : 
+                        status === 'Half' ? 'half' : 
+                        status === 'Holiday' ? 'holiday' : 
+                        status === 'Leave' ? 'leave' : '';
+                      
+                      const label = 
+                        status === 'Full' ? 'Đủ công' : 
+                        status === 'Half' ? 'Nửa công' : 
+                        status === 'Holiday' ? 'Nghỉ lễ' : 
+                        status === 'Leave' ? 'Nghỉ phép' : '';
 
                       return (
                         <td key={item.key} className={item.isOutsideMonth ? 'date-cell-muted' : ''}>
@@ -259,7 +277,25 @@ const Attendance = () => {
                             onClick={() => handleCellClick(worker, item.dateLabel, item.iso)}
                             title={`Chấm công ngày ${item.dateLabel}`}
                           >
-                            {text}
+                            {status ? (
+                              <div className="cell-info-stack">
+                                <div className="cell-status-badge">{label}</div>
+                                {record.location && (
+                                  <div className="cell-detail-line"><MapPin size={10} /> {record.location}</div>
+                                )}
+                                {record.position && (
+                                  <div className="cell-detail-line"><Briefcase size={10} /> {record.position}</div>
+                                )}
+                                <div className="cell-amount">
+                                  {Number(record.dailyRate || 0).toLocaleString('vi-VN')}đ
+                                </div>
+                                {record.note && (
+                                  <div className="cell-note" title={record.note}>
+                                    {record.note}
+                                  </div>
+                                )}
+                              </div>
+                            ) : null}
                           </button>
                         </td>
                       );
@@ -298,10 +334,16 @@ const Attendance = () => {
                   <button type="button" className={`attendance-btn ${editStatus === 'Absent' ? 'active-absent' : ''}`} onClick={() => setEditStatus('Absent')}>
                     Nghỉ
                   </button>
+                  <button type="button" className={`attendance-btn ${editStatus === 'Holiday' ? 'active-holiday' : ''}`} onClick={() => setEditStatus('Holiday')}>
+                    Nghỉ lễ
+                  </button>
+                  <button type="button" className={`attendance-btn ${editStatus === 'Leave' ? 'active-leave' : ''}`} onClick={() => setEditStatus('Leave')}>
+                    Phép
+                  </button>
                 </div>
               </div>
 
-              {editStatus !== 'Absent' && (
+              {(editStatus !== 'Absent' && editStatus !== 'Holiday' && editStatus !== 'Leave') && (
                 <div className="attendance-form-stack">
                   {presets.length > 0 && (
                     <div className="form-group">
@@ -356,6 +398,32 @@ const Attendance = () => {
                         placeholder="Ví dụ: 650,000"
                       />
                     </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Ghi chú</label>
+                    <textarea 
+                      className="form-input" 
+                      value={editNote} 
+                      onChange={(e) => setEditNote(e.target.value)} 
+                      placeholder="Ví dụ: Nghỉ lễ Giải phóng miền Nam"
+                      rows={2}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {(editStatus === 'Holiday' || editStatus === 'Leave' || editStatus === 'Absent') && (
+                <div className="attendance-form-stack">
+                  <div className="form-group">
+                    <label className="form-label">Ghi chú</label>
+                    <textarea 
+                      className="form-input" 
+                      value={editNote} 
+                      onChange={(e) => setEditNote(e.target.value)} 
+                      placeholder="Lý do nghỉ, tên ngày lễ..."
+                      rows={2}
+                    />
                   </div>
                 </div>
               )}

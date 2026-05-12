@@ -6,7 +6,8 @@
     "location": "Công trường Quận 1",
     "dailyRate": 650000,
     "phone": "",
-    "cccd": ""
+    "cccd": "",
+    "customRates": {}
   },
   {
     "id": "2",

@@ -1,0 +1,12 @@
+[
+  {
+    "id": "1777274187832",
+    "fullName": "System Admin",
+    "email": "admin@example.com",
+    "passwordHash": "136fcc195e63846241cf7d1b73767ae8:f916592761540eb272edbea06f903c377342c5a986a089709f115d3016722bfa214732782dc57386a14061d146b0ae9c72685766e0eb7c852b4c6cc919e6f59f",
+    "role": "admin",
+    "isActive": true,
+    "createdAt": "2026-04-27T07:16:27.832Z",
+    "updatedAt": "2026-04-27T07:16:27.834Z"
+  }
+]

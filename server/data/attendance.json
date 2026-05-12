@@ -60,5 +60,161 @@
         "location": "Gia Lai"
       }
     ]
+  },
+  {
+    "date": "2026-05-11",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 700000,
+        "position": "Thợ hàn",
+        "location": "Gia Lai",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "date": "2026-05-12",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 700000,
+        "position": "Thợ hàn",
+        "location": "Gia Lai",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "date": "2026-05-13",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 700000,
+        "position": "Thợ hàn",
+        "location": "Gia Lai",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "date": "2026-05-04",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 700000,
+        "position": "Thợ hàn",
+        "location": "Gia Lai",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "date": "2026-05-05",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 700000,
+        "position": "Thợ hàn",
+        "location": "Gia Lai",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "date": "2026-05-06",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 700000,
+        "position": "Thợ hàn",
+        "location": "Gia Lai",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "date": "2026-05-07",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 700000,
+        "position": "Thợ hàn",
+        "location": "Gia Lai",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "date": "2026-05-08",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 700000,
+        "position": "Thợ hàn",
+        "location": "Gia Lai",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "date": "2026-05-09",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 700000,
+        "position": "Thợ hàn",
+        "location": "Gia Lai",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "date": "2026-05-10",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 700000,
+        "position": "Thợ hàn",
+        "location": "Gia Lai",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "date": "2026-05-14",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 700000,
+        "position": "Thợ hàn",
+        "location": "Gia Lai",
+        "note": ""
+      }
+    ]
+  },
+  {
+    "date": "2026-05-15",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 700000,
+        "position": "Thợ hàn",
+        "location": "Gia Lai",
+        "note": ""
+      }
+    ]
   }
 ]
