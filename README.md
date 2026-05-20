@@ -1,5 +1,11 @@
 # Attendance System
 
+## Tai lieu quan ly
+
+- [SRS](docs/SRS.md)
+- [Ke hoach auto update](docs/AUTO_UPDATE_PLAN.md)
+- [Release todo v1.5.0](docs/RELEASE_TODO.md)
+
 ## Mục tiêu kiến trúc
 
 Kiến trúc đích để desktop Windows và iPhone dùng chung dữ liệu:

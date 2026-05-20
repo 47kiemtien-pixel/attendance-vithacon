@@ -1,23 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { getWorkers, addWorker, updateWorker } from '../api';
 import { Users, Plus, Pencil, Check, X, Search, Wallet, CreditCard, Phone, UserRound } from 'lucide-react';
+import CurrencyInput from './CurrencyInput';
+import { formatVndCurrency, parseVndAmount } from '../utils/currency';
 
 const emptyForm = { name: '', phone: '', cccd: '', dailyRate: '' };
-
-const formatInputValue = (val) => {
-  if (val === null || val === undefined || val === '') return '';
-  const num = String(val).replace(/\D/g, '');
-  if (!num) return '';
-  return Number(num).toLocaleString('vi-VN');
-};
-
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0
-  }).format(amount || 0);
-};
 
 const Workers = () => {
   const [workers, setWorkers] = useState([]);
@@ -62,11 +49,6 @@ const Workers = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    if (name === 'dailyRate') {
-      setFormData((current) => ({ ...current, [name]: String(value).replace(/\D/g, '') }));
-      return;
-    }
-
     setFormData((current) => ({ ...current, [name]: value }));
   };
 
@@ -98,7 +80,7 @@ const Workers = () => {
         name: formData.name.trim(),
         phone: formData.phone.trim(),
         cccd: formData.cccd.trim(),
-        dailyRate: Number(formData.dailyRate)
+        dailyRate: parseVndAmount(formData.dailyRate)
       };
 
       if (editingId) {
@@ -149,7 +131,7 @@ const Workers = () => {
           </div>
           <div>
             <div className="worker-stat-label">Lương trung bình/ngày</div>
-            <div className="worker-stat-value">{formatCurrency(averageDailyRate)}</div>
+            <div className="worker-stat-value">{formatVndCurrency(averageDailyRate)}</div>
           </div>
         </article>
 
@@ -190,7 +172,7 @@ const Workers = () => {
               </div>
               <div className="workers-editing-meta">
                 <span>{editingWorker.phone || 'Chưa có số điện thoại'}</span>
-                <span>{formatCurrency(editingWorker.dailyRate)}</span>
+                <span>{formatVndCurrency(editingWorker.dailyRate)}</span>
               </div>
             </div>
           )}
@@ -244,19 +226,18 @@ const Workers = () => {
 
             <div className="form-group workers-field-span-2">
               <label className="form-label">Lương mặc định / ngày</label>
-              <div className="workers-input-shell">
-                <Wallet size={18} />
-                <input
-                  type="text"
-                  name="dailyRate"
-                  className="form-input workers-shell-input"
-                  value={formatInputValue(formData.dailyRate)}
-                  onChange={handleInputChange}
-                  placeholder="650,000"
-                  required
-                />
-                <span className="workers-currency-tag">VND</span>
-              </div>
+              <CurrencyInput
+                name="dailyRate"
+                value={formData.dailyRate}
+                onValueChange={(amount) => setFormData((current) => ({ ...current, dailyRate: amount }))}
+                icon={Wallet}
+                iconSize={18}
+                wrapperClassName="workers-input-shell"
+                inputClassName="form-input workers-shell-input"
+                suffix="VND"
+                placeholder="650.000"
+                required
+              />
             </div>
 
             <div className="workers-form-actions">
@@ -349,7 +330,7 @@ const Workers = () => {
 
                     <div className="worker-row-side">
                       <div className="worker-rate-label">Lương/ngày</div>
-                      <div className="worker-rate-value">{formatCurrency(worker.dailyRate)}</div>
+                      <div className="worker-rate-value">{formatVndCurrency(worker.dailyRate)}</div>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

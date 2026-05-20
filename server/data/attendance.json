@@ -7,21 +7,27 @@
         "status": "Full",
         "dailyRate": 650000,
         "position": "Thợ nhôm kính",
-        "location": "Đắk Lắk"
+        "location": "Đắk Lắk",
+        "note": "",
+        "travelCost": 0
       },
       {
         "workerId": "1",
         "status": "Full",
         "dailyRate": 700000,
         "position": "Thợ hàn",
-        "location": "Gia Lai"
+        "location": "Gia Lai",
+        "note": "",
+        "travelCost": 0
       },
       {
         "workerId": "3",
         "status": "Full",
         "dailyRate": 650000,
         "position": "Thợ nhôm kính",
-        "location": "Đắk Lắk"
+        "location": "Đắk Lắk",
+        "note": "",
+        "travelCost": 0
       }
     ]
   },
@@ -33,7 +39,9 @@
         "status": "Half",
         "dailyRate": 700000,
         "position": "Thợ hàn",
-        "location": "Gia Lai"
+        "location": "Gia Lai",
+        "note": "",
+        "travelCost": 0
       }
     ]
   },
@@ -45,7 +53,9 @@
         "status": "Full",
         "dailyRate": 700000,
         "position": "Thợ hàn",
-        "location": "Gia Lai"
+        "location": "Gia Lai",
+        "note": "",
+        "travelCost": 0
       }
     ]
   },
@@ -57,7 +67,9 @@
         "status": "Full",
         "dailyRate": 700000,
         "position": "Thợ hàn",
-        "location": "Gia Lai"
+        "location": "Gia Lai",
+        "note": "",
+        "travelCost": 0
       }
     ]
   },
@@ -67,10 +79,38 @@
       {
         "workerId": "1",
         "status": "Full",
-        "dailyRate": 700000,
+        "dailyRate": 0,
         "position": "Thợ hàn",
         "location": "Gia Lai",
-        "note": ""
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Ecocity",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Ecocity",
+        "note": "",
+        "travelCost": 0
       }
     ]
   },
@@ -80,10 +120,38 @@
       {
         "workerId": "1",
         "status": "Full",
-        "dailyRate": 700000,
+        "dailyRate": 0,
         "position": "Thợ hàn",
         "location": "Gia Lai",
-        "note": ""
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ nhôm kính",
+        "location": "Đắk Lắk",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Ecocity",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Ecocity",
+        "note": "",
+        "travelCost": 0
       }
     ]
   },
@@ -93,10 +161,38 @@
       {
         "workerId": "1",
         "status": "Full",
-        "dailyRate": 700000,
+        "dailyRate": 0,
         "position": "Thợ hàn",
         "location": "Gia Lai",
-        "note": ""
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ nhôm kính",
+        "location": "Đắk Lắk",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Ecocity",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
       }
     ]
   },
@@ -105,11 +201,39 @@
     "records": [
       {
         "workerId": "1",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
         "status": "Full",
-        "dailyRate": 700000,
+        "dailyRate": 0,
         "position": "Thợ hàn",
-        "location": "Gia Lai",
-        "note": ""
+        "location": "Ecocity",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Ecocity",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
       }
     ]
   },
@@ -118,11 +242,39 @@
     "records": [
       {
         "workerId": "1",
+        "status": "Travel",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
         "status": "Full",
-        "dailyRate": 700000,
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Ecocity",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
         "position": "Thợ hàn",
         "location": "Gia Lai",
-        "note": ""
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
       }
     ]
   },
@@ -135,7 +287,35 @@
         "dailyRate": 700000,
         "position": "Thợ hàn",
         "location": "Gia Lai",
-        "note": ""
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Ecocity",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Gia Lai",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
       }
     ]
   },
@@ -148,7 +328,35 @@
         "dailyRate": 700000,
         "position": "Thợ hàn",
         "location": "Gia Lai",
-        "note": ""
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Ecocity",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Gia Lai",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
       }
     ]
   },
@@ -161,7 +369,35 @@
         "dailyRate": 700000,
         "position": "Thợ hàn",
         "location": "Gia Lai",
-        "note": ""
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Ecocity",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Travel",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
       }
     ]
   },
@@ -174,7 +410,35 @@
         "dailyRate": 700000,
         "position": "Thợ hàn",
         "location": "Gia Lai",
-        "note": ""
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
       }
     ]
   },
@@ -187,7 +451,35 @@
         "dailyRate": 700000,
         "position": "Thợ hàn",
         "location": "Gia Lai",
-        "note": ""
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
       }
     ]
   },
@@ -197,10 +489,38 @@
       {
         "workerId": "1",
         "status": "Full",
-        "dailyRate": 700000,
+        "dailyRate": 0,
         "position": "Thợ hàn",
         "location": "Gia Lai",
-        "note": ""
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Ecocity",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Ecocity",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
       }
     ]
   },
@@ -209,11 +529,245 @@
     "records": [
       {
         "workerId": "1",
+        "status": "Travel",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
         "status": "Full",
-        "dailyRate": 700000,
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Ecocity",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Ecocity",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-05-16",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Ecocity",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Half",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Ecocity",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-05-17",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Ecocity",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-04-27",
+    "records": [
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Ecocity",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-04-28",
+    "records": [
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Ecocity",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-04-29",
+    "records": [
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Ecocity",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-05-18",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
         "position": "Thợ hàn",
         "location": "Gia Lai",
-        "note": ""
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Ecocity",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Ecocity",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-05-19",
+    "records": [
+      {
+        "workerId": "1779184933552",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1",
+        "status": "Travel",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
       }
     ]
   }

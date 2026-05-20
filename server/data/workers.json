@@ -14,13 +14,38 @@
     "name": "Cả",
     "position": "Phụ hồ",
     "location": "Công trường Quận 7",
-    "dailyRate": 650000
+    "dailyRate": 600000,
+    "phone": "",
+    "cccd": ""
   },
   {
     "id": "3",
     "name": "Hồng",
     "position": "Thợ điện",
     "location": "Công trường Quận 1",
-    "dailyRate": 650000
+    "dailyRate": 500000,
+    "phone": "",
+    "cccd": ""
+  },
+  {
+    "id": "1779155427744",
+    "name": "Y suen",
+    "phone": "",
+    "cccd": "",
+    "dailyRate": 500000
+  },
+  {
+    "id": "1779156362058",
+    "name": "Mộc",
+    "phone": "",
+    "cccd": "",
+    "dailyRate": 500000
+  },
+  {
+    "id": "1779184933552",
+    "name": "Trang - TTS",
+    "phone": "",
+    "cccd": "",
+    "dailyRate": 50000
   }
 ]

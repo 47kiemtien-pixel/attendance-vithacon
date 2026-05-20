@@ -2,6 +2,15 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { normalizeEmail } = require('../lib/auth');
+const {
+    ATTENDANCE_STATUSES,
+    normalizeAttendanceEntries,
+    normalizeAttendanceRecord
+} = require('./attendance-normalizer');
+
+const ATTENDANCE_STATUS_CHECK = Array.from(ATTENDANCE_STATUSES)
+    .map((status) => `'${status}'`)
+    .join(', ');
 
 function buildPresetName(preset) {
     return [preset.position, preset.location].filter(Boolean).join(' - ');
@@ -46,6 +55,26 @@ async function createPostgresStore(options = {}) {
         }
     }
 
+    async function insertAttendanceRecord(client, date, record) {
+        const normalizedRecord = normalizeAttendanceRecord(record);
+        if (!normalizedRecord) return;
+
+        await client.query(
+            `INSERT INTO attendance_records (attendance_date, worker_id, status, daily_rate, position, location, note, travel_cost)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [
+                date,
+                normalizedRecord.workerId,
+                normalizedRecord.status,
+                normalizedRecord.dailyRate,
+                normalizedRecord.position,
+                normalizedRecord.location,
+                normalizedRecord.note,
+                normalizedRecord.travelCost
+            ]
+        );
+    }
+
     async function ensureSchema() {
         await query(`
             CREATE TABLE IF NOT EXISTS workers (
@@ -64,11 +93,12 @@ async function createPostgresStore(options = {}) {
                 id BIGSERIAL PRIMARY KEY,
                 attendance_date DATE NOT NULL,
                 worker_id TEXT NOT NULL REFERENCES workers(id) ON DELETE CASCADE,
-                status TEXT NOT NULL CHECK (status IN ('Full', 'Half', 'Holiday', 'Leave')),
+                status TEXT NOT NULL CHECK (status IN (${ATTENDANCE_STATUS_CHECK})),
                 daily_rate INTEGER NOT NULL DEFAULT 0,
                 position TEXT DEFAULT '',
                 location TEXT DEFAULT '',
                 note TEXT DEFAULT '',
+                travel_cost INTEGER NOT NULL DEFAULT 0,
                 created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 UNIQUE (attendance_date, worker_id)
@@ -99,8 +129,9 @@ async function createPostgresStore(options = {}) {
         // Migration for existing table
         try {
             await query('ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS note TEXT DEFAULT \'\'');
+            await query('ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS travel_cost INTEGER NOT NULL DEFAULT 0');
             await query('ALTER TABLE attendance_records DROP CONSTRAINT IF EXISTS attendance_records_status_check');
-            await query('ALTER TABLE attendance_records ADD CONSTRAINT attendance_records_status_check CHECK (status IN (\'Full\', \'Half\', \'Holiday\', \'Leave\'))');
+            await query(`ALTER TABLE attendance_records ADD CONSTRAINT attendance_records_status_check CHECK (status IN (${ATTENDANCE_STATUS_CHECK}))`);
         } catch (e) {
             console.error('Migration error:', e);
         }
@@ -144,20 +175,7 @@ async function createPostgresStore(options = {}) {
 
             for (const entry of attendance) {
                 for (const record of entry.records || []) {
-                    if (!record.status || record.status === 'Absent') continue;
-                    await client.query(
-                        `INSERT INTO attendance_records (attendance_date, worker_id, status, daily_rate, position, location, note)
-                         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-                        [
-                            entry.date,
-                            String(record.workerId),
-                            record.status,
-                            Number(record.dailyRate || 0),
-                            record.position || '',
-                            record.location || '',
-                            record.note || ''
-                        ]
-                    );
+                    await insertAttendanceRecord(client, entry.date, record);
                 }
             }
 
@@ -179,7 +197,7 @@ async function createPostgresStore(options = {}) {
 
     async function groupAttendanceRows() {
         const rows = (await query(
-            `SELECT attendance_date, worker_id, status, daily_rate, position, location, note
+            `SELECT attendance_date, worker_id, status, daily_rate, position, location, note, travel_cost
              FROM attendance_records
              ORDER BY attendance_date ASC, worker_id ASC`
         )).rows;
@@ -195,14 +213,19 @@ async function createPostgresStore(options = {}) {
                 map.set(date, { date, records: [] });
             }
 
-            map.get(date).records.push({
+            const normalizedRecord = normalizeAttendanceRecord({
                 workerId: row.worker_id,
                 status: row.status,
                 dailyRate: Number(row.daily_rate || 0),
                 position: row.position || '',
                 location: row.location || '',
-                note: row.note || ''
+                note: row.note || '',
+                travelCost: Number(row.travel_cost || 0)
             });
+
+            if (normalizedRecord) {
+                map.get(date).records.push(normalizedRecord);
+            }
         }
 
         return Array.from(map.values());
@@ -334,20 +357,7 @@ async function createPostgresStore(options = {}) {
             await transaction(async (client) => {
                 await client.query('DELETE FROM attendance_records WHERE attendance_date = $1', [date]);
                 for (const record of records || []) {
-                    if (!record.status || record.status === 'Absent') continue;
-                    await client.query(
-                        `INSERT INTO attendance_records (attendance_date, worker_id, status, daily_rate, position, location, note)
-                         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-                        [
-                            date,
-                            String(record.workerId),
-                            record.status,
-                            Number(record.dailyRate || 0),
-                            record.position || '',
-                            record.location || '',
-                            record.note || ''
-                        ]
-                    );
+                    await insertAttendanceRecord(client, date, record);
                 }
             });
         },
@@ -358,21 +368,7 @@ async function createPostgresStore(options = {}) {
                     [date, String(workerId)]
                 );
 
-                if (recordData && recordData.status && recordData.status !== 'Absent') {
-                    await client.query(
-                        `INSERT INTO attendance_records (attendance_date, worker_id, status, daily_rate, position, location, note)
-                         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-                        [
-                            date,
-                            String(workerId),
-                            recordData.status,
-                            Number(recordData.dailyRate || 0),
-                            recordData.position || '',
-                            recordData.location || '',
-                            recordData.note || ''
-                        ]
-                    );
-                }
+                await insertAttendanceRecord(client, date, { workerId, ...recordData });
             });
         },
         async getBackup() {
@@ -384,7 +380,7 @@ async function createPostgresStore(options = {}) {
         },
         async restoreBackup(payload) {
             const workers = payload?.workers || [];
-            const attendance = payload?.attendance || [];
+            const attendance = normalizeAttendanceEntries(payload?.attendance || []);
             const presetJobs = payload?.settings?.presetJobs || [];
 
             await transaction(async (client) => {
@@ -410,20 +406,7 @@ async function createPostgresStore(options = {}) {
 
                 for (const entry of attendance) {
                     for (const record of entry.records || []) {
-                        if (!record.status || record.status === 'Absent') continue;
-                        await client.query(
-                            `INSERT INTO attendance_records (attendance_date, worker_id, status, daily_rate, position, location, note)
-                             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-                            [
-                                entry.date,
-                                String(record.workerId),
-                                record.status,
-                                Number(record.dailyRate || 0),
-                                record.position || '',
-                                record.location || '',
-                                record.note || ''
-                            ]
-                        );
+                        await insertAttendanceRecord(client, entry.date, record);
                     }
                 }
 

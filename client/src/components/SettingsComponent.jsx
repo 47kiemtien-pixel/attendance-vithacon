@@ -1,18 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getSettings, saveSettings, exportBackup, importBackup } from '../api';
 import { Settings, Plus, Trash2, Save, Download, Upload, Database } from 'lucide-react';
-
-const formatCurrency = (val) => {
-  if (val === null || val === undefined) return '';
-  const num = String(val).replace(/\D/g, '');
-  if (!num) return '';
-  return Number(num).toLocaleString('vi-VN');
-};
-
-const parseCurrency = (val) => {
-  if (!val) return 0;
-  return Number(String(val).replace(/\D/g, ''));
-};
+import CurrencyInput from './CurrencyInput';
 
 const normalizePreset = (preset) => ({
   id: preset.id,
@@ -173,11 +162,13 @@ const SettingsComponent = () => {
                       />
                     </td>
                     <td>
-                      <input
-                        className="form-input compact-input text-right"
-                        value={formatCurrency(preset.rate)}
-                        onChange={(e) => updatePreset(preset.id, 'rate', parseCurrency(e.target.value))}
-                        placeholder="650,000"
+                      <CurrencyInput
+                        value={preset.rate}
+                        onValueChange={(amount) => updatePreset(preset.id, 'rate', amount)}
+                        wrapperClassName="compact-currency-input"
+                        inputClassName="form-input compact-input text-right"
+                        suffix="đ"
+                        placeholder="650.000"
                       />
                     </td>
                     <td className="text-center">

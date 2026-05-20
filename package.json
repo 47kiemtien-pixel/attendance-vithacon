@@ -1,6 +1,6 @@
 {
   "name": "attendance-system-desktop",
-  "version": "1.4.3",
+  "version": "1.5.0",
   "private": true,
   "description": "Desktop app dong goi he thong cham cong",
   "author": "Minh Thien IT",
@@ -10,6 +10,7 @@
     "desktop:start": "electron .",
     "desktop:start:lan": "electron .",
     "desktop:pack": "npm run build:client && electron-builder --win nsis",
+    "test:release": "node --check electron/main.js && node --check electron/preload.js && node --check server/index.js && node --check server/stores/json-store.js && node --check server/stores/postgres-store.js && node --check server/stores/attendance-normalizer.js && npm run build:client",
     "server:start": "node server/index.js",
     "server:start:prod": "node server/index.js"
   },
@@ -36,6 +37,7 @@
     "directories": {
       "output": "release"
     },
+    "artifactName": "attendance-system-desktop-setup-${version}.${ext}",
     "files": [
       "electron/**/*",
       "client/dist/**/*",
@@ -50,7 +52,7 @@
       "!server/package.json"
     ],
     "win": {
-      "icon": "build/icon.png",
+      "icon": "client/public/logo.png",
       "signAndEditExecutable": false,
       "target": [
         {

@@ -2,24 +2,31 @@
   "presetJobs": [
     {
       "id": "1776767173761",
-      "name": "Thợ hàn Gia Lai",
       "position": "Thợ hàn",
       "location": "Gia Lai",
-      "rate": 700000
+      "rate": 0,
+      "name": "Thợ hàn - Gia Lai"
     },
     {
       "id": "1776820218772",
-      "name": "Thợ nhôm kính - Đắk lắk",
       "position": "Thợ nhôm kính",
       "location": "Đắk Lắk",
-      "rate": 650000
+      "rate": 0,
+      "name": "Thợ nhôm kính - Đắk Lắk"
     },
     {
       "id": "1776820274060",
-      "name": "Thợ hồ Hòa Phú",
       "position": "Thợ hồ",
       "location": "Hòa Phú",
-      "rate": 600000
+      "rate": 0,
+      "name": "Thợ hồ - Hòa Phú"
+    },
+    {
+      "id": "1779155457209",
+      "position": "Thợ hàn",
+      "location": "Ecocity",
+      "rate": 0,
+      "name": "Thợ hàn - Ecocity"
     }
   ]
 }

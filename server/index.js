@@ -9,9 +9,18 @@ const dayjs = require('dayjs');
 const ExcelJS = require('exceljs');
 const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, WidthType, VerticalAlign, ImageRun, BorderStyle, HeightRule } = require('docx');
 const { createJsonStore } = require('./stores/json-store');
+const { createPostgresStore } = require('./stores/postgres-store');
 
 async function createStore(options = {}) {
     const dataDir = options.dataDir || path.join(__dirname, 'data');
+    const driver = options.driver
+        || process.env.ATTENDANCE_DATA_DRIVER
+        || (process.env.DATABASE_URL || process.env.PGHOST ? 'postgres' : 'json');
+
+    if (driver === 'postgres') {
+        return createPostgresStore({ ...options, dataDir });
+    }
+
     return createJsonStore(dataDir);
 }
 
@@ -174,7 +183,7 @@ async function buildWorkerReportDocx(worker, dateRange, attendance) {
 // Server Core
 async function createServer(options = {}) {
     const app = express();
-    const port = 5005; 
+    const port = Number(options.port || process.env.ATTENDANCE_SERVER_PORT || 5005);
     const store = await createStore(options);
     app.use(cors());
     app.use(bodyParser.json());

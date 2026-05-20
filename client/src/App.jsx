@@ -5,6 +5,7 @@ import Attendance from './components/Attendance';
 import Reports from './components/Reports';
 import SettingsComponent from './components/SettingsComponent';
 import AuthScreen from './components/AuthScreen';
+import UpdateBanner from './components/UpdateBanner';
 import { CalendarCheck, Users, FileSpreadsheet, Settings, LogOut } from 'lucide-react';
 import {
   clearAuthSession,
@@ -40,6 +41,7 @@ function AppShell({ activeTab, setActiveTab, currentUser, onLogout }) {
 
   return (
     <div className="app-shell">
+      <UpdateBanner />
       <aside className="app-sidebar">
         <div className="sidebar-brand">
           <div className="sidebar-brand-mark" style={{ background: 'transparent', padding: 0 }}>

@@ -3,21 +3,10 @@ import { getWorkers, getAttendance, saveAttendanceRecord, getSettings } from '..
 import dayjs from 'dayjs';
 import { 
   CalendarCheck, ChevronLeft, ChevronRight, X, User, 
-  Briefcase, MapPin, Wallet, StickyNote, CircleDollarSign,
-  DollarSign, Truck
+  Briefcase, MapPin, Wallet, Truck
 } from 'lucide-react';
-
-const formatCurrency = (val) => {
-  if (val === null || val === undefined || val === '') return '';
-  const num = String(val).replace(/\D/g, '');
-  if (!num) return '';
-  return Number(num).toLocaleString('vi-VN');
-};
-
-const parseCurrency = (val) => {
-  if (!val) return 0;
-  return Number(String(val).replace(/\D/g, ''));
-};
+import CurrencyInput from './CurrencyInput';
+import { parseVndAmount } from '../utils/currency';
 
 const weekdayLabels = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 const getMonday = (date) => {
@@ -27,6 +16,44 @@ const getMonday = (date) => {
 const getPresetLabel = (preset) => {
   const base = [preset.position, preset.location].filter(Boolean).join(' - ');
   return base || 'Mẫu chưa đặt';
+};
+
+const WORK_DETAIL_STATUSES = new Set(['Full', 'Half']);
+
+const buildAttendancePayload = ({ status, dailyRate, position, location, note, travelCost }) => {
+  const normalizedNote = typeof note === 'string' ? note.trim() : '';
+  const normalizedTravelCost = parseVndAmount(travelCost);
+
+  if (WORK_DETAIL_STATUSES.has(status)) {
+    return {
+      status,
+      dailyRate: parseVndAmount(dailyRate),
+      position: typeof position === 'string' ? position.trim() : '',
+      location: typeof location === 'string' ? location.trim() : '',
+      note: normalizedNote,
+      travelCost: normalizedTravelCost
+    };
+  }
+
+  if (status === 'Travel') {
+    return {
+      status,
+      dailyRate: 0,
+      position: '',
+      location: '',
+      note: normalizedNote,
+      travelCost: normalizedTravelCost
+    };
+  }
+
+  return {
+    status,
+    dailyRate: 0,
+    position: '',
+    location: '',
+    note: normalizedNote,
+    travelCost: 0
+  };
 };
 
 const Attendance = () => {
@@ -151,15 +178,24 @@ const Attendance = () => {
     if (!selectedCell) return;
     setSaving(true);
     try {
+      const recordPayload = buildAttendancePayload({
+        status: editStatus,
+        dailyRate: editRate,
+        position: editPosition,
+        location: editLocation,
+        note: editNote,
+        travelCost: editTravelCost
+      });
+
       await saveAttendanceRecord(
         selectedCell.dateStr,
         selectedCell.worker.id,
-        editStatus,
-        Number(editRate) || 0,
-        editPosition,
-        editLocation,
-        editNote,
-        Number(editTravelCost) || 0
+        recordPayload.status,
+        recordPayload.dailyRate,
+        recordPayload.position,
+        recordPayload.location,
+        recordPayload.note,
+        recordPayload.travelCost
       );
       await fetchData();
       setIsModalOpen(false);
@@ -170,6 +206,9 @@ const Attendance = () => {
       setSaving(false);
     }
   };
+
+  const showWorkDetailForm = WORK_DETAIL_STATUSES.has(editStatus);
+  const showSupplementaryForm = !showWorkDetailForm;
 
   return (
     <div className="screen-page">
@@ -269,6 +308,9 @@ const Attendance = () => {
                     {visibleDateHeaders.map((item) => {
                       const record = getDayRecord(worker.id, item.iso);
                       const status = record?.status;
+                      const showWorkDetails = WORK_DETAIL_STATUSES.has(status);
+                      const travelCost = Number(record?.travelCost || 0);
+                      const dailyRate = Number(record?.dailyRate || 0);
                       const tone = 
                         status === 'Leave' ? 'leave' : 
                         status === 'Absent' ? 'absent' : 
@@ -293,15 +335,20 @@ const Attendance = () => {
                             {status ? (
                               <div className="cell-info-stack">
                                 <div className="cell-status-badge">{label}</div>
-                                {record.location && (
+                                {showWorkDetails && record.location && (
                                   <div className="cell-detail-line"><MapPin size={10} /> {record.location}</div>
                                 )}
-                                {record.position && (
+                                {showWorkDetails && record.position && (
                                   <div className="cell-detail-line"><Briefcase size={10} /> {record.position}</div>
                                 )}
-                                <div className="cell-amount">
-                                  {Number(record.dailyRate || 0).toLocaleString('vi-VN')}đ
-                                </div>
+                                {showWorkDetails && dailyRate > 0 && (
+                                  <div className="cell-amount">
+                                    {dailyRate.toLocaleString('vi-VN')}đ
+                                  </div>
+                                )}
+                                {travelCost > 0 && (
+                                  <div className="cell-detail-line"><Truck size={10} /> {travelCost.toLocaleString('vi-VN')}đ</div>
+                                )}
                                 {record.note && (
                                   <div className="cell-note" title={record.note}>
                                     {record.note}
@@ -359,7 +406,7 @@ const Attendance = () => {
                 </div>
               </div>
 
-              {(editStatus !== 'Absent' && editStatus !== 'Holiday' && editStatus !== 'Leave') && (
+              {showWorkDetailForm && (
                 <div className="attendance-form-stack">
                   {presets.length > 0 && (
                     <div className="form-group">
@@ -406,28 +453,25 @@ const Attendance = () => {
                   <div className="form-row">
                     <div className="form-group">
                       <label className="form-label">Mức lương / ngày</label>
-                      <div className="input-with-icon">
-                        <Wallet size={16} />
-                        <input
-                          className="form-input embedded-input"
-                          value={formatCurrency(editRate)}
-                          onChange={(e) => setEditRate(parseCurrency(e.target.value))}
-                          placeholder="Ví dụ: 650,000"
-                        />
-                      </div>
+                      <CurrencyInput
+                        value={editRate}
+                        onValueChange={setEditRate}
+                        icon={Wallet}
+                        wrapperClassName="input-with-icon"
+                        inputClassName="form-input embedded-input"
+                        placeholder="650.000"
+                      />
                     </div>
                     <div className="form-group">
                       <label className="form-label">Tiền xe / Di chuyển</label>
-                      <div className="input-with-icon">
-                        <Truck size={16} />
-                        <input
-                          type="number"
-                          className="form-input embedded-input"
-                          value={editTravelCost}
-                          onChange={(e) => setEditTravelCost(e.target.value)}
-                          placeholder="0"
-                        />
-                      </div>
+                      <CurrencyInput
+                        value={editTravelCost}
+                        onValueChange={setEditTravelCost}
+                        icon={Truck}
+                        wrapperClassName="input-with-icon"
+                        inputClassName="form-input embedded-input"
+                        placeholder="0"
+                      />
                     </div>
                   </div>
 
@@ -444,21 +488,21 @@ const Attendance = () => {
                 </div>
               )}
 
-              {(editStatus === 'Holiday' || editStatus === 'Leave' || editStatus === 'Absent' || editStatus === 'Travel') && (
+              {showSupplementaryForm && (
                 <div className="attendance-form-stack">
-                  <div className="form-group">
+                  {editStatus === 'Travel' && (
+                    <div className="form-group">
                     <label className="form-label">Tiền xe / Di chuyển</label>
-                    <div className="input-with-icon">
-                      <Truck size={16} />
-                      <input
-                        type="number"
-                        className="form-input embedded-input"
+                      <CurrencyInput
                         value={editTravelCost}
-                        onChange={(e) => setEditTravelCost(e.target.value)}
+                        onValueChange={setEditTravelCost}
+                        icon={Truck}
+                        wrapperClassName="input-with-icon"
+                        inputClassName="form-input embedded-input"
                         placeholder="0"
                       />
                     </div>
-                  </div>
+                  )}
                   <div className="form-group">
                     <label className="form-label">Ghi chú</label>
                     <textarea 

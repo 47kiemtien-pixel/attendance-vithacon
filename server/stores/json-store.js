@@ -1,6 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 const { normalizeEmail } = require('../lib/auth');
+const {
+    normalizeAttendanceEntries,
+    normalizeAttendanceRecord,
+    normalizeAttendanceRecords
+} = require('./attendance-normalizer');
 
 function ensureDataStore(dataDir) {
     const workersFile = path.join(dataDir, 'workers.json');
@@ -51,27 +56,39 @@ function createJsonStore(dataDir) {
             writeData(settingsFile, settings);
         },
         async getAttendance() {
-            return readData(attendanceFile);
+            const attendance = readData(attendanceFile);
+            const normalizedAttendance = normalizeAttendanceEntries(attendance);
+
+            if (JSON.stringify(attendance) !== JSON.stringify(normalizedAttendance)) {
+                writeData(attendanceFile, normalizedAttendance);
+            }
+
+            return normalizedAttendance;
         },
         async replaceAttendanceForDate(date, records) {
             let attendance = readData(attendanceFile);
             attendance = attendance.filter((entry) => entry.date !== date);
-            attendance.push({ date, records });
+            attendance.push({
+                date,
+                records: normalizeAttendanceRecords(records)
+            });
             writeData(attendanceFile, attendance);
         },
         async upsertAttendanceRecord(date, workerId, recordData) {
             const attendance = readData(attendanceFile);
             let dayRecord = attendance.find((entry) => entry.date === date);
+            const normalizedWorkerId = String(workerId);
 
             if (!dayRecord) {
                 dayRecord = { date, records: [] };
                 attendance.push(dayRecord);
             }
 
-            dayRecord.records = dayRecord.records.filter((record) => record.workerId !== workerId);
+            dayRecord.records = dayRecord.records.filter((record) => String(record.workerId) !== normalizedWorkerId);
 
-            if (recordData && recordData.status) {
-                dayRecord.records.push({ workerId, ...recordData });
+            const normalizedRecord = normalizeAttendanceRecord({ workerId: normalizedWorkerId, ...recordData });
+            if (normalizedRecord) {
+                dayRecord.records.push(normalizedRecord);
             }
 
             writeData(attendanceFile, attendance);
@@ -79,14 +96,16 @@ function createJsonStore(dataDir) {
         async getBackup() {
             return {
                 workers: readData(workersFile),
-                attendance: readData(attendanceFile),
+                attendance: normalizeAttendanceEntries(readData(attendanceFile)),
                 settings: readData(settingsFile)
             };
         },
         async restoreBackup(payload) {
             const { workers, attendance, settings } = payload;
             if (workers && Array.isArray(workers)) writeData(workersFile, workers);
-            if (attendance && Array.isArray(attendance)) writeData(attendanceFile, attendance);
+            if (attendance && Array.isArray(attendance)) {
+                writeData(attendanceFile, normalizeAttendanceEntries(attendance));
+            }
             if (settings && typeof settings === 'object') writeData(settingsFile, settings);
         },
         async getUserCount() {
