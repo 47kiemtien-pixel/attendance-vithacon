@@ -31,14 +31,14 @@ jobs:
             package-lock.json
             client/package-lock.json
       - name: Install dependencies
-        shell: pwsh
+        shell: powershell
         run: |
           npm.cmd ci
           npm.cmd --prefix client ci
       - name: Validate release
         run: npm run test:release
       - name: Mirror code to stable production directory
-        shell: pwsh
+        shell: powershell
         run: |
           $deployRoot = Join-Path $env:USERPROFILE 'attendance-vithacon-production'
           New-Item -ItemType Directory -Path $deployRoot -Force | Out-Null
@@ -63,24 +63,25 @@ jobs:
           npm.cmd --prefix (Join-Path $deployRoot 'client') ci
           New-Item -ItemType Directory -Path (Join-Path $deployRoot 'logs') -Force | Out-Null
       - name: Restart backend and ensure tunnel services
-        shell: pwsh
+        shell: powershell
         run: |
           $deployRoot = Join-Path $env:USERPROFILE 'attendance-vithacon-production'
           $ecosystem = Join-Path $deployRoot 'ecosystem.config.cjs'
-          $processes = @(pm2.cmd jlist | ConvertFrom-Json)
-          if ($processes.name -contains 'attendance-backend') {
+          $backendPid = (& pm2.cmd pid attendance-backend | Select-Object -Last 1).Trim()
+          if ($backendPid -match '^\d+$' -and [int]$backendPid -gt 0) {
             pm2.cmd reload attendance-backend --update-env
           } else {
             pm2.cmd start $ecosystem --only attendance-backend
           }
           foreach ($name in @('attendance-cloudflare-tunnel', 'attendance-tunnel-url-sync')) {
-            if ($processes.name -notcontains $name) {
+            $processPid = (& pm2.cmd pid $name | Select-Object -Last 1).Trim()
+            if ($processPid -notmatch '^\d+$' -or [int]$processPid -le 0) {
               pm2.cmd start $ecosystem --only $name
             }
           }
           pm2.cmd save
       - name: Health check
-        shell: pwsh
+        shell: powershell
         run: |
           $healthy = $false
           for ($attempt = 1; $attempt -le 8; $attempt++) {
