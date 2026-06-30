@@ -7,7 +7,7 @@ const path = require('path');
 const fs = require('fs');
 const dayjs = require('dayjs');
 const ExcelJS = require('exceljs');
-const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, WidthType, VerticalAlign, ImageRun, BorderStyle, HeightRule } = require('docx');
+const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, WidthType, VerticalAlign, ImageRun, BorderStyle, HeightRule, PageBreak } = require('docx');
 const { createJsonStore } = require('./stores/json-store');
 const { createPostgresStore } = require('./stores/postgres-store');
 
@@ -25,7 +25,7 @@ async function createStore(options = {}) {
 }
 
 // DOCX Generation Logic
-async function buildWorkerReportDocx(worker, dateRange, attendance) {
+function buildWorkerReportChildren(worker, dateRange, attendance, options = {}) {
     if (!worker) throw new Error('Worker not found');
     const logoPath = path.join(__dirname, '..', 'client', 'public', 'logo.png');
     let logoImage = null;
@@ -106,11 +106,9 @@ async function buildWorkerReportDocx(worker, dateRange, attendance) {
         }));
     }
 
-    const doc = new Document({
-        styles: { default: { document: { run: { font: 'Arial', size: 20 } } } },
-        sections: [{
-            children: [
-                headerTable,
+    return [
+        ...(options.pageBreakBefore ? [new Paragraph({ children: [new PageBreak()] })] : []),
+        headerTable,
                 new Paragraph({ border: { bottom: { color: navy, size: 6, style: BorderStyle.SINGLE } }, spacing: { after: 300 } }),
                 new Paragraph({ children: [new TextRun({ text: 'BẢNG CHẤM CÔNG CHI TIẾT', bold: true, size: 40, color: '111827' })], alignment: AlignmentType.CENTER, spacing: { before: 200, after: 100 } }),
                 new Paragraph({
@@ -174,10 +172,115 @@ async function buildWorkerReportDocx(worker, dateRange, attendance) {
                         new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: '', spacing: { before: 1200 } })] }), new TableCell({ children: [new Paragraph({ text: '', spacing: { before: 1200 } })] })] }),
                     ],
                 }),
-            ],
-        }],
+    ];
+}
+
+async function buildWorkerReportDocx(worker, dateRange, attendance) {
+    const doc = new Document({
+        styles: { default: { document: { run: { font: 'Arial', size: 20 } } } },
+        sections: [{ children: buildWorkerReportChildren(worker, dateRange, attendance) }],
     });
     return await Packer.toBuffer(doc);
+}
+
+async function buildWorkersReportDocx(workers, dateRange, attendance) {
+    const children = workers.flatMap((worker, index) => buildWorkerReportChildren(worker, dateRange, attendance, {
+        pageBreakBefore: index > 0,
+    }));
+
+    const doc = new Document({
+        styles: { default: { document: { run: { font: 'Arial', size: 20 } } } },
+        sections: [{ children }],
+    });
+
+    return await Packer.toBuffer(doc);
+}
+
+function parseWorkerIds(workerIds) {
+    if (!workerIds || workerIds === 'all') return null;
+    return String(workerIds)
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean);
+}
+
+function getWorkersByIds(workers, workerIds) {
+    const ids = parseWorkerIds(workerIds);
+    if (!ids) return workers;
+
+    const selected = workers.filter((worker) => ids.includes(String(worker.id)));
+    if (!selected.length) throw new Error('No workers selected');
+    return selected;
+}
+
+function getSafeSheetName(worker, index) {
+    const baseName = String(worker.name || `Worker ${index + 1}`)
+        .replace(/[\\/?*[\]:]/g, ' ')
+        .trim()
+        .slice(0, 25);
+    return `${index + 1}-${baseName || 'Worker'}`.slice(0, 31);
+}
+
+function addWorkerReportSheet(workbook, worker, dateRange, attendance, index) {
+    const sheet = workbook.addWorksheet(getSafeSheetName(worker, index));
+    sheet.addRow(['THỨ / NGÀY', 'ĐỊA ĐIỂM', 'TRẠNG THÁI', 'GHI CHÚ', 'TIỀN XE']);
+
+    let current = dayjs(dateRange.start);
+    const end = dayjs(dateRange.end);
+    let total = 0;
+    let travelTotal = 0;
+
+    while(current.isBefore(end) || current.isSame(end)) {
+        const dateStr = current.format('YYYY-MM-DD');
+        const att = attendance.find(a => a.date === dateStr);
+        const rec = att?.records.find(r => String(r.workerId) === String(worker.id));
+        let status = '-';
+        if(rec?.status === 'Full') { status = 'CÔNG'; total += 1; }
+        else if(rec?.status === 'Half') { status = '1/2 CÔNG'; total += 0.5; }
+        else if(rec?.status === 'Absent') { status = 'NGHỈ'; }
+        else if(rec?.status === 'Travel') { status = 'DI CHUYỂN'; }
+        else if(rec?.status === 'Holiday') { status = 'NGHỈ LỄ'; }
+        else if(rec?.status === 'Leave') { status = 'PHÉP'; }
+        
+        const tCost = Number(rec?.travelCost || 0);
+        travelTotal += tCost;
+        
+        sheet.addRow([current.format('DD/MM/YYYY'), rec?.location || '-', status, rec?.note || '-', tCost > 0 ? tCost : '-']);
+        current = current.add(1, 'day');
+    }
+
+    sheet.addRow([]);
+    sheet.addRow(['TỔNG CỘNG', '', total, 'Tổng tiền xe:', travelTotal]);
+    sheet.columns.forEach((column) => {
+        column.width = 18;
+    });
+}
+
+function sanitizeFilenamePart(value) {
+    return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+        .replace(/[^a-zA-Z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .slice(0, 60);
+}
+
+function dateRangePart(startDate, endDate) {
+    return `${startDate}_den_${endDate}`;
+}
+
+function buildReportFilename(parts, extension) {
+    const filename = ['Viet_Thanh', ...parts]
+        .map(sanitizeFilenamePart)
+        .filter(Boolean)
+        .join('_');
+    return `${filename}.${extension}`;
+}
+
+function setDownloadFilename(res, filename) {
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 }
 
 // Server Core
@@ -235,7 +338,7 @@ async function createServer(options = {}) {
                 sheet.addRow(rowData);
             });
             res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-            res.setHeader('Content-Disposition', `attachment; filename=Bang_Cham_Cong_Thang_${month}.xlsx`);
+            setDownloadFilename(res, buildReportFilename(['Bang_Cong_Thang', month, year], 'xlsx'));
             await workbook.xlsx.write(res);
             res.end();
         } catch (e) { console.error('Excel Export Error:', e); res.status(500).send(e.message); }
@@ -278,10 +381,29 @@ async function createServer(options = {}) {
             sheet.addRow([]);
             sheet.addRow(['TỔNG CỘNG', '', total, 'Tổng tiền xe:', travelTotal]);
             res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-            res.setHeader('Content-Disposition', `attachment; filename=Bao_Cao_Excel_${encodeURIComponent(worker.name)}.xlsx`);
+            setDownloadFilename(res, buildReportFilename(['Bao_Cao_Ca_Nhan', worker.name, dateRangePart(startDate, endDate)], 'xlsx'));
             await workbook.xlsx.write(res);
             res.end();
         } catch (e) { console.error('Individual Excel Export Error:', e); res.status(500).send(e.message); }
+    });
+
+    // Export Excel (Multiple workers)
+    app.get('/api/export/workers', async (req, res) => {
+        try {
+            const { workerIds, startDate, endDate } = req.query;
+            const workers = getWorkersByIds(await store.getWorkers(), workerIds);
+            const attendance = await store.getAttendance();
+            const workbook = new ExcelJS.Workbook();
+
+            workers.forEach((worker, index) => {
+                addWorkerReportSheet(workbook, worker, { start: startDate, end: endDate }, attendance, index);
+            });
+
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            setDownloadFilename(res, buildReportFilename(['Bao_Cao_Nhieu_Nguoi', dateRangePart(startDate, endDate)], 'xlsx'));
+            await workbook.xlsx.write(res);
+            res.end();
+        } catch (e) { console.error('Multiple Excel Export Error:', e); res.status(500).send(e.message); }
     });
 
     // Export Word
@@ -293,9 +415,22 @@ async function createServer(options = {}) {
             const attendance = await store.getAttendance();
             const buffer = await buildWorkerReportDocx(worker, { start: startDate, end: endDate }, attendance);
             res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-            res.setHeader('Content-Disposition', 'attachment; filename=Bao_Cao_Hoan_Thien.docx');
+            setDownloadFilename(res, buildReportFilename(['Bao_Cao_Ca_Nhan', worker?.name, dateRangePart(startDate, endDate)], 'docx'));
             res.end(buffer, 'binary');
         } catch (e) { console.error('DOCX Export Error:', e); res.status(500).send(e.message); }
+    });
+
+    // Export Word (Multiple workers, one page per worker)
+    app.get('/api/export/workers/docx', async (req, res) => {
+        try {
+            const { workerIds, startDate, endDate } = req.query;
+            const workers = getWorkersByIds(await store.getWorkers(), workerIds);
+            const attendance = await store.getAttendance();
+            const buffer = await buildWorkersReportDocx(workers, { start: startDate, end: endDate }, attendance);
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+            setDownloadFilename(res, buildReportFilename(['Bao_Cao_Nhieu_Nguoi', dateRangePart(startDate, endDate)], 'docx'));
+            res.end(buffer, 'binary');
+        } catch (e) { console.error('Multiple DOCX Export Error:', e); res.status(500).send(e.message); }
     });
 
     return { app, port };

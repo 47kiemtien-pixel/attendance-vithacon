@@ -90,6 +90,25 @@ function AppShell({ activeTab, setActiveTab, currentUser, onLogout }) {
       <main className="app-main">
         <div className="app-main-inner">{renderContent()}</div>
       </main>
+
+      <nav className="mobile-bottom-nav" aria-label="Điều hướng mobile">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+
+          return (
+            <button
+              key={tab.id}
+              className={`mobile-nav-item ${isActive ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+              type="button"
+            >
+              <Icon size={20} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 }

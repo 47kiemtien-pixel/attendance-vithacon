@@ -20,6 +20,27 @@ const apiClient = axios.create({
     baseURL: API_URL
 });
 
+const FILE_PREFIX = 'Viet_Thanh';
+
+function sanitizeFilenamePart(value) {
+    return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+        .replace(/[^a-zA-Z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .slice(0, 60);
+}
+
+function dateRangePart(startDate, endDate) {
+    return `${startDate}_den_${endDate}`;
+}
+
+function buildReportFilename(parts, extension) {
+    return `${[FILE_PREFIX, ...parts.map(sanitizeFilenamePart).filter(Boolean)].join('_')}.${extension}`;
+}
+
 apiClient.interceptors.request.use((config) => {
     const token = getStoredToken();
     if (token) {
@@ -119,7 +140,7 @@ export const downloadReport = async (month, year) => {
     const link = document.createElement('a');
 
     link.href = url;
-    link.download = `Bang_Cham_Cong_${month}_${year}.xlsx`;
+    link.download = buildReportFilename(['Bang_Cong_Thang', month, year], 'xlsx');
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -140,7 +161,7 @@ export const downloadWorkerReport = async (workerId, startDate, endDate, label) 
         const link = document.createElement('a');
 
         link.href = url;
-        link.download = `Bao_Cao_Ca_Nhan.xlsx`;
+        link.download = buildReportFilename(['Bao_Cao_Ca_Nhan', dateRangePart(startDate, endDate)], 'xlsx');
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -169,6 +190,26 @@ export const downloadWorkerReport = async (workerId, startDate, endDate, label) 
     }
 };
 
+export const downloadWorkersReport = async (workerIds, startDate, endDate, label) => {
+    const response = await apiClient.get('/export/workers', {
+        params: { workerIds: workerIds.join(','), startDate, endDate, label },
+        responseType: 'blob'
+    });
+
+    const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = buildReportFilename(['Bao_Cao_Nhieu_Nguoi', dateRangePart(startDate, endDate)], 'xlsx');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+};
+
 export const downloadWorkerReportDocx = async (workerId, startDate, endDate, label) => {
     try {
         const response = await apiClient.get('/export/worker/docx', {
@@ -183,13 +224,36 @@ export const downloadWorkerReportDocx = async (workerId, startDate, endDate, lab
         const link = document.createElement('a');
 
         link.href = url;
-        link.download = `Bao_Cao_Cham_Cong.docx`;
+        link.download = buildReportFilename(['Bao_Cao_Ca_Nhan', dateRangePart(startDate, endDate)], 'docx');
         document.body.appendChild(link);
         link.click();
         link.remove();
         window.URL.revokeObjectURL(url);
     } catch (error) {
-        alert('Lỗi khi tải file Word. Vui lòng thử lại.');
+        throw error;
+    }
+};
+
+export const downloadWorkersReportDocx = async (workerIds, startDate, endDate, label) => {
+    try {
+        const response = await apiClient.get('/export/workers/docx', {
+            params: { workerIds: workerIds.join(','), startDate, endDate, label },
+            responseType: 'blob'
+        });
+
+        const blob = new Blob([response.data], {
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+
+        link.href = url;
+        link.download = buildReportFilename(['Bao_Cao_Nhieu_Nguoi', dateRangePart(startDate, endDate)], 'docx');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
         throw error;
     }
 };

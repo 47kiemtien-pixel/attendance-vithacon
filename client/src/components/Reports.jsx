@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { downloadReport, downloadWorkerReport, downloadWorkerReportDocx, getWorkers } from '../api';
+import { downloadReport, downloadWorkersReport, downloadWorkersReportDocx, getWorkers } from '../api';
 import dayjs from 'dayjs';
 import { FileSpreadsheet, Download, CalendarRange, FolderDown, User, Calendar, FileText } from 'lucide-react';
 
@@ -12,7 +12,7 @@ const Reports = () => {
   
   // State for individual report
   const [workers, setWorkers] = useState([]);
-  const [selectedWorkerId, setSelectedWorkerId] = useState('');
+  const [selectedWorkerIds, setSelectedWorkerIds] = useState([]);
   const [startDate, setStartDate] = useState(dayjs().startOf('week').format('YYYY-MM-DD'));
   const [endDate, setEndDate] = useState(dayjs().endOf('week').format('YYYY-MM-DD'));
   const [exportType, setExportType] = useState('week'); // 'week', 'month', 'custom'
@@ -20,6 +20,22 @@ const Reports = () => {
   useEffect(() => {
     getWorkers().then(setWorkers).catch(console.error);
   }, []);
+
+  const selectedCount = selectedWorkerIds.length;
+  const allWorkersSelected = workers.length > 0 && selectedCount === workers.length;
+
+  const toggleWorkerSelection = (workerId) => {
+    const normalizedId = String(workerId);
+    setSelectedWorkerIds((current) => (
+      current.includes(normalizedId)
+        ? current.filter((id) => id !== normalizedId)
+        : [...current, normalizedId]
+    ));
+  };
+
+  const toggleAllWorkers = () => {
+    setSelectedWorkerIds(allWorkersSelected ? [] : workers.map((worker) => String(worker.id)));
+  };
 
   const handleExport = () => {
     if (!month || !year) {
@@ -34,7 +50,8 @@ const Reports = () => {
   };
 
   const handleWorkerExport = () => {
-    if (!selectedWorkerId) {
+    const workerIds = selectedWorkerIds.filter(Boolean);
+    if (!workerIds.length) {
       alert('Vui lòng chọn công nhân.');
       return;
     }
@@ -46,14 +63,15 @@ const Reports = () => {
       label = `Tháng ${dayjs(startDate).format('MM/YYYY')}`;
     }
 
-    downloadWorkerReport(selectedWorkerId, startDate, endDate, label).catch((error) => {
+    downloadWorkersReport(workerIds, startDate, endDate, label).catch((error) => {
       console.error('Error exporting worker report:', error);
       alert('Không thể tải file Excel. Vui lòng thử lại.');
     });
   };
 
   const handleWorkerExportDocx = () => {
-    if (!selectedWorkerId) {
+    const workerIds = selectedWorkerIds.filter(Boolean);
+    if (!workerIds.length) {
       alert('Vui lòng chọn công nhân.');
       return;
     }
@@ -65,8 +83,12 @@ const Reports = () => {
       label = `Tháng ${dayjs(startDate).format('MM/YYYY')}`;
     }
 
-    downloadWorkerReportDocx(selectedWorkerId, startDate, endDate, label).catch((error) => {
+    downloadWorkersReportDocx(workerIds, startDate, endDate, label).catch((error) => {
       console.error('Error exporting worker Word report:', error);
+      if (error?.response?.status === 404) {
+        alert('Server chưa cập nhật chức năng xuất Word nhiều người. Vui lòng tắt app và chạy lại start-lan.bat.');
+        return;
+      }
       alert('Không thể tải file Word. Vui lòng thử lại.');
     });
   };
@@ -102,7 +124,7 @@ const Reports = () => {
         <div className="panel-head">
           <div>
             <div className="panel-kicker">Báo cáo cá nhân</div>
-            <h2 className="panel-title">Xuất báo cáo chi tiết cho 1 người</h2>
+            <h2 className="panel-title">Xuất báo cáo chi tiết cho nhiều người</h2>
           </div>
         </div>
 
@@ -122,16 +144,29 @@ const Reports = () => {
           <div className="report-form-card">
             <div className="form-group">
               <label className="form-label">Chọn công nhân</label>
-              <select 
-                className="form-select" 
-                value={selectedWorkerId} 
-                onChange={(e) => setSelectedWorkerId(e.target.value)}
-              >
-                <option value="">-- Chọn công nhân --</option>
-                {workers.map(w => (
-                  <option key={w.id} value={w.id}>{w.name}</option>
-                ))}
-              </select>
+              <div style={{ marginTop: '0.75rem', maxHeight: '240px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--bg)' }}>
+                {workers.map(w => {
+                  const workerId = String(w.id);
+                  return (
+                    <label key={w.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedWorkerIds.includes(workerId)}
+                        onChange={() => toggleWorkerSelection(workerId)}
+                      />
+                      <span>{w.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', marginTop: '0.75rem' }}>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                  Đã chọn {selectedCount} / {workers.length} công nhân
+                </span>
+                <button type="button" className="btn btn-outline" style={{ padding: '8px 12px' }} onClick={toggleAllWorkers}>
+                  {allWorkersSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+                </button>
+              </div>
             </div>
 
             <div className="form-group" style={{ marginTop: '1rem' }}>

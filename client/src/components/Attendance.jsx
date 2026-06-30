@@ -3,7 +3,7 @@ import { getWorkers, getAttendance, saveAttendanceRecord, getSettings } from '..
 import dayjs from 'dayjs';
 import { 
   CalendarCheck, ChevronLeft, ChevronRight, X, User, 
-  Briefcase, MapPin, Wallet, Truck
+  Briefcase, MapPin, Wallet, Truck, Search
 } from 'lucide-react';
 import CurrencyInput from './CurrencyInput';
 import { parseVndAmount } from '../utils/currency';
@@ -19,6 +19,14 @@ const getPresetLabel = (preset) => {
 };
 
 const WORK_DETAIL_STATUSES = new Set(['Full', 'Half']);
+const quickStatuses = [
+  { value: 'Full', label: 'Công' },
+  { value: 'Half', label: '1/2' },
+  { value: 'Absent', label: 'Nghỉ' },
+  { value: 'Leave', label: 'Phép' },
+  { value: 'Holiday', label: 'Lễ' },
+  { value: 'Travel', label: 'Đi' }
+];
 
 const buildAttendancePayload = ({ status, dailyRate, position, location, note, travelCost }) => {
   const normalizedNote = typeof note === 'string' ? note.trim() : '';
@@ -74,6 +82,9 @@ const Attendance = () => {
   const [saving, setSaving] = useState(false);
   const [viewMode, setViewMode] = useState('week');
   const [weekStartDate, setWeekStartDate] = useState(() => getMonday(dayjs()));
+  const [mobileSearchTerm, setMobileSearchTerm] = useState('');
+  const [mobileStatusFilter, setMobileStatusFilter] = useState('all');
+  const [quickSavingKey, setQuickSavingKey] = useState('');
 
   const daysInMonth = currentDate.daysInMonth();
   const year = currentDate.year();
@@ -142,6 +153,32 @@ const Attendance = () => {
     return `${weekStartDate.format('DD/MM')}-${endDate.format('DD/MM')}`;
   }, [weekStartDate]);
 
+  const mobileDateIso = currentDate.format('YYYY-MM-DD');
+
+  const mobileDaySummary = useMemo(() => {
+    let completed = 0;
+    workers.forEach((worker) => {
+      if (getDayRecord(worker.id, mobileDateIso)) completed += 1;
+    });
+    return { completed, total: workers.length };
+  }, [attendance, mobileDateIso, workers]);
+
+  const mobileWorkers = useMemo(() => {
+    const keyword = mobileSearchTerm.trim().toLowerCase();
+    return workers.filter((worker) => {
+      const record = getDayRecord(worker.id, mobileDateIso);
+      const status = record?.status || 'empty';
+      const matchesSearch = !keyword || String(worker.name || '').toLowerCase().includes(keyword);
+      const matchesFilter =
+        mobileStatusFilter === 'all' ||
+        (mobileStatusFilter === 'empty' && !record) ||
+        (mobileStatusFilter === 'done' && Boolean(record)) ||
+        status === mobileStatusFilter;
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [attendance, mobileDateIso, mobileSearchTerm, mobileStatusFilter, workers]);
+
   const visibleDateHeaders = useMemo(() => {
     const dates = viewMode === 'month'
       ? Array.from({ length: daysInMonth }, (_, index) =>
@@ -172,6 +209,39 @@ const Attendance = () => {
     setEditTravelCost(record?.travelCost ?? '');
     setSelectedPresetId('');
     setIsModalOpen(true);
+  };
+
+  const handleQuickStatus = async (worker, status) => {
+    const key = `${worker.id}-${mobileDateIso}-${status}`;
+    setQuickSavingKey(key);
+    try {
+      const currentRecord = getDayRecord(worker.id, mobileDateIso);
+      const recordPayload = buildAttendancePayload({
+        status,
+        dailyRate: WORK_DETAIL_STATUSES.has(status) ? (currentRecord?.dailyRate || worker.dailyRate || '') : '',
+        position: currentRecord?.position || '',
+        location: currentRecord?.location || '',
+        note: currentRecord?.note || '',
+        travelCost: currentRecord?.travelCost || ''
+      });
+
+      await saveAttendanceRecord(
+        mobileDateIso,
+        worker.id,
+        recordPayload.status,
+        recordPayload.dailyRate,
+        recordPayload.position,
+        recordPayload.location,
+        recordPayload.note,
+        recordPayload.travelCost
+      );
+      await fetchData();
+    } catch (error) {
+      console.error('Error quick saving record', error);
+      alert('Không thể lưu chấm công nhanh. Vui lòng thử lại.');
+    } finally {
+      setQuickSavingKey('');
+    }
   };
 
   const handleSaveCell = async () => {
@@ -247,6 +317,61 @@ const Attendance = () => {
           <span>{viewMode === 'week' ? `Đang xem tuần ${weekLabel}` : 'Đang xem cả tháng'}</span>
         </div>
 
+        <div className="mobile-attendance-controls">
+          <div className="mobile-date-row">
+            <button className="btn btn-outline" type="button" onClick={() => setCurrentDate((value) => value.subtract(1, 'day'))}>
+              <ChevronLeft size={16} />
+            </button>
+            <input
+              className="form-input mobile-date-input"
+              type="date"
+              value={mobileDateIso}
+              onChange={(event) => setCurrentDate(dayjs(event.target.value))}
+            />
+            <button className="btn btn-outline" type="button" onClick={() => setCurrentDate((value) => value.add(1, 'day'))}>
+              <ChevronRight size={16} />
+            </button>
+          </div>
+          <div className="mobile-progress">
+            <div className="mobile-progress-copy">
+              <strong>{mobileDaySummary.completed}/{mobileDaySummary.total}</strong>
+              <span>đã chấm ngày {currentDate.format('DD/MM/YYYY')}</span>
+            </div>
+            <div className="mobile-progress-track">
+              <div
+                className="mobile-progress-fill"
+                style={{ width: `${mobileDaySummary.total ? (mobileDaySummary.completed / mobileDaySummary.total) * 100 : 0}%` }}
+              />
+            </div>
+          </div>
+          <div className="mobile-search-box">
+            <Search size={17} />
+            <input
+              value={mobileSearchTerm}
+              onChange={(event) => setMobileSearchTerm(event.target.value)}
+              placeholder="Tìm công nhân"
+            />
+          </div>
+          <div className="mobile-filter-scroll">
+            {[
+              ['all', 'Tất cả'],
+              ['empty', 'Chưa chấm'],
+              ['done', 'Đã chấm'],
+              ['Absent', 'Nghỉ'],
+              ['Leave', 'Phép']
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className={`mobile-filter-chip ${mobileStatusFilter === value ? 'active' : ''}`}
+                onClick={() => setMobileStatusFilter(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="attendance-legend">
           <span><i className="legend-box legend-full" /> Đủ công</span>
           <span><i className="legend-box legend-half" /> Nửa công</span>
@@ -280,7 +405,64 @@ const Attendance = () => {
         ) : workers.length === 0 ? (
           <div className="empty-state">Chưa có công nhân. Hãy thêm công nhân trước khi chấm công.</div>
         ) : (
-          <div className="attendance-table-wrap">
+          <>
+          <div className="mobile-attendance-list">
+            {mobileWorkers.length === 0 ? (
+              <div className="empty-state">Không có công nhân phù hợp bộ lọc.</div>
+            ) : mobileWorkers.map((worker) => {
+              const record = getDayRecord(worker.id, mobileDateIso);
+              const statusLabel = quickStatuses.find((item) => item.value === record?.status)?.label || 'Chưa chấm';
+              const travelCost = Number(record?.travelCost || 0);
+              return (
+                <article key={worker.id} className={`mobile-attendance-card ${record ? 'is-done' : ''}`}>
+                  <div className="mobile-attendance-card-head">
+                    <div className="worker-avatar">{(worker.name || '?').trim().charAt(0).toUpperCase()}</div>
+                    <div>
+                      <h3>{worker.name}</h3>
+                      <p>{worker.dailyRate ? `${Number(worker.dailyRate).toLocaleString('vi-VN')}đ/ngày` : 'Chưa có lương mặc định'}</p>
+                    </div>
+                    <span className="mobile-status-pill">{statusLabel}</span>
+                  </div>
+
+                  {(record?.location || record?.position || record?.note || travelCost > 0) && (
+                    <div className="mobile-attendance-details">
+                      {record.location && <span><MapPin size={13} /> {record.location}</span>}
+                      {record.position && <span><Briefcase size={13} /> {record.position}</span>}
+                      {travelCost > 0 && <span><Truck size={13} /> {travelCost.toLocaleString('vi-VN')}đ</span>}
+                      {record.note && <span>{record.note}</span>}
+                    </div>
+                  )}
+
+                  <div className="mobile-quick-status-grid">
+                    {quickStatuses.map((status) => {
+                      const key = `${worker.id}-${mobileDateIso}-${status.value}`;
+                      return (
+                        <button
+                          key={status.value}
+                          type="button"
+                          className={`quick-status-btn ${record?.status === status.value ? 'active' : ''}`}
+                          onClick={() => handleQuickStatus(worker, status.value)}
+                          disabled={Boolean(quickSavingKey)}
+                        >
+                          {quickSavingKey === key ? '...' : status.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    className="btn btn-outline mobile-detail-btn"
+                    type="button"
+                    onClick={() => handleCellClick(worker, currentDate.format('DD/MM'), mobileDateIso)}
+                  >
+                    Nhập chi tiết
+                  </button>
+                </article>
+              );
+            })}
+          </div>
+
+          <div className="attendance-table-wrap desktop-attendance-table">
             <table className="attendance-table">
               <thead>
                 <tr>
@@ -365,6 +547,7 @@ const Attendance = () => {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </section>
 

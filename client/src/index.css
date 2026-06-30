@@ -1596,6 +1596,12 @@ button, input, select {
   background: var(--primary-strong);
 }
 
+.mobile-bottom-nav,
+.mobile-attendance-controls,
+.mobile-attendance-list {
+  display: none;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -1637,6 +1643,60 @@ button, input, select {
 }
 
 @media (max-width: 760px) {
+  html, body, #root {
+    min-height: 100%;
+  }
+
+  body {
+    overflow-x: hidden;
+  }
+
+  .app-shell {
+    display: block;
+    min-height: 100vh;
+    padding-bottom: 76px;
+  }
+
+  .app-sidebar {
+    display: none;
+  }
+
+  .mobile-bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 -8px 20px rgba(15, 23, 42, 0.08);
+  }
+
+  .mobile-nav-item {
+    min-width: 0;
+    min-height: 54px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--text-soft);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  .mobile-nav-item.active {
+    color: var(--primary);
+    background: rgba(15, 118, 110, 0.1);
+  }
+
   .update-banner {
     left: 16px;
     right: 16px;
@@ -1649,13 +1709,376 @@ button, input, select {
   }
 
   .app-main-inner {
-    padding: 18px 16px 28px;
+    padding: 14px 12px 26px;
   }
 
   .screen-hero,
   .panel,
   .card {
-    padding: 20px;
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  .screen-page,
+  .workers-page {
+    gap: 12px;
+  }
+
+  .screen-page:has(.desktop-attendance-table) {
+    gap: 8px;
+  }
+
+  .screen-page:has(.desktop-attendance-table) > .panel:first-child {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    padding: 10px 12px;
+    border-radius: 0 0 14px 14px;
+    margin: -14px -12px 0;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+  }
+
+  .screen-page:has(.desktop-attendance-table) > .panel:nth-child(2) {
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .screen-title,
+  .page-title {
+    font-size: 1.24rem;
+    line-height: 1.2;
+  }
+
+  .compact-title {
+    margin-top: 2px;
+    font-size: 1.05rem;
+  }
+
+  .panel-kicker {
+    font-size: 0.7rem;
+  }
+
+  .screen-subtitle,
+  .workers-subtitle,
+  .workers-section-note,
+  .report-info-card p {
+    font-size: 0.92rem;
+    line-height: 1.55;
+  }
+
+  .btn,
+  .form-input,
+  .form-select,
+  .attendance-btn {
+    min-height: 44px;
+  }
+
+  .attendance-legend,
+  .toolbar-actions {
+    display: none;
+  }
+
+  .mobile-attendance-controls {
+    display: grid;
+    gap: 7px;
+    margin-top: 8px;
+  }
+
+  .mobile-date-row {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .mobile-date-row .btn {
+    min-height: 38px;
+    padding: 8px;
+  }
+
+  .mobile-date-input {
+    text-align: center;
+    font-weight: 700;
+  }
+
+  .mobile-progress {
+    display: grid;
+    gap: 5px;
+    padding: 7px 9px;
+    border-radius: 12px;
+    background: var(--surface-soft);
+    border: 1px solid var(--border);
+  }
+
+  .mobile-progress-copy {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+  }
+
+  .mobile-progress-copy strong {
+    color: var(--primary);
+    font-size: 1rem;
+  }
+
+  .mobile-progress-track {
+    height: 8px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--surface-muted);
+  }
+
+  .mobile-progress-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: var(--primary);
+    transition: width var(--transition);
+  }
+
+  .mobile-search-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 38px;
+    padding: 0 12px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: white;
+  }
+
+  .mobile-search-box svg {
+    color: var(--text-soft);
+    flex-shrink: 0;
+  }
+
+  .mobile-search-box input {
+    min-width: 0;
+    width: 100%;
+    border: 0;
+    outline: 0;
+    background: transparent;
+  }
+
+  .mobile-filter-scroll {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 0;
+  }
+
+  .mobile-filter-chip {
+    flex: 0 0 auto;
+    min-height: 30px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0 11px;
+    background: white;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+
+  .mobile-filter-chip.active {
+    color: white;
+    border-color: var(--primary);
+    background: var(--primary);
+  }
+
+  .mobile-attendance-list {
+    display: none;
+  }
+
+  .desktop-attendance-table {
+    display: block;
+    overflow: auto;
+    height: calc(100vh - 260px);
+    max-height: none;
+    min-height: 390px;
+    border-radius: 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .desktop-attendance-table .attendance-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+  }
+
+  .desktop-attendance-table .sticky-head {
+    z-index: 8;
+  }
+
+  .attendance-table {
+    min-width: 760px;
+  }
+
+  .attendance-table td {
+    height: 92px;
+    min-width: 92px;
+  }
+
+  .worker-name-cell,
+  .worker-col-head {
+    min-width: 168px;
+    width: 168px;
+  }
+
+  .worker-name-cell {
+    padding-left: 10px !important;
+  }
+
+  .worker-cell-copy strong {
+    font-size: 0.9rem;
+    line-height: 1.25;
+  }
+
+  .worker-cell-copy small,
+  .cell-detail-line,
+  .cell-note {
+    font-size: 0.68rem;
+  }
+
+  .attendance-cell {
+    padding: 6px;
+  }
+
+  .mobile-attendance-card {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: white;
+    padding: 12px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .mobile-attendance-card.is-done {
+    border-color: rgba(15, 118, 110, 0.22);
+  }
+
+  .mobile-attendance-card-head {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .mobile-attendance-card h3 {
+    font-size: 1rem;
+    overflow-wrap: anywhere;
+  }
+
+  .mobile-attendance-card p {
+    margin: 4px 0 0;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+  }
+
+  .mobile-status-pill {
+    padding: 7px 9px;
+    border-radius: 999px;
+    background: var(--surface-muted);
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .mobile-attendance-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+  }
+
+  .mobile-attendance-details span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 8px;
+    border-radius: 999px;
+    background: var(--surface-soft);
+  }
+
+  .mobile-quick-status-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 12px;
+  }
+
+  .quick-status-btn {
+    min-width: 0;
+    min-height: 38px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: white;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 800;
+  }
+
+  .quick-status-btn.active {
+    color: white;
+    border-color: var(--primary);
+    background: var(--primary);
+  }
+
+  .mobile-detail-btn {
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+    z-index: 1300;
+  }
+
+  .modal-content {
+    width: 100%;
+    max-height: calc(100vh - 12px);
+    overflow: auto;
+    border-radius: 18px 18px 0 0;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding: 14px;
+  }
+
+  .modal-footer {
+    position: sticky;
+    bottom: 0;
+    background: white;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+
+  .report-info-card {
+    display: none;
+  }
+
+  .reports-layout {
+    gap: 12px;
+  }
+
+  .report-form-card {
+    padding: 14px;
+  }
+
+  .report-form-row,
+  .form-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .report-download-btn {
+    min-height: 48px;
   }
 
   .screen-hero,
@@ -1686,6 +2109,7 @@ button, input, select {
   .sub-toolbar {
     flex-direction: column;
     align-items: stretch;
+    display: none;
   }
 
   .workers-form-grid,
@@ -1703,6 +2127,38 @@ button, input, select {
   .attendance-group {
     flex-direction: column;
     grid-template-columns: 1fr;
+  }
+
+  .workers-layout {
+    gap: 12px;
+  }
+
+  .workers-form-card {
+    order: 2;
+  }
+
+  .workers-list-card {
+    order: 1;
+  }
+
+  .workers-search {
+    border-radius: 12px;
+  }
+
+  .worker-row-card {
+    padding: 12px;
+  }
+
+  .worker-row-main {
+    width: 100%;
+  }
+
+  .worker-name-line h3 {
+    overflow-wrap: anywhere;
+  }
+
+  .worker-edit-btn {
+    width: 100%;
   }
 
   .worker-row-card,
