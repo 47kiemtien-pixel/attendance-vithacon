@@ -1,0 +1,94 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'server/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'ecosystem.config.cjs'
+      - 'tools/**'
+      - 'SETUP_CICD.ps1'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: attendance-backend-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, attendance-local]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            client/package-lock.json
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          npm.cmd ci
+          npm.cmd --prefix client ci
+      - name: Validate release
+        run: npm run test:release
+      - name: Mirror code to stable production directory
+        shell: pwsh
+        run: |
+          $deployRoot = Join-Path $env:USERPROFILE 'attendance-vithacon-production'
+          New-Item -ItemType Directory -Path $deployRoot -Force | Out-Null
+          $excluded = @(
+            (Join-Path $env:GITHUB_WORKSPACE '.git'),
+            (Join-Path $env:GITHUB_WORKSPACE 'node_modules'),
+            (Join-Path $env:GITHUB_WORKSPACE 'client\node_modules'),
+            (Join-Path $env:GITHUB_WORKSPACE 'server\node_modules'),
+            (Join-Path $env:GITHUB_WORKSPACE 'server\data'),
+            (Join-Path $env:GITHUB_WORKSPACE 'logs')
+          )
+          $args = @($env:GITHUB_WORKSPACE, $deployRoot, '/MIR', '/R:2', '/W:2', '/NFL', '/NDL', '/NJH', '/NJS', '/NP', '/XF', '.env', '.env.cicd', '/XD') + $excluded
+          & robocopy @args | Out-Null
+          if ($LASTEXITCODE -gt 7) { throw "Robocopy failed with exit code $LASTEXITCODE" }
+          $dataRoot = Join-Path $env:USERPROFILE 'attendance-vithacon-data'
+          $deployDataPath = Join-Path $deployRoot 'server\data'
+          New-Item -ItemType Directory -Path $dataRoot -Force | Out-Null
+          if (-not (Test-Path $deployDataPath)) {
+            New-Item -ItemType Junction -Path $deployDataPath -Target $dataRoot | Out-Null
+          }
+          npm.cmd --prefix $deployRoot ci
+          npm.cmd --prefix (Join-Path $deployRoot 'client') ci
+          New-Item -ItemType Directory -Path (Join-Path $deployRoot 'logs') -Force | Out-Null
+      - name: Restart backend and ensure tunnel services
+        shell: pwsh
+        run: |
+          $deployRoot = Join-Path $env:USERPROFILE 'attendance-vithacon-production'
+          $ecosystem = Join-Path $deployRoot 'ecosystem.config.cjs'
+          $processes = @(pm2.cmd jlist | ConvertFrom-Json)
+          if ($processes.name -contains 'attendance-backend') {
+            pm2.cmd reload attendance-backend --update-env
+          } else {
+            pm2.cmd start $ecosystem --only attendance-backend
+          }
+          foreach ($name in @('attendance-cloudflare-tunnel', 'attendance-tunnel-url-sync')) {
+            if ($processes.name -notcontains $name) {
+              pm2.cmd start $ecosystem --only $name
+            }
+          }
+          pm2.cmd save
+      - name: Health check
+        shell: pwsh
+        run: |
+          $healthy = $false
+          for ($attempt = 1; $attempt -le 8; $attempt++) {
+            try {
+              $response = Invoke-WebRequest 'http://localhost:5005/api/auth/status' -UseBasicParsing -TimeoutSec 10
+              if ($response.StatusCode -eq 200) { $healthy = $true; break }
+            } catch {
+              Start-Sleep -Seconds 4
+            }
+          }
+          if (-not $healthy) { throw 'Attendance backend failed its health check.' }

@@ -8,3 +8,9 @@ dist-electron/
 *.log
 .env
 server/data/
+.env.cicd
+.vercel/
+client/.vercel/
+logs/
+tools/cloudflared.exe
+_github_runner/
