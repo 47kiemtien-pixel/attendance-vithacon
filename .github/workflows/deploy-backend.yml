@@ -20,7 +20,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: [self-hosted, attendance-local]
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
