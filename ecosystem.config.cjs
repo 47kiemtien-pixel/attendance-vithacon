@@ -45,10 +45,9 @@ const apps = [
   },
   {
     name: 'attendance-tunnel-url-sync',
-    script: 'tools/run-tunnel-sync.cmd',
+    script: 'tools/run-tunnel-sync-hidden.vbs',
     cwd: root,
-    interpreter: 'cmd.exe',
-    interpreter_args: '/c',
+    interpreter: 'wscript.exe',
     autorestart: true,
     watch: false,
     restart_delay: 5000,
