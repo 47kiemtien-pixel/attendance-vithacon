@@ -104,7 +104,6 @@ function Sync-Vercel([hashtable]$Config, [string]$TunnelUrl) {
     $projectId = $Config['VERCEL_PROJECT_ID']
     $orgId = $Config['VERCEL_ORG_ID']
     $deployHookUrl = $Config['VERCEL_DEPLOY_HOOK_URL']
-    $gitRepositoryPath = $Config['GIT_REPOSITORY_PATH']
 
     if (-not $token -or -not $projectId) {
         throw "VERCEL_TOKEN and VERCEL_PROJECT_ID are required in .env.cicd."
@@ -143,24 +142,40 @@ function Sync-Vercel([hashtable]$Config, [string]$TunnelUrl) {
     if ($deployHookUrl) {
         Invoke-RestMethod -Uri $deployHookUrl -Method Post | Out-Null
     } else {
-        if (-not $gitRepositoryPath) {
-            $gitRepositoryPath = $ProjectRoot
+        # Redeploy the latest ready production deployment directly. This avoids
+        # Git credentials, fake commits, and interactive login prompts at boot.
+        $deploymentTeamParam = if ($orgId) { "?teamId=$orgId&" } else { "?" }
+        $deployments = Invoke-RestMethod `
+            -Uri "$apiBase/v6/deployments${deploymentTeamParam}projectId=$projectId&target=production&limit=10" `
+            -Headers $headers -Method Get
+        $latestReady = @(
+            $deployments.deployments |
+                Where-Object { $_.readyState -eq 'READY' } |
+                Select-Object -First 1
+        )
+        if (-not $latestReady) {
+            throw "No ready Vercel production deployment found."
         }
 
-        # Trigger the Git-connected Vercel project without checking out main or
-        # modifying the runner's dirty working tree.
-        & git -C $gitRepositoryPath fetch --quiet origin main
-        if ($LASTEXITCODE -ne 0) { throw "git fetch origin main failed." }
+        $vercel = Join-Path $env:APPDATA "npm\vercel.cmd"
+        if (-not (Test-Path $vercel)) {
+            throw "Vercel CLI is not installed at $vercel."
+        }
 
-        $tree = (& git -C $gitRepositoryPath rev-parse 'origin/main^{tree}').Trim()
-        if ($LASTEXITCODE -ne 0 -or -not $tree) { throw "Cannot resolve origin/main tree." }
-
-        $commit = ("ci: refresh frontend backend URL" | `
-            & git -C $gitRepositoryPath commit-tree $tree -p origin/main).Trim()
-        if ($LASTEXITCODE -ne 0 -or -not $commit) { throw "Cannot create deployment trigger commit." }
-
-        & git -C $gitRepositoryPath push origin "${commit}:refs/heads/main"
-        if ($LASTEXITCODE -ne 0) { throw "Cannot push deployment trigger to origin/main." }
+        $previousToken = $env:VERCEL_TOKEN
+        try {
+            $env:VERCEL_TOKEN = $token
+            & $vercel redeploy "https://$($latestReady.url)" `
+                --target production `
+                --cwd (Join-Path $ProjectRoot "client") `
+                --non-interactive `
+                --no-color
+            if ($LASTEXITCODE -ne 0) {
+                throw "Vercel redeploy failed with exit code $LASTEXITCODE."
+            }
+        } finally {
+            $env:VERCEL_TOKEN = $previousToken
+        }
     }
 
     $stateDirectory = Split-Path -Parent $StateFile

@@ -5,6 +5,7 @@ const root = __dirname;
 const userProfile = process.env.USERPROFILE || process.env.HOME || root;
 const dataDirectory = path.join(userProfile, 'attendance-vithacon-data');
 const runnerScript = path.join(userProfile, 'attendance-github-runner', 'run.cmd');
+const hiddenRunnerScript = path.join(root, 'tools', 'run-github-runner-hidden.vbs');
 
 const apps = [
   {
@@ -62,10 +63,9 @@ const apps = [
 if (fs.existsSync(runnerScript)) {
   apps.push({
     name: 'attendance-github-runner',
-    script: runnerScript,
-    cwd: path.dirname(runnerScript),
-    interpreter: 'cmd.exe',
-    interpreter_args: '/c',
+    script: hiddenRunnerScript,
+    cwd: root,
+    interpreter: 'wscript.exe',
     autorestart: true,
     watch: false,
     restart_delay: 10000,

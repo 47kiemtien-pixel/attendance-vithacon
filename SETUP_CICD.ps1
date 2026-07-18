@@ -83,7 +83,44 @@ if ($GitHubRunnerToken) {
     }
 }
 
-pm2.cmd start (Join-Path $DeployRoot 'ecosystem.config.cjs')
+$ecosystem = Join-Path $DeployRoot 'ecosystem.config.cjs'
+$processNames = @(
+    'attendance-backend',
+    'attendance-cloudflare-tunnel',
+    'attendance-tunnel-url-sync'
+)
+if (Test-Path (Join-Path $RunnerRoot 'run.cmd')) {
+    $processNames += 'attendance-github-runner'
+}
+
+foreach ($processName in $processNames) {
+    $processPid = (& pm2.cmd pid $processName | Select-Object -Last 1).Trim()
+    if ($processPid -notmatch '^\d+$' -or [int]$processPid -le 0) {
+        pm2.cmd start $ecosystem --only $processName
+    }
+}
 pm2.cmd save
+
+# Restore all saved PM2 processes after Windows logon without showing a console.
+$startupScript = Join-Path $DeployRoot 'tools\start-attendance-hidden.vbs'
+$startupAction = New-ScheduledTaskAction `
+    -Execute (Join-Path $env:WINDIR 'System32\wscript.exe') `
+    -Argument ('"{0}"' -f $startupScript) `
+    -WorkingDirectory $DeployRoot
+$startupTrigger = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERDOMAIN\$env:USERNAME"
+$startupSettings = New-ScheduledTaskSettingsSet `
+    -StartWhenAvailable `
+    -RestartCount 5 `
+    -RestartInterval (New-TimeSpan -Minutes 1) `
+    -ExecutionTimeLimit (New-TimeSpan -Minutes 10) `
+    -MultipleInstances IgnoreNew
+Register-ScheduledTask `
+    -TaskName 'Attendance Production Hidden' `
+    -Action $startupAction `
+    -Trigger $startupTrigger `
+    -Settings $startupSettings `
+    -Description 'Restore Attendance PM2 services silently after Windows logon.' `
+    -Force | Out-Null
+
 Write-Host "Attendance production runtime is ready at $DeployRoot"
 Write-Host "Persistent data directory: $DataRoot"
