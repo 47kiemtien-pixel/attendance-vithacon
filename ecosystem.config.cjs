@@ -20,8 +20,12 @@ const apps = [
     env: {
       NODE_ENV: 'production',
       ATTENDANCE_SERVER_PORT: 5005,
-      ATTENDANCE_DATA_DRIVER: 'json',
+      ATTENDANCE_DATA_DRIVER: 'postgres',
       ATTENDANCE_DATA_DIR: dataDirectory,
+      PGHOST: '127.0.0.1',
+      PGPORT: 5433,
+      PGDATABASE: 'attendance_system',
+      PGUSER: 'attendance_user',
       AUTH_REQUIRED: 'false',
     },
     out_file: path.join(root, 'logs', 'backend-out.log'),

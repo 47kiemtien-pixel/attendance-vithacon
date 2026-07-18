@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: attendance-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${PGDATABASE}
+      POSTGRES_USER: ${PGUSER}
+      POSTGRES_PASSWORD: ${PGPASSWORD}
+    ports:
+      - "127.0.0.1:${PGPORT}:5432"
+    volumes:
+      - attendance_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PGUSER} -d ${PGDATABASE}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  attendance_postgres_data:
+    name: attendance_postgres_data

@@ -8,6 +8,7 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'ecosystem.config.cjs'
+      - 'docker-compose.database.yml'
       - 'tools/**'
       - 'SETUP_CICD.ps1'
       - '.github/workflows/deploy-backend.yml'
@@ -67,9 +68,13 @@ jobs:
         run: |
           $deployRoot = Join-Path $env:USERPROFILE 'attendance-vithacon-production'
           $ecosystem = Join-Path $deployRoot 'ecosystem.config.cjs'
+          $runtimeEnv = Join-Path $deployRoot '.env'
+          $databaseCompose = Join-Path $deployRoot 'docker-compose.database.yml'
+          docker.exe compose --env-file $runtimeEnv -f $databaseCompose up -d postgres
+          if ($LASTEXITCODE -ne 0) { throw 'Attendance PostgreSQL failed to start.' }
           $backendPid = (& pm2.cmd pid attendance-backend | Select-Object -Last 1).Trim()
           if ($backendPid -match '^\d+$' -and [int]$backendPid -gt 0) {
-            pm2.cmd reload attendance-backend --update-env
+            pm2.cmd start $ecosystem --only attendance-backend --update-env
           } else {
             pm2.cmd start $ecosystem --only attendance-backend
           }

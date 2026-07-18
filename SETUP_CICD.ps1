@@ -48,6 +48,47 @@ GIT_REPOSITORY_PATH=$SourceRoot
 "@
 Set-Content -Path (Join-Path $DeployRoot '.env.cicd') -Value $config -Encoding UTF8
 
+$runtimeEnvPath = Join-Path $DeployRoot '.env'
+if (-not (Test-Path $runtimeEnvPath)) {
+    $passwordBytes = New-Object byte[] 32
+    $random = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try {
+        $random.GetBytes($passwordBytes)
+    } finally {
+        $random.Dispose()
+    }
+    $postgresPassword = ($passwordBytes | ForEach-Object { $_.ToString('x2') }) -join ''
+    $runtimeConfig = @"
+NODE_ENV=production
+ATTENDANCE_SERVER_PORT=5005
+ATTENDANCE_DATA_DRIVER=postgres
+ATTENDANCE_DATA_DIR=$DataRoot
+PGHOST=127.0.0.1
+PGPORT=5433
+PGDATABASE=attendance_system
+PGUSER=attendance_user
+PGPASSWORD=$postgresPassword
+AUTH_REQUIRED=false
+CORS_ORIGIN=*
+"@
+    Set-Content -Path $runtimeEnvPath -Value $runtimeConfig -Encoding UTF8
+}
+
+$databaseCompose = Join-Path $DeployRoot 'docker-compose.database.yml'
+& docker.exe compose --env-file $runtimeEnvPath -f $databaseCompose up -d postgres
+if ($LASTEXITCODE -ne 0) { throw 'Attendance PostgreSQL failed to start.' }
+
+$databaseReady = $false
+for ($attempt = 1; $attempt -le 30; $attempt++) {
+    $health = (& docker.exe inspect --format '{{.State.Health.Status}}' attendance-postgres 2>$null).Trim()
+    if ($health -eq 'healthy') {
+        $databaseReady = $true
+        break
+    }
+    Start-Sleep -Seconds 2
+}
+if (-not $databaseReady) { throw 'Attendance PostgreSQL did not become healthy.' }
+
 Push-Location $DeployRoot
 try {
     npm.cmd ci
@@ -95,7 +136,9 @@ if (Test-Path (Join-Path $RunnerRoot 'run.cmd')) {
 
 foreach ($processName in $processNames) {
     $processPid = (& pm2.cmd pid $processName | Select-Object -Last 1).Trim()
-    if ($processPid -notmatch '^\d+$' -or [int]$processPid -le 0) {
+    if ($processName -eq 'attendance-backend' -and $processPid -match '^\d+$' -and [int]$processPid -gt 0) {
+        pm2.cmd start $ecosystem --only $processName --update-env
+    } elseif ($processPid -notmatch '^\d+$' -or [int]$processPid -le 0) {
         pm2.cmd start $ecosystem --only $processName
     }
 }
