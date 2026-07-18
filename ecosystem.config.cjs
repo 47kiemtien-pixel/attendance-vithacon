@@ -3,7 +3,6 @@ const path = require('path');
 
 const root = __dirname;
 const userProfile = process.env.USERPROFILE || process.env.HOME || root;
-const dataDirectory = path.join(userProfile, 'attendance-vithacon-data');
 const runnerScript = path.join(userProfile, 'attendance-github-runner', 'run.cmd');
 const hiddenRunnerScript = path.join(root, 'tools', 'run-github-runner-hidden.vbs');
 
@@ -21,7 +20,7 @@ const apps = [
       NODE_ENV: 'production',
       ATTENDANCE_SERVER_PORT: 5005,
       ATTENDANCE_DATA_DRIVER: 'postgres',
-      ATTENDANCE_DATA_DIR: dataDirectory,
+      ATTENDANCE_IMPORT_LEGACY_JSON: 'false',
       PGHOST: '127.0.0.1',
       PGPORT: 5433,
       PGDATABASE: 'attendance_system',

@@ -8,18 +8,9 @@ param(
 $ErrorActionPreference = 'Stop'
 $SourceRoot = $PSScriptRoot
 $DeployRoot = Join-Path $env:USERPROFILE 'attendance-vithacon-production'
-$DataRoot = Join-Path $env:USERPROFILE 'attendance-vithacon-data'
 $RunnerRoot = Join-Path $env:USERPROFILE 'attendance-github-runner'
 
-New-Item -ItemType Directory -Path $DeployRoot, $DataRoot -Force | Out-Null
-
-# Seed persistent data once. Deploys never mirror or delete this directory.
-Get-ChildItem (Join-Path $SourceRoot 'server\data') -File -ErrorAction SilentlyContinue | ForEach-Object {
-    $destination = Join-Path $DataRoot $_.Name
-    if (-not (Test-Path $destination)) {
-        Copy-Item $_.FullName $destination
-    }
-}
+New-Item -ItemType Directory -Path $DeployRoot -Force | Out-Null
 
 $excludedDirectories = @(
     '.git', 'node_modules', 'client\node_modules', 'server\node_modules',
@@ -31,11 +22,6 @@ $robocopyArgs += '/XD'
 $robocopyArgs += $excludedDirectories | ForEach-Object { Join-Path $SourceRoot $_ }
 & robocopy @robocopyArgs | Out-Null
 if ($LASTEXITCODE -gt 7) { throw "Robocopy failed with exit code $LASTEXITCODE" }
-
-$deployDataPath = Join-Path $DeployRoot 'server\data'
-if (-not (Test-Path $deployDataPath)) {
-    New-Item -ItemType Junction -Path $deployDataPath -Target $DataRoot | Out-Null
-}
 
 $config = @"
 # Local CI/CD credentials. Never commit this file.
@@ -62,7 +48,7 @@ if (-not (Test-Path $runtimeEnvPath)) {
 NODE_ENV=production
 ATTENDANCE_SERVER_PORT=5005
 ATTENDANCE_DATA_DRIVER=postgres
-ATTENDANCE_DATA_DIR=$DataRoot
+ATTENDANCE_IMPORT_LEGACY_JSON=false
 PGHOST=127.0.0.1
 PGPORT=5433
 PGDATABASE=attendance_system
@@ -166,4 +152,3 @@ Register-ScheduledTask `
     -Force | Out-Null
 
 Write-Host "Attendance production runtime is ready at $DeployRoot"
-Write-Host "Persistent data directory: $DataRoot"

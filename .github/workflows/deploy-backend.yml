@@ -54,12 +54,6 @@ jobs:
           $args = @($env:GITHUB_WORKSPACE, $deployRoot, '/MIR', '/R:2', '/W:2', '/NFL', '/NDL', '/NJH', '/NJS', '/NP', '/XF', '.env', '.env.cicd', '/XD') + $excluded
           & robocopy @args | Out-Null
           if ($LASTEXITCODE -gt 7) { throw "Robocopy failed with exit code $LASTEXITCODE" }
-          $dataRoot = Join-Path $env:USERPROFILE 'attendance-vithacon-data'
-          $deployDataPath = Join-Path $deployRoot 'server\data'
-          New-Item -ItemType Directory -Path $dataRoot -Force | Out-Null
-          if (-not (Test-Path $deployDataPath)) {
-            New-Item -ItemType Junction -Path $deployDataPath -Target $dataRoot | Out-Null
-          }
           npm.cmd --prefix $deployRoot ci
           npm.cmd --prefix (Join-Path $deployRoot 'client') ci
           New-Item -ItemType Directory -Path (Join-Path $deployRoot 'logs') -Force | Out-Null

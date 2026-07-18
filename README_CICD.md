@@ -6,12 +6,10 @@
 - Backend: PM2 on the local Windows server, port `5005`.
 - Public API: Cloudflare Tunnel.
 - Database: PostgreSQL 16 in Docker, bound locally to `127.0.0.1:5433`.
-- Legacy JSON backup/import source: `%USERPROFILE%\attendance-vithacon-data`.
 - Stable deployed code: `%USERPROFILE%\attendance-vithacon-production`.
 
-The first PostgreSQL startup imports the existing JSON data when the SQL tables
-are empty. Deploys never mirror, remove, or overwrite the legacy data directory
-or the Docker database volume.
+PostgreSQL is the only production data store. Deploys never remove or overwrite
+the Docker database volume.
 
 ## Initial setup
 
