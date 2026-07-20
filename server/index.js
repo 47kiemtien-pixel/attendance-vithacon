@@ -18,7 +18,9 @@ async function createStore(options = {}) {
         || (process.env.DATABASE_URL || process.env.PGHOST ? 'postgres' : 'json');
 
     if (driver === 'postgres') {
-        return createPostgresStore({ ...options, dataDir });
+        const importLegacyJson = options.importLegacyJson
+            ?? process.env.ATTENDANCE_IMPORT_LEGACY_JSON === 'true';
+        return createPostgresStore({ ...options, dataDir, importLegacyJson });
     }
 
     return createJsonStore(dataDir);
@@ -70,8 +72,11 @@ function buildWorkerReportChildren(worker, dateRange, attendance, options = {}) 
         new TableRow({
             children: [
                 new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'THỨ / NGÀY', bold: true, color: 'FFFFFF' })], alignment: AlignmentType.CENTER })], shading: { fill: navy }, verticalAlign: VerticalAlign.CENTER }),
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'ĐỊA ĐIỂM CÔNG TÁC', bold: true, color: 'FFFFFF' })], alignment: AlignmentType.CENTER })], shading: { fill: navy }, verticalAlign: VerticalAlign.CENTER }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'ĐỊA ĐIỂM', bold: true, color: 'FFFFFF' })], alignment: AlignmentType.CENTER })], shading: { fill: navy }, verticalAlign: VerticalAlign.CENTER }),
                 new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'TRẠNG THÁI', bold: true, color: 'FFFFFF' })], alignment: AlignmentType.CENTER })], shading: { fill: navy }, verticalAlign: VerticalAlign.CENTER }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'LƯƠNG NGÀY', bold: true, color: 'FFFFFF' })], alignment: AlignmentType.CENTER })], shading: { fill: navy }, verticalAlign: VerticalAlign.CENTER }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'TIỀN CÔNG', bold: true, color: 'FFFFFF' })], alignment: AlignmentType.CENTER })], shading: { fill: navy }, verticalAlign: VerticalAlign.CENTER }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'TIỀN XE', bold: true, color: 'FFFFFF' })], alignment: AlignmentType.CENTER })], shading: { fill: navy }, verticalAlign: VerticalAlign.CENTER }),
                 new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'GHI CHÚ', bold: true, color: 'FFFFFF' })], alignment: AlignmentType.CENTER })], shading: { fill: navy }, verticalAlign: VerticalAlign.CENTER }),
             ],
             height: { value: 500, rule: HeightRule.ATLEAST },
@@ -80,26 +85,52 @@ function buildWorkerReportChildren(worker, dateRange, attendance, options = {}) 
 
     let totalFull = 0;
     let totalTravelCost = 0;
+    let totalWage = 0;
     for (let i = 0; i < daysCount; i++) {
         const d = startDate.add(i, 'day');
         const dayRec = attendance.find(a => a.date === d.format('YYYY-MM-DD'));
         const rec = dayRec?.records.find(r => String(r.workerId) === String(worker.id));
         let statusText = '-';
         let statusColor = '64748B';
+        let dailyRateText = '-';
+        let wageText = '-';
         if (rec) {
             totalTravelCost += Number(rec.travelCost || 0);
-            if (rec.status === 'Full') { statusText = 'CÔNG'; totalFull += 1; statusColor = '15803d'; }
-            else if (rec.status === 'Half') { statusText = '1/2 CÔNG'; totalFull += 0.5; statusColor = 'B45309'; }
+            const rate = Number(rec.dailyRate || 0);
+            let wage = 0;
+            if (rec.status === 'Full') {
+                statusText = 'CÔNG';
+                totalFull += 1;
+                statusColor = '15803d';
+                wage = rate;
+            }
+            else if (rec.status === 'Half') {
+                statusText = '1/2 CÔNG';
+                totalFull += 0.5;
+                statusColor = 'B45309';
+                wage = rate * 0.5;
+            }
             else if (rec.status === 'Holiday') { statusText = 'NGHỈ LỄ'; statusColor = 'B91C1C'; }
             else if (rec.status === 'Leave') { statusText = 'PHÉP'; statusColor = '2563EB'; }
             else if (rec.status === 'Absent') { statusText = 'NGHỈ'; statusColor = '991B1B'; }
             else if (rec.status === 'Travel') { statusText = 'DI CHUYỂN'; statusColor = '7C3AED'; }
+
+            if (rate > 0) {
+                dailyRateText = `${rate.toLocaleString('vi-VN')}đ`;
+            }
+            if (wage > 0) {
+                wageText = `${wage.toLocaleString('vi-VN')}đ`;
+                totalWage += wage;
+            }
         }
         tableRows.push(new TableRow({
             children: [
                 new TableCell({ children: [new Paragraph({ text: `${vnDays[d.day()]} (${d.format('DD/MM')})` })], verticalAlign: VerticalAlign.CENTER, borders: { left: BorderStyle.NONE, right: BorderStyle.NONE, top: { style: BorderStyle.SINGLE, color: borderGray }, bottom: { style: BorderStyle.SINGLE, color: borderGray } } }),
                 new TableCell({ children: [new Paragraph({ text: rec?.location || '-', alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER, borders: { left: BorderStyle.NONE, right: BorderStyle.NONE, top: { style: BorderStyle.SINGLE, color: borderGray }, bottom: { style: BorderStyle.SINGLE, color: borderGray } } }),
                 new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: statusText, bold: true, color: statusColor })], alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER, borders: { left: BorderStyle.NONE, right: BorderStyle.NONE, top: { style: BorderStyle.SINGLE, color: borderGray }, bottom: { style: BorderStyle.SINGLE, color: borderGray } } }),
+                new TableCell({ children: [new Paragraph({ text: dailyRateText, alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER, borders: { left: BorderStyle.NONE, right: BorderStyle.NONE, top: { style: BorderStyle.SINGLE, color: borderGray }, bottom: { style: BorderStyle.SINGLE, color: borderGray } } }),
+                new TableCell({ children: [new Paragraph({ text: wageText, alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER, borders: { left: BorderStyle.NONE, right: BorderStyle.NONE, top: { style: BorderStyle.SINGLE, color: borderGray }, bottom: { style: BorderStyle.SINGLE, color: borderGray } } }),
+                new TableCell({ children: [new Paragraph({ text: rec?.travelCost > 0 ? `${rec.travelCost.toLocaleString('vi-VN')}đ` : '-', alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER, borders: { left: BorderStyle.NONE, right: BorderStyle.NONE, top: { style: BorderStyle.SINGLE, color: borderGray }, bottom: { style: BorderStyle.SINGLE, color: borderGray } } }),
                 new TableCell({ children: [new Paragraph({ text: rec?.note || '-', alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER, borders: { left: BorderStyle.NONE, right: BorderStyle.NONE, top: { style: BorderStyle.SINGLE, color: borderGray }, bottom: { style: BorderStyle.SINGLE, color: borderGray } } }),
             ],
             height: { value: 450, rule: HeightRule.ATLEAST },
@@ -135,20 +166,33 @@ function buildWorkerReportChildren(worker, dateRange, attendance, options = {}) 
                             children: [
                                 new TableCell({ 
                                     children: [
-                                        totalTravelCost > 0 ? new Paragraph({
+                                        new Paragraph({
                                             children: [
-                                                new TextRun({ text: 'Tiền xe/Di chuyển: ', size: 20, color: slate }),
-                                                new TextRun({ text: `${totalTravelCost.toLocaleString('vi-VN')}đ`, bold: true, size: 24, color: 'B45309' }),
+                                                new TextRun({ text: 'Tổng số công: ', size: 20, color: slate }),
+                                                new TextRun({ text: `${totalFull}`, bold: true, size: 20, color: navy }),
                                             ]
-                                        }) : new Paragraph({ text: '' })
+                                        }),
+                                        new Paragraph({
+                                            children: [
+                                                new TextRun({ text: 'Tổng lương: ', size: 20, color: slate }),
+                                                new TextRun({ text: `${totalWage.toLocaleString('vi-VN')}đ`, bold: true, size: 20, color: navy }),
+                                            ]
+                                        })
                                     ] 
                                 }),
                                 new TableCell({ 
                                     children: [
                                         new Paragraph({
                                             children: [
-                                                new TextRun({ text: `Tổng số công: `, bold: true, size: 24, color: slate }),
-                                                new TextRun({ text: `${totalFull}`, bold: true, size: 36, color: navy }),
+                                                new TextRun({ text: 'Tiền xe/Di chuyển: ', size: 20, color: slate }),
+                                                new TextRun({ text: `${totalTravelCost.toLocaleString('vi-VN')}đ`, bold: true, size: 20, color: 'B45309' }),
+                                            ],
+                                            alignment: AlignmentType.RIGHT,
+                                        }),
+                                        new Paragraph({
+                                            children: [
+                                                new TextRun({ text: 'Thực nhận: ', bold: true, size: 22, color: slate }),
+                                                new TextRun({ text: `${(totalWage + totalTravelCost).toLocaleString('vi-VN')}đ`, bold: true, size: 26, color: '15803d' }),
                                             ],
                                             alignment: AlignmentType.RIGHT,
                                         })
@@ -183,10 +227,93 @@ async function buildWorkerReportDocx(worker, dateRange, attendance) {
     return await Packer.toBuffer(doc);
 }
 
-async function buildWorkersReportDocx(workers, dateRange, attendance) {
-    const children = workers.flatMap((worker, index) => buildWorkerReportChildren(worker, dateRange, attendance, {
-        pageBreakBefore: index > 0,
+function buildWorkersSummaryChildren(workers, dateRange, attendance) {
+    let allWorkersWorkTotal = 0;
+    let allWorkersWageTotal = 0;
+    const rows = [
+        new TableRow({
+            children: ['STT', 'HỌ VÀ TÊN', 'TỔNG SỐ CÔNG', 'TỔNG LƯƠNG'].map((text) => new TableCell({
+                children: [new Paragraph({
+                    children: [new TextRun({ text, bold: true, color: 'FFFFFF' })],
+                    alignment: AlignmentType.CENTER,
+                })],
+                shading: { fill: '1E3A8A' },
+                verticalAlign: VerticalAlign.CENTER,
+            })),
+        }),
+    ];
+
+    workers.forEach((worker, index) => {
+        const { workTotal, wageTotal } = calculateWorkerReportTotals(worker, dateRange, attendance);
+        allWorkersWorkTotal += workTotal;
+        allWorkersWageTotal += wageTotal;
+        rows.push(new TableRow({
+            children: [
+                `${index + 1}`,
+                worker.name,
+                `${workTotal}`,
+                `${wageTotal.toLocaleString('vi-VN')}đ`,
+            ].map((text) => new TableCell({
+                children: [new Paragraph({ text, alignment: AlignmentType.CENTER })],
+                verticalAlign: VerticalAlign.CENTER,
+            })),
+        }));
+    });
+
+    rows.push(new TableRow({
+        children: [
+            new TableCell({
+                columnSpan: 2,
+                children: [new Paragraph({
+                    children: [new TextRun({ text: 'TỔNG CỘNG', bold: true })],
+                    alignment: AlignmentType.CENTER,
+                })],
+            }),
+            new TableCell({
+                children: [new Paragraph({
+                    children: [new TextRun({ text: `${allWorkersWorkTotal}`, bold: true })],
+                    alignment: AlignmentType.CENTER,
+                })],
+            }),
+            new TableCell({
+                children: [new Paragraph({
+                    children: [new TextRun({ text: `${allWorkersWageTotal.toLocaleString('vi-VN')}đ`, bold: true, color: '15803D' })],
+                    alignment: AlignmentType.CENTER,
+                })],
+            }),
+        ],
     }));
+
+    return [
+        new Paragraph({
+            children: [new TextRun({ text: 'BẢNG TỔNG HỢP LƯƠNG', bold: true, size: 36, color: '1E3A8A' })],
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 160 },
+        }),
+        new Paragraph({
+            text: `Từ ${dayjs(dateRange.start).format('DD/MM/YYYY')} đến ${dayjs(dateRange.end).format('DD/MM/YYYY')}`,
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 400 },
+        }),
+        new Table({ rows, width: { size: 100, type: WidthType.PERCENTAGE } }),
+        new Paragraph({
+            children: [
+                new TextRun({ text: 'Tổng lương tất cả nhân công: ', bold: true, size: 24 }),
+                new TextRun({ text: `${allWorkersWageTotal.toLocaleString('vi-VN')}đ`, bold: true, size: 28, color: '15803D' }),
+            ],
+            alignment: AlignmentType.RIGHT,
+            spacing: { before: 400 },
+        }),
+    ];
+}
+
+async function buildWorkersReportDocx(workers, dateRange, attendance) {
+    const children = [
+        ...buildWorkersSummaryChildren(workers, dateRange, attendance),
+        ...workers.flatMap((worker) => buildWorkerReportChildren(worker, dateRange, attendance, {
+            pageBreakBefore: true,
+        })),
+    ];
 
     const doc = new Document({
         styles: { default: { document: { run: { font: 'Arial', size: 20 } } } },
@@ -221,22 +348,73 @@ function getSafeSheetName(worker, index) {
     return `${index + 1}-${baseName || 'Worker'}`.slice(0, 31);
 }
 
+function calculateWorkerReportTotals(worker, dateRange, attendance) {
+    let current = dayjs(dateRange.start);
+    const end = dayjs(dateRange.end);
+    let workTotal = 0;
+    let wageTotal = 0;
+
+    while (current.isBefore(end) || current.isSame(end)) {
+        const attendanceDay = attendance.find((item) => item.date === current.format('YYYY-MM-DD'));
+        const record = attendanceDay?.records.find((item) => String(item.workerId) === String(worker.id));
+        const dailyRate = Number(record?.dailyRate || 0);
+
+        if (record?.status === 'Full') {
+            workTotal += 1;
+            wageTotal += dailyRate;
+        } else if (record?.status === 'Half') {
+            workTotal += 0.5;
+            wageTotal += dailyRate * 0.5;
+        }
+
+        current = current.add(1, 'day');
+    }
+
+    return { workTotal, wageTotal };
+}
+
+function addWorkersSummarySheet(workbook, workers, dateRange, attendance) {
+    const sheet = workbook.addWorksheet('Tổng hợp');
+    sheet.addRow(['STT', 'HỌ VÀ TÊN', 'TỔNG SỐ CÔNG', 'TỔNG LƯƠNG']);
+
+    let allWorkersWorkTotal = 0;
+    let allWorkersWageTotal = 0;
+    workers.forEach((worker, index) => {
+        const { workTotal, wageTotal } = calculateWorkerReportTotals(worker, dateRange, attendance);
+        allWorkersWorkTotal += workTotal;
+        allWorkersWageTotal += wageTotal;
+        sheet.addRow([index + 1, worker.name, workTotal, wageTotal]);
+    });
+
+    sheet.addRow([]);
+    sheet.addRow(['TỔNG CỘNG', '', allWorkersWorkTotal, allWorkersWageTotal]);
+    sheet.getColumn(2).width = 30;
+    sheet.getColumn(3).width = 18;
+    sheet.getColumn(4).width = 22;
+    sheet.getColumn(4).numFmt = '#,##0"đ"';
+    sheet.getRow(1).font = { bold: true };
+    sheet.getRow(sheet.rowCount).font = { bold: true };
+}
+
 function addWorkerReportSheet(workbook, worker, dateRange, attendance, index) {
     const sheet = workbook.addWorksheet(getSafeSheetName(worker, index));
-    sheet.addRow(['THỨ / NGÀY', 'ĐỊA ĐIỂM', 'TRẠNG THÁI', 'GHI CHÚ', 'TIỀN XE']);
+    sheet.addRow(['THỨ / NGÀY', 'ĐỊA ĐIỂM', 'TRẠNG THÁI', 'LƯƠNG NGÀY', 'TIỀN CÔNG', 'TIỀN XE', 'GHI CHÚ']);
 
     let current = dayjs(dateRange.start);
     const end = dayjs(dateRange.end);
     let total = 0;
     let travelTotal = 0;
+    let wageTotal = 0;
 
     while(current.isBefore(end) || current.isSame(end)) {
         const dateStr = current.format('YYYY-MM-DD');
         const att = attendance.find(a => a.date === dateStr);
         const rec = att?.records.find(r => String(r.workerId) === String(worker.id));
         let status = '-';
-        if(rec?.status === 'Full') { status = 'CÔNG'; total += 1; }
-        else if(rec?.status === 'Half') { status = '1/2 CÔNG'; total += 0.5; }
+        const rate = Number(rec?.dailyRate || 0);
+        let wage = 0;
+        if(rec?.status === 'Full') { status = 'CÔNG'; total += 1; wage = rate; }
+        else if(rec?.status === 'Half') { status = '1/2 CÔNG'; total += 0.5; wage = rate * 0.5; }
         else if(rec?.status === 'Absent') { status = 'NGHỈ'; }
         else if(rec?.status === 'Travel') { status = 'DI CHUYỂN'; }
         else if(rec?.status === 'Holiday') { status = 'NGHỈ LỄ'; }
@@ -244,13 +422,23 @@ function addWorkerReportSheet(workbook, worker, dateRange, attendance, index) {
         
         const tCost = Number(rec?.travelCost || 0);
         travelTotal += tCost;
+        wageTotal += wage;
         
-        sheet.addRow([current.format('DD/MM/YYYY'), rec?.location || '-', status, rec?.note || '-', tCost > 0 ? tCost : '-']);
+        sheet.addRow([
+            current.format('DD/MM/YYYY'),
+            rec?.location || '-',
+            status,
+            rate > 0 ? rate : '-',
+            wage > 0 ? wage : '-',
+            tCost > 0 ? tCost : '-',
+            rec?.note || '-'
+        ]);
         current = current.add(1, 'day');
     }
 
     sheet.addRow([]);
-    sheet.addRow(['TỔNG CỘNG', '', total, 'Tổng tiền xe:', travelTotal]);
+    sheet.addRow(['TỔNG CỘNG', '', total, 'Tổng lương:', wageTotal, 'Tổng tiền xe:', travelTotal]);
+    sheet.addRow(['THỰC NHẬN', '', '', '', wageTotal + travelTotal, '', '']);
     sheet.columns.forEach((column) => {
         column.width = 18;
     });
@@ -314,27 +502,50 @@ async function createServer(options = {}) {
     app.get('/api/export', async (req, res) => {
         try {
             const { month, year } = req.query;
-            const workers = await store.getWorkers();
+            const allWorkers = await store.getWorkers();
             const attendance = await store.getAttendance();
+            
+            // Filter workers: keep active workers OR workers who had attendance records in this month
+            const workers = allWorkers.filter(w => {
+                if (w.status !== 'resigned') return true;
+                return attendance.some(att => {
+                    if (!att.date.startsWith(`${year}-${String(month).padStart(2, '0')}`)) return false;
+                    return att.records.some(r => String(r.workerId) === String(w.id));
+                });
+            });
+
             const workbook = new ExcelJS.Workbook();
             const sheet = workbook.addWorksheet(`Tháng ${month}-${year}`);
-            sheet.addRow(['STT', 'Họ và tên', ...Array.from({ length: 31 }, (_, i) => i + 1), 'Tổng công', 'Tổng tiền xe']);
+            sheet.addRow(['STT', 'Họ và tên', ...Array.from({ length: 31 }, (_, i) => i + 1), 'Tổng công', 'Tổng tiền công', 'Tổng tiền xe', 'Thực nhận']);
             workers.forEach((w, idx) => {
                 let total = 0;
                 let travelTotal = 0;
+                let wageTotal = 0;
                 const rowData = [idx + 1, w.name];
                 for(let d=1; d<=31; d++) {
                     const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                     const att = attendance.find(a => a.date === dateStr);
                     const rec = att?.records.find(r => String(r.workerId) === String(w.id));
                     travelTotal += Number(rec?.travelCost || 0);
-                    if (rec?.status === 'Full') { total += 1; rowData.push(1); }
-                    else if (rec?.status === 'Half') { total += 0.5; rowData.push(0.5); }
-                    else if (rec?.status === 'Absent' || rec?.status === 'Leave' || rec?.status === 'Travel' || rec?.status === 'Holiday') { rowData.push(0); }
+                    if (rec?.status === 'Full') {
+                        total += 1;
+                        wageTotal += Number(rec.dailyRate || 0);
+                        rowData.push(1);
+                    }
+                    else if (rec?.status === 'Half') {
+                        total += 0.5;
+                        wageTotal += Number(rec.dailyRate || 0) * 0.5;
+                        rowData.push(0.5);
+                    }
+                    else if (rec?.status === 'Absent' || rec?.status === 'Leave' || rec?.status === 'Travel' || rec?.status === 'Holiday') {
+                        rowData.push(0);
+                    }
                     else rowData.push('');
                 }
                 rowData.push(total);
+                rowData.push(wageTotal);
                 rowData.push(travelTotal);
+                rowData.push(wageTotal + travelTotal);
                 sheet.addRow(rowData);
             });
             res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -355,18 +566,21 @@ async function createServer(options = {}) {
             const attendance = await store.getAttendance();
             const workbook = new ExcelJS.Workbook();
             const sheet = workbook.addWorksheet('Bao Cao');
-            sheet.addRow(['THỨ / NGÀY', 'ĐỊA ĐIỂM', 'TRẠNG THÁI', 'GHI CHÚ', 'TIỀN XE']);
+            sheet.addRow(['THỨ / NGÀY', 'ĐỊA ĐIỂM', 'TRẠNG THÁI', 'LƯƠNG NGÀY', 'TIỀN CÔNG', 'TIỀN XE', 'GHI CHÚ']);
             let current = dayjs(startDate);
             const end = dayjs(endDate);
             let total = 0;
             let travelTotal = 0;
+            let wageTotal = 0;
             while(current.isBefore(end) || current.isSame(end)) {
                 const dateStr = current.format('YYYY-MM-DD');
                 const att = attendance.find(a => a.date === dateStr);
                 const rec = att?.records.find(r => String(r.workerId) === String(workerId));
                 let status = '-';
-                if(rec?.status === 'Full') { status = 'CÔNG'; total += 1; }
-                else if(rec?.status === 'Half') { status = '1/2 CÔNG'; total += 0.5; }
+                const rate = Number(rec?.dailyRate || 0);
+                let wage = 0;
+                if(rec?.status === 'Full') { status = 'CÔNG'; total += 1; wage = rate; }
+                else if(rec?.status === 'Half') { status = '1/2 CÔNG'; total += 0.5; wage = rate * 0.5; }
                 else if(rec?.status === 'Absent') { status = 'NGHỈ'; }
                 else if(rec?.status === 'Travel') { status = 'DI CHUYỂN'; }
                 else if(rec?.status === 'Holiday') { status = 'NGHỈ LỄ'; }
@@ -374,12 +588,22 @@ async function createServer(options = {}) {
                 
                 const tCost = Number(rec?.travelCost || 0);
                 travelTotal += tCost;
+                wageTotal += wage;
                 
-                sheet.addRow([current.format('DD/MM/YYYY'), rec?.location || '-', status, rec?.note || '-', tCost > 0 ? tCost : '-']);
+                sheet.addRow([
+                    current.format('DD/MM/YYYY'),
+                    rec?.location || '-',
+                    status,
+                    rate > 0 ? rate : '-',
+                    wage > 0 ? wage : '-',
+                    tCost > 0 ? tCost : '-',
+                    rec?.note || '-'
+                ]);
                 current = current.add(1, 'day');
             }
             sheet.addRow([]);
-            sheet.addRow(['TỔNG CỘNG', '', total, 'Tổng tiền xe:', travelTotal]);
+            sheet.addRow(['TỔNG CỘNG', '', total, 'Tổng lương:', wageTotal, 'Tổng tiền xe:', travelTotal]);
+            sheet.addRow(['THỰC NHẬN', '', '', '', wageTotal + travelTotal, '', '']);
             res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             setDownloadFilename(res, buildReportFilename(['Bao_Cao_Ca_Nhan', worker.name, dateRangePart(startDate, endDate)], 'xlsx'));
             await workbook.xlsx.write(res);
@@ -395,6 +619,7 @@ async function createServer(options = {}) {
             const attendance = await store.getAttendance();
             const workbook = new ExcelJS.Workbook();
 
+            addWorkersSummarySheet(workbook, workers, { start: startDate, end: endDate }, attendance);
             workers.forEach((worker, index) => {
                 addWorkerReportSheet(workbook, worker, { start: startDate, end: endDate }, attendance, index);
             });

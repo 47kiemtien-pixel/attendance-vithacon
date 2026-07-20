@@ -11,6 +11,7 @@
     "desktop:start:lan": "electron .",
     "desktop:pack": "npm run build:client && electron-builder --win nsis",
     "test:release": "node --check electron/main.js && node --check electron/preload.js && node --check server/index.js && node --check server/stores/json-store.js && node --check server/stores/postgres-store.js && node --check server/stores/attendance-normalizer.js && npm run build:client",
+    "db:export:sql": "node scripts/export-json-to-postgres-sql.js",
     "server:start": "node server/index.js",
     "server:start:prod": "node server/index.js"
   },

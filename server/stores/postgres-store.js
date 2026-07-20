@@ -85,6 +85,7 @@ async function createPostgresStore(options = {}) {
                 position TEXT DEFAULT '',
                 location TEXT DEFAULT '',
                 daily_rate INTEGER NOT NULL DEFAULT 0,
+                status TEXT NOT NULL DEFAULT 'working',
                 created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
             );
@@ -132,6 +133,7 @@ async function createPostgresStore(options = {}) {
             await query('ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS travel_cost INTEGER NOT NULL DEFAULT 0');
             await query('ALTER TABLE attendance_records DROP CONSTRAINT IF EXISTS attendance_records_status_check');
             await query(`ALTER TABLE attendance_records ADD CONSTRAINT attendance_records_status_check CHECK (status IN (${ATTENDANCE_STATUS_CHECK}))`);
+            await query('ALTER TABLE workers ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT \'working\'');
         } catch (e) {
             console.error('Migration error:', e);
         }
@@ -159,8 +161,8 @@ async function createPostgresStore(options = {}) {
         await transaction(async (client) => {
             for (const worker of workers) {
                 await client.query(
-                    `INSERT INTO workers (id, name, phone, cccd, position, location, daily_rate)
-                     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                    `INSERT INTO workers (id, name, phone, cccd, position, location, daily_rate, status)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
                     [
                         String(worker.id),
                         worker.name || '',
@@ -168,7 +170,8 @@ async function createPostgresStore(options = {}) {
                         worker.cccd || '',
                         worker.position || '',
                         worker.location || '',
-                        Number(worker.dailyRate || 0)
+                        Number(worker.dailyRate || 0),
+                        worker.status || 'working'
                     ]
                 );
             }
@@ -197,7 +200,8 @@ async function createPostgresStore(options = {}) {
 
     async function groupAttendanceRows() {
         const rows = (await query(
-            `SELECT attendance_date, worker_id, status, daily_rate, position, location, note, travel_cost
+            `SELECT attendance_date::text AS attendance_date,
+                    worker_id, status, daily_rate, position, location, note, travel_cost
              FROM attendance_records
              ORDER BY attendance_date ASC, worker_id ASC`
         )).rows;
@@ -240,7 +244,7 @@ async function createPostgresStore(options = {}) {
         driver: 'postgres',
         async getWorkers() {
             const result = await query(
-                `SELECT id, name, phone, cccd, position, location, daily_rate
+                `SELECT id, name, phone, cccd, position, location, daily_rate, status
                  FROM workers
                  ORDER BY created_at ASC, id ASC`
             );
@@ -252,14 +256,15 @@ async function createPostgresStore(options = {}) {
                 cccd: row.cccd || '',
                 position: row.position || '',
                 location: row.location || '',
-                dailyRate: Number(row.daily_rate || 0)
+                dailyRate: Number(row.daily_rate || 0),
+                status: row.status || 'working'
             }));
         },
         async createWorker(workerData) {
             const id = workerData.id || crypto.randomUUID();
             await query(
-                `INSERT INTO workers (id, name, phone, cccd, position, location, daily_rate)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                `INSERT INTO workers (id, name, phone, cccd, position, location, daily_rate, status)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
                 [
                     id,
                     workerData.name || '',
@@ -267,14 +272,16 @@ async function createPostgresStore(options = {}) {
                     workerData.cccd || '',
                     workerData.position || '',
                     workerData.location || '',
-                    Number(workerData.dailyRate || 0)
+                    Number(workerData.dailyRate || 0),
+                    workerData.status || 'working'
                 ]
             );
 
             return {
                 id,
                 ...workerData,
-                dailyRate: Number(workerData.dailyRate || 0)
+                dailyRate: Number(workerData.dailyRate || 0),
+                status: workerData.status || 'working'
             };
         },
         async updateWorker(id, workerData) {
@@ -286,9 +293,10 @@ async function createPostgresStore(options = {}) {
                      position = $5,
                      location = $6,
                      daily_rate = $7,
+                     status = $8,
                      updated_at = NOW()
                  WHERE id = $1
-                 RETURNING id, name, phone, cccd, position, location, daily_rate`,
+                 RETURNING id, name, phone, cccd, position, location, daily_rate, status`,
                 [
                     id,
                     workerData.name || '',
@@ -296,7 +304,8 @@ async function createPostgresStore(options = {}) {
                     workerData.cccd || '',
                     workerData.position || '',
                     workerData.location || '',
-                    Number(workerData.dailyRate || 0)
+                    Number(workerData.dailyRate || 0),
+                    workerData.status || 'working'
                 ]
             );
 
@@ -310,7 +319,8 @@ async function createPostgresStore(options = {}) {
                 cccd: row.cccd || '',
                 position: row.position || '',
                 location: row.location || '',
-                dailyRate: Number(row.daily_rate || 0)
+                dailyRate: Number(row.daily_rate || 0),
+                status: row.status || 'working'
             };
         },
         async getSettings() {

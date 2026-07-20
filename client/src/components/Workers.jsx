@@ -4,7 +4,7 @@ import { Users, Plus, Pencil, Check, X, Search, Wallet, CreditCard, Phone, UserR
 import CurrencyInput from './CurrencyInput';
 import { formatVndCurrency, parseVndAmount } from '../utils/currency';
 
-const emptyForm = { name: '', phone: '', cccd: '', dailyRate: '' };
+const emptyForm = { name: '', phone: '', cccd: '', dailyRate: '', status: 'working' };
 
 const Workers = () => {
   const [workers, setWorkers] = useState([]);
@@ -58,7 +58,8 @@ const Workers = () => {
       name: worker.name || '',
       phone: worker.phone || '',
       cccd: worker.cccd || '',
-      dailyRate: worker.dailyRate || ''
+      dailyRate: worker.dailyRate || '',
+      status: worker.status || 'working'
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -80,7 +81,8 @@ const Workers = () => {
         name: formData.name.trim(),
         phone: formData.phone.trim(),
         cccd: formData.cccd.trim(),
-        dailyRate: parseVndAmount(formData.dailyRate)
+        dailyRate: parseVndAmount(formData.dailyRate),
+        status: formData.status || 'working'
       };
 
       if (editingId) {
@@ -240,6 +242,22 @@ const Workers = () => {
               />
             </div>
 
+            <div className="form-group workers-field-span-2">
+              <label className="form-label">Trạng thái hoạt động</label>
+              <div className="workers-input-shell">
+                <select
+                  name="status"
+                  className="form-input workers-shell-input"
+                  value={formData.status || 'working'}
+                  onChange={handleInputChange}
+                  style={{ border: 'none', background: 'transparent', width: '100%', outline: 'none', paddingLeft: '0', cursor: 'pointer', height: '100%' }}
+                >
+                  <option value="working">Đang làm việc</option>
+                  <option value="resigned">Đã nghỉ làm</option>
+                </select>
+              </div>
+            </div>
+
             <div className="workers-form-actions">
               <button type="submit" className="btn btn-primary" disabled={saving}>
                 {editingId ? <Check size={18} /> : <Plus size={18} />}
@@ -317,8 +335,13 @@ const Workers = () => {
                         {(worker.name || '?').trim().charAt(0).toUpperCase()}
                       </div>
                       <div className="worker-main-copy">
-                        <div className="worker-name-line">
+                        <div className="worker-name-line" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                           <h3>{worker.name}</h3>
+                          {worker.status === 'resigned' ? (
+                            <span className="status-badge resigned-badge" style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '12px', background: '#fee2e2', color: '#991b1b', fontWeight: 'bold' }}>Đã nghỉ làm</span>
+                          ) : (
+                            <span className="status-badge working-badge" style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '12px', background: '#dcfce7', color: '#15803d', fontWeight: 'bold' }}>Đang làm việc</span>
+                          )}
                           {isEditing && <span className="worker-edit-badge">Đang sửa</span>}
                         </div>
                         <div className="worker-meta-grid">

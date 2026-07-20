@@ -134,7 +134,7 @@ const Reports = () => {
               <User size={22} />
             </div>
             <h3>Báo cáo chi tiết theo mẫu</h3>
-            <p>Xuất file Excel theo mẫu Vitha Cons, hiển thị chi tiết địa điểm, trạng thái và ghi chú hàng ngày.</p>
+            <p>Xuất file Excel theo mẫu Vitha Cons, hiển thị chi tiết địa điểm, trạng thái, ghi chú, tổng số công và tổng lương.</p>
             <div className="report-note-list">
               <span><CalendarRange size={14} /> Chọn công nhân và khoảng thời gian</span>
               <span><Download size={14} /> Tải file Excel chuyên nghiệp</span>
@@ -154,7 +154,9 @@ const Reports = () => {
                         checked={selectedWorkerIds.includes(workerId)}
                         onChange={() => toggleWorkerSelection(workerId)}
                       />
-                      <span>{w.name}</span>
+                      <span>
+                        {w.name} {w.status === 'resigned' && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: '6px' }}>(Đã nghỉ làm)</span>}
+                      </span>
                     </label>
                   );
                 })}

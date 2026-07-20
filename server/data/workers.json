@@ -14,7 +14,7 @@
     "name": "Cả",
     "position": "Phụ hồ",
     "location": "Công trường Quận 7",
-    "dailyRate": 600000,
+    "dailyRate": 450000,
     "phone": "",
     "cccd": ""
   },
@@ -47,5 +47,12 @@
     "phone": "",
     "cccd": "",
     "dailyRate": 50000
+  },
+  {
+    "id": "1779512117934",
+    "name": "Hiếu",
+    "phone": "",
+    "cccd": "",
+    "dailyRate": 500000
   }
 ]
