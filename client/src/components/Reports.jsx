@@ -13,9 +13,9 @@ const Reports = () => {
   // State for individual report
   const [workers, setWorkers] = useState([]);
   const [selectedWorkerIds, setSelectedWorkerIds] = useState([]);
-  const [startDate, setStartDate] = useState(dayjs().startOf('week').add(1, 'day').format('YYYY-MM-DD'));
-  const [endDate, setEndDate] = useState(dayjs().startOf('week').add(7, 'day').format('YYYY-MM-DD'));
-  const [exportType, setExportType] = useState('week'); // 'week', 'previousWeek', 'month'
+  const [startDate, setStartDate] = useState(dayjs().subtract(1, 'week').startOf('week').add(1, 'day').format('YYYY-MM-DD'));
+  const [endDate, setEndDate] = useState(dayjs().subtract(1, 'week').startOf('week').add(7, 'day').format('YYYY-MM-DD'));
+  const [exportType, setExportType] = useState('previousWeek'); // 'week', 'previousWeek', 'month'
 
   useEffect(() => {
     getWorkers().then(setWorkers).catch(console.error);
