@@ -13,9 +13,9 @@ const Reports = () => {
   // State for individual report
   const [workers, setWorkers] = useState([]);
   const [selectedWorkerIds, setSelectedWorkerIds] = useState([]);
-  const [startDate, setStartDate] = useState(dayjs().startOf('week').format('YYYY-MM-DD'));
-  const [endDate, setEndDate] = useState(dayjs().endOf('week').format('YYYY-MM-DD'));
-  const [exportType, setExportType] = useState('week'); // 'week', 'month', 'custom'
+  const [startDate, setStartDate] = useState(dayjs().startOf('week').add(1, 'day').format('YYYY-MM-DD'));
+  const [endDate, setEndDate] = useState(dayjs().startOf('week').add(7, 'day').format('YYYY-MM-DD'));
+  const [exportType, setExportType] = useState('week'); // 'week', 'previousWeek', 'month'
 
   useEffect(() => {
     getWorkers().then(setWorkers).catch(console.error);
@@ -57,7 +57,7 @@ const Reports = () => {
     }
 
     let label = '';
-    if (exportType === 'week') {
+    if (exportType === 'week' || exportType === 'previousWeek') {
       label = `Tuần ${dayjs(startDate).format('DD/MM')} - ${dayjs(endDate).format('DD/MM/YYYY')}`;
     } else if (exportType === 'month') {
       label = `Tháng ${dayjs(startDate).format('MM/YYYY')}`;
@@ -77,7 +77,7 @@ const Reports = () => {
     }
 
     let label = '';
-    if (exportType === 'week') {
+    if (exportType === 'week' || exportType === 'previousWeek') {
       label = `Tuần ${dayjs(startDate).format('DD/MM')} - ${dayjs(endDate).format('DD/MM/YYYY')}`;
     } else if (exportType === 'month') {
       label = `Tháng ${dayjs(startDate).format('MM/YYYY')}`;
@@ -96,8 +96,11 @@ const Reports = () => {
   const handleExportTypeChange = (type) => {
     setExportType(type);
     if (type === 'week') {
-      setStartDate(dayjs().startOf('week').add(1, 'day').format('YYYY-MM-DD')); // Monday
-      setEndDate(dayjs().startOf('week').add(7, 'day').format('YYYY-MM-DD')); // Sunday
+      setStartDate(dayjs().startOf('week').add(1, 'day').format('YYYY-MM-DD'));
+      setEndDate(dayjs().startOf('week').add(7, 'day').format('YYYY-MM-DD'));
+    } else if (type === 'previousWeek') {
+      setStartDate(dayjs().subtract(1, 'week').startOf('week').add(1, 'day').format('YYYY-MM-DD'));
+      setEndDate(dayjs().subtract(1, 'week').startOf('week').add(7, 'day').format('YYYY-MM-DD'));
     } else if (type === 'month') {
       setStartDate(dayjs().startOf('month').format('YYYY-MM-DD'));
       setEndDate(dayjs().endOf('month').format('YYYY-MM-DD'));
@@ -187,10 +190,10 @@ const Reports = () => {
                   Theo tháng
                 </button>
                 <button 
-                  className={`segment-btn ${exportType === 'custom' ? 'active' : ''}`} 
-                  onClick={() => setExportType('custom')}
+                  className={`segment-btn ${exportType === 'previousWeek' ? 'active' : ''}`}
+                  onClick={() => handleExportTypeChange('previousWeek')}
                 >
-                  Tùy chỉnh
+                  Tuần trước
                 </button>
               </div>
 
