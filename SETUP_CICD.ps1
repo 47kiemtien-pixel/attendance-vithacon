@@ -8,18 +8,9 @@ param(
 $ErrorActionPreference = 'Stop'
 $SourceRoot = $PSScriptRoot
 $DeployRoot = Join-Path $env:USERPROFILE 'attendance-vithacon-production'
-$DataRoot = Join-Path $env:USERPROFILE 'attendance-vithacon-data'
 $RunnerRoot = Join-Path $env:USERPROFILE 'attendance-github-runner'
 
-New-Item -ItemType Directory -Path $DeployRoot, $DataRoot -Force | Out-Null
-
-# Seed persistent data once. Deploys never mirror or delete this directory.
-Get-ChildItem (Join-Path $SourceRoot 'server\data') -File -ErrorAction SilentlyContinue | ForEach-Object {
-    $destination = Join-Path $DataRoot $_.Name
-    if (-not (Test-Path $destination)) {
-        Copy-Item $_.FullName $destination
-    }
-}
+New-Item -ItemType Directory -Path $DeployRoot -Force | Out-Null
 
 $excludedDirectories = @(
     '.git', 'node_modules', 'client\node_modules', 'server\node_modules',
@@ -32,11 +23,6 @@ $robocopyArgs += $excludedDirectories | ForEach-Object { Join-Path $SourceRoot $
 & robocopy @robocopyArgs | Out-Null
 if ($LASTEXITCODE -gt 7) { throw "Robocopy failed with exit code $LASTEXITCODE" }
 
-$deployDataPath = Join-Path $DeployRoot 'server\data'
-if (-not (Test-Path $deployDataPath)) {
-    New-Item -ItemType Junction -Path $deployDataPath -Target $DataRoot | Out-Null
-}
-
 $config = @"
 # Local CI/CD credentials. Never commit this file.
 VERCEL_TOKEN=$VercelToken
@@ -47,6 +33,47 @@ FIXED_TUNNEL_URL=
 GIT_REPOSITORY_PATH=$SourceRoot
 "@
 Set-Content -Path (Join-Path $DeployRoot '.env.cicd') -Value $config -Encoding UTF8
+
+$runtimeEnvPath = Join-Path $DeployRoot '.env'
+if (-not (Test-Path $runtimeEnvPath)) {
+    $passwordBytes = New-Object byte[] 32
+    $random = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try {
+        $random.GetBytes($passwordBytes)
+    } finally {
+        $random.Dispose()
+    }
+    $postgresPassword = ($passwordBytes | ForEach-Object { $_.ToString('x2') }) -join ''
+    $runtimeConfig = @"
+NODE_ENV=production
+ATTENDANCE_SERVER_PORT=5005
+ATTENDANCE_DATA_DRIVER=postgres
+ATTENDANCE_IMPORT_LEGACY_JSON=false
+PGHOST=127.0.0.1
+PGPORT=5433
+PGDATABASE=attendance_system
+PGUSER=attendance_user
+PGPASSWORD=$postgresPassword
+AUTH_REQUIRED=false
+CORS_ORIGIN=*
+"@
+    Set-Content -Path $runtimeEnvPath -Value $runtimeConfig -Encoding UTF8
+}
+
+$databaseCompose = Join-Path $DeployRoot 'docker-compose.database.yml'
+& docker.exe compose --env-file $runtimeEnvPath -f $databaseCompose up -d postgres
+if ($LASTEXITCODE -ne 0) { throw 'Attendance PostgreSQL failed to start.' }
+
+$databaseReady = $false
+for ($attempt = 1; $attempt -le 30; $attempt++) {
+    $health = (& docker.exe inspect --format '{{.State.Health.Status}}' attendance-postgres 2>$null).Trim()
+    if ($health -eq 'healthy') {
+        $databaseReady = $true
+        break
+    }
+    Start-Sleep -Seconds 2
+}
+if (-not $databaseReady) { throw 'Attendance PostgreSQL did not become healthy.' }
 
 Push-Location $DeployRoot
 try {
@@ -83,7 +110,45 @@ if ($GitHubRunnerToken) {
     }
 }
 
-pm2.cmd start (Join-Path $DeployRoot 'ecosystem.config.cjs')
+$ecosystem = Join-Path $DeployRoot 'ecosystem.config.cjs'
+$processNames = @(
+    'attendance-backend',
+    'attendance-cloudflare-tunnel',
+    'attendance-tunnel-url-sync'
+)
+if (Test-Path (Join-Path $RunnerRoot 'run.cmd')) {
+    $processNames += 'attendance-github-runner'
+}
+
+foreach ($processName in $processNames) {
+    $processPid = (& pm2.cmd pid $processName | Select-Object -Last 1).Trim()
+    if ($processName -eq 'attendance-backend' -and $processPid -match '^\d+$' -and [int]$processPid -gt 0) {
+        pm2.cmd start $ecosystem --only $processName --update-env
+    } elseif ($processPid -notmatch '^\d+$' -or [int]$processPid -le 0) {
+        pm2.cmd start $ecosystem --only $processName
+    }
+}
 pm2.cmd save
+
+# Restore all saved PM2 processes after Windows logon without showing a console.
+$startupScript = Join-Path $DeployRoot 'tools\start-attendance-hidden.vbs'
+$startupAction = New-ScheduledTaskAction `
+    -Execute (Join-Path $env:WINDIR 'System32\wscript.exe') `
+    -Argument ('"{0}"' -f $startupScript) `
+    -WorkingDirectory $DeployRoot
+$startupTrigger = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERDOMAIN\$env:USERNAME"
+$startupSettings = New-ScheduledTaskSettingsSet `
+    -StartWhenAvailable `
+    -RestartCount 5 `
+    -RestartInterval (New-TimeSpan -Minutes 1) `
+    -ExecutionTimeLimit (New-TimeSpan -Minutes 10) `
+    -MultipleInstances IgnoreNew
+Register-ScheduledTask `
+    -TaskName 'Attendance Production Hidden' `
+    -Action $startupAction `
+    -Trigger $startupTrigger `
+    -Settings $startupSettings `
+    -Description 'Restore Attendance PM2 services silently after Windows logon.' `
+    -Force | Out-Null
+
 Write-Host "Attendance production runtime is ready at $DeployRoot"
-Write-Host "Persistent data directory: $DataRoot"

@@ -3,8 +3,8 @@ const path = require('path');
 
 const root = __dirname;
 const userProfile = process.env.USERPROFILE || process.env.HOME || root;
-const dataDirectory = path.join(userProfile, 'attendance-vithacon-data');
 const runnerScript = path.join(userProfile, 'attendance-github-runner', 'run.cmd');
+const hiddenRunnerScript = path.join(root, 'tools', 'run-github-runner-hidden.vbs');
 
 const apps = [
   {
@@ -19,8 +19,12 @@ const apps = [
     env: {
       NODE_ENV: 'production',
       ATTENDANCE_SERVER_PORT: 5005,
-      ATTENDANCE_DATA_DRIVER: 'json',
-      ATTENDANCE_DATA_DIR: dataDirectory,
+      ATTENDANCE_DATA_DRIVER: 'postgres',
+      ATTENDANCE_IMPORT_LEGACY_JSON: 'false',
+      PGHOST: '127.0.0.1',
+      PGPORT: 5433,
+      PGDATABASE: 'attendance_system',
+      PGUSER: 'attendance_user',
       AUTH_REQUIRED: 'false',
     },
     out_file: path.join(root, 'logs', 'backend-out.log'),
@@ -62,10 +66,9 @@ const apps = [
 if (fs.existsSync(runnerScript)) {
   apps.push({
     name: 'attendance-github-runner',
-    script: runnerScript,
-    cwd: path.dirname(runnerScript),
-    interpreter: 'cmd.exe',
-    interpreter_args: '/c',
+    script: hiddenRunnerScript,
+    cwd: root,
+    interpreter: 'wscript.exe',
     autorestart: true,
     watch: false,
     restart_delay: 10000,

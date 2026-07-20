@@ -743,8 +743,167 @@
         "travelCost": 0
       },
       {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
         "workerId": "1",
         "status": "Travel",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "GIALAI VỀ DAKLAK",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-05-20",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hồ",
+        "location": "Hòa Phú",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779156362058",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "VỊ TRÍ: GIÁM SÁT",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "Trần Quý Cáp",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "Trần Quý Cáp",
+        "note": "TRẦN QUÝ CÁP",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "Cư Suê",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-05-21",
+    "records": [
+      {
+        "workerId": "1779184933552",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779156362058",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "Trần Quý Cáp",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "Trần Quý Cáp",
+        "note": "TRẦN QUÝ CÁP",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "Cư Suê",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "Cư Suê",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779512117934",
+        "status": "Travel",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "Về",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-05-22",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
         "dailyRate": 0,
         "position": "",
         "location": "",
@@ -762,6 +921,1564 @@
       },
       {
         "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779156362058",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Gia Lai",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779512117934",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "Đắk Lắk",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-05-23",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Half",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "CHIỀU: DI CHUYỂN GLAI",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Half",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "CHIỀU: DI CHUYỂN GLAI",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779156362058",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-05-24",
+    "records": [
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "GIA LAI",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "GIA LAI",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-05-25",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "Gia Lai",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Gia Lai",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779156362058",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "Trần Quý Cáp",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Full",
+        "dailyRate": 50000,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-05-26",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779156362058",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Ecocity",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Gia Lai",
+        "note": "ĐỢI LẮP KÍNH",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Gia Lai",
+        "note": "ĐỢI LẮP KÍNH",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-05-27",
+    "records": [
+      {
+        "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "Trần Quý Cáp",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779156362058",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Gia Lai",
+        "note": "ĐỢI LẮP KÍNH",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Gia Lai",
+        "note": "ĐỢI LẮP KÍNH",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-05-28",
+    "records": [
+      {
+        "workerId": "1779156362058",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "Xưởng",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "Xưởng",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Half",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "Nghỉ chiều đi làm Đồ án",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Gia Lai",
+        "note": "Lắp Cửa",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "Thợ hàn",
+        "location": "Gia Lai",
+        "note": "Lắp Cửa",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-05-29",
+    "records": [
+      {
+        "workerId": "1779156362058",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "Xưởng",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Travel",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "GIALAI- BMT",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Half",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "GIALAI- BMT",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-05-30",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "Xưởng",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779156362058",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "Xưởng",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "Tăng ca Trần Quý Cáp tới 22h",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-05-31",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Half",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "Làm sáng",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-01",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "Trần Quý Cáp",
+        "note": "Báo về sớm, mưa chờ keo khô",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Half",
+        "dailyRate": 0,
+        "position": "",
+        "location": "Tiếp khách Ylang Buổi sáng",
+        "note": "Chiều nghỉ đi học",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779512117934",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-02",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "Trần Quý Cáp",
+        "note": "Trần Quý Cáp",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "Đi Gia Lai",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "Xưởng",
+        "note": "7h30 chưa có mặt đi, 7h45 cỏ mặt",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "Xưởng",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779512117934",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "Đi Gia Lai",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-03",
+    "records": [
+      {
+        "workerId": "1779184933552",
+        "status": "Leave",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "Xin nghỉ",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "Xưởng",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "Cho nghỉ 1 hôm",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "Cho nghỉ 1 hôm",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "Xưởng",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779512117934",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-06",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Half",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-05",
+    "records": [
+      {
+        "workerId": "1779184933552",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "Xin Nghỉ",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779512117934",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "Xưởng",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-04",
+    "records": [
+      {
+        "workerId": "1779184933552",
+        "status": "Half",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "Chiều nghỉ đi cty",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "Làm trên ecocity",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "Đợi Nhôm",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779512117934",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1",
+        "status": "Half",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-08",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-09",
+    "records": [
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-10",
+    "records": [
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-11",
+    "records": [
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-07",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-13",
+    "records": [
+      {
+        "workerId": "2",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Half",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-14",
+    "records": [
+      {
+        "workerId": "2",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-16",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "Hòa Phú",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "Xưởng",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-17",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "Xưởng",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-18",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779512117934",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-19",
+    "records": [
+      {
+        "workerId": "1779512117934",
+        "status": "Half",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-20",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Half",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-22",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-23",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-24",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-25",
+    "records": [
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1",
+        "status": "Half",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Half",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-26",
+    "records": [
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Half",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779155427744",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-27",
+    "records": [
+      {
+        "workerId": "1779155427744",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1",
+        "status": "Half",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "Chiều mưa",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
+        "status": "Half",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "Chiều mưa",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1779184933552",
+        "status": "Half",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-15",
+    "records": [
+      {
+        "workerId": "1779184933552",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Absent",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-12",
+    "records": [
+      {
+        "workerId": "1779184933552",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-29",
+    "records": [
+      {
+        "workerId": "1779184933552",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "3",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-28",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      }
+    ]
+  },
+  {
+    "date": "2026-06-30",
+    "records": [
+      {
+        "workerId": "1",
+        "status": "Full",
+        "dailyRate": 0,
+        "position": "",
+        "location": "",
+        "note": "",
+        "travelCost": 0
+      },
+      {
+        "workerId": "2",
         "status": "Full",
         "dailyRate": 0,
         "position": "",

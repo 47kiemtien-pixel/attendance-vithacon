@@ -135,18 +135,25 @@ const Attendance = () => {
     return dayData?.records.find((record) => record.workerId === workerId) || null;
   };
 
+  const activeWorkers = useMemo(() => {
+    return workers.filter((worker) => worker.status !== 'resigned');
+  }, [workers]);
+
   const summary = useMemo(() => {
     let full = 0;
     let half = 0;
     attendance.forEach((entry) => {
       if (!entry.date.startsWith(`${year}-${String(month).padStart(2, '0')}`)) return;
       entry.records.forEach((record) => {
-        if (record.status === 'Full') full += 1;
-        if (record.status === 'Half') half += 1;
+        const isActive = activeWorkers.some((w) => String(w.id) === String(record.workerId));
+        if (isActive) {
+          if (record.status === 'Full') full += 1;
+          if (record.status === 'Half') half += 1;
+        }
       });
     });
     return { full, half };
-  }, [attendance, month, year]);
+  }, [attendance, month, year, activeWorkers]);
 
   const weekLabel = useMemo(() => {
     const endDate = weekStartDate.add(6, 'day');
@@ -157,15 +164,15 @@ const Attendance = () => {
 
   const mobileDaySummary = useMemo(() => {
     let completed = 0;
-    workers.forEach((worker) => {
+    activeWorkers.forEach((worker) => {
       if (getDayRecord(worker.id, mobileDateIso)) completed += 1;
     });
-    return { completed, total: workers.length };
-  }, [attendance, mobileDateIso, workers]);
+    return { completed, total: activeWorkers.length };
+  }, [attendance, mobileDateIso, activeWorkers]);
 
   const mobileWorkers = useMemo(() => {
     const keyword = mobileSearchTerm.trim().toLowerCase();
-    return workers.filter((worker) => {
+    return activeWorkers.filter((worker) => {
       const record = getDayRecord(worker.id, mobileDateIso);
       const status = record?.status || 'empty';
       const matchesSearch = !keyword || String(worker.name || '').toLowerCase().includes(keyword);
@@ -177,7 +184,7 @@ const Attendance = () => {
 
       return matchesSearch && matchesFilter;
     });
-  }, [attendance, mobileDateIso, mobileSearchTerm, mobileStatusFilter, workers]);
+  }, [attendance, mobileDateIso, mobileSearchTerm, mobileStatusFilter, activeWorkers]);
 
   const visibleDateHeaders = useMemo(() => {
     const dates = viewMode === 'month'
@@ -311,7 +318,7 @@ const Attendance = () => {
         </div>
 
         <div className="toolbar-meta">
-          <span>{workers.length} công nhân</span>
+          <span>{activeWorkers.length} công nhân</span>
           <span>{summary.full} công đủ</span>
           <span>{summary.half} nửa công</span>
           <span>{viewMode === 'week' ? `Đang xem tuần ${weekLabel}` : 'Đang xem cả tháng'}</span>
@@ -402,7 +409,7 @@ const Attendance = () => {
 
         {loading ? (
           <div className="empty-state">Đang tải dữ liệu chấm công...</div>
-        ) : workers.length === 0 ? (
+        ) : activeWorkers.length === 0 ? (
           <div className="empty-state">Chưa có công nhân. Hãy thêm công nhân trước khi chấm công.</div>
         ) : (
           <>
@@ -476,7 +483,7 @@ const Attendance = () => {
                 </tr>
               </thead>
               <tbody>
-                {workers.map((worker) => (
+                {activeWorkers.map((worker) => (
                   <tr key={worker.id}>
                     <td className="sticky-col worker-name-cell">
                       <div className="worker-name-inner">

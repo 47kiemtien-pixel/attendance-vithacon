@@ -5,10 +5,11 @@
 - Frontend: Vercel project connected to `47kiemtien-pixel/attendance-vithacon`.
 - Backend: PM2 on the local Windows server, port `5005`.
 - Public API: Cloudflare Tunnel.
-- Persistent JSON data: `%USERPROFILE%\attendance-vithacon-data`.
+- Database: PostgreSQL 16 in Docker, bound locally to `127.0.0.1:5433`.
 - Stable deployed code: `%USERPROFILE%\attendance-vithacon-production`.
 
-Deploys never mirror, remove, or overwrite the persistent data directory.
+PostgreSQL is the only production data store. Deploys never remove or overwrite
+the Docker database volume.
 
 ## Initial setup
 
