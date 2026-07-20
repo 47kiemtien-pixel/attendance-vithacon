@@ -136,7 +136,13 @@ const Attendance = () => {
   };
 
   const activeWorkers = useMemo(() => {
-    return workers.filter((worker) => worker.status !== 'resigned');
+    return workers
+      .filter((worker) => worker.status !== 'resigned')
+      .sort((firstWorker, secondWorker) => String(firstWorker.name || '').localeCompare(
+        String(secondWorker.name || ''),
+        'vi',
+        { sensitivity: 'base' }
+      ));
   }, [workers]);
 
   const summary = useMemo(() => {
@@ -209,13 +215,24 @@ const Attendance = () => {
 
     setSelectedCell({ worker, dateStr, day: dayLabel });
     setEditStatus(record ? record.status : 'Absent');
-    setEditRate(record?.dailyRate ?? '');
+    setEditRate(record?.dailyRate || worker.dailyRate || '');
     setEditPosition(record?.position ?? '');
     setEditLocation(record?.location ?? '');
     setEditNote(record?.note ?? '');
     setEditTravelCost(record?.travelCost ?? '');
     setSelectedPresetId('');
     setIsModalOpen(true);
+  };
+
+  const handleEditStatusChange = (status) => {
+    setEditStatus(status);
+    if (
+      WORK_DETAIL_STATUSES.has(status)
+      && parseVndAmount(editRate) <= 0
+      && Number(selectedCell?.worker?.dailyRate || 0) > 0
+    ) {
+      setEditRate(selectedCell.worker.dailyRate);
+    }
   };
 
   const handleQuickStatus = async (worker, status) => {
@@ -257,7 +274,9 @@ const Attendance = () => {
     try {
       const recordPayload = buildAttendancePayload({
         status: editStatus,
-        dailyRate: editRate,
+        dailyRate: WORK_DETAIL_STATUSES.has(editStatus)
+          ? (parseVndAmount(editRate) || selectedCell.worker.dailyRate || '')
+          : editRate,
         position: editPosition,
         location: editLocation,
         note: editNote,
@@ -575,22 +594,22 @@ const Attendance = () => {
               <div className="form-group">
                 <label className="form-label">Trạng thái</label>
                 <div className="attendance-group">
-                  <button type="button" className={`attendance-btn ${editStatus === 'Full' ? 'active-full' : ''}`} onClick={() => setEditStatus('Full')}>
+                  <button type="button" className={`attendance-btn ${editStatus === 'Full' ? 'active-full' : ''}`} onClick={() => handleEditStatusChange('Full')}>
                     Đủ công
                   </button>
-                  <button type="button" className={`attendance-btn ${editStatus === 'Half' ? 'active-half' : ''}`} onClick={() => setEditStatus('Half')}>
+                  <button type="button" className={`attendance-btn ${editStatus === 'Half' ? 'active-half' : ''}`} onClick={() => handleEditStatusChange('Half')}>
                     Nửa công
                   </button>
-                  <button type="button" className={`attendance-btn ${editStatus === 'Absent' ? 'active-absent' : ''}`} onClick={() => setEditStatus('Absent')}>
+                  <button type="button" className={`attendance-btn ${editStatus === 'Absent' ? 'active-absent' : ''}`} onClick={() => handleEditStatusChange('Absent')}>
                     Nghỉ
                   </button>
-                  <button type="button" className={`attendance-btn ${editStatus === 'Holiday' ? 'active-holiday' : ''}`} onClick={() => setEditStatus('Holiday')}>
+                  <button type="button" className={`attendance-btn ${editStatus === 'Holiday' ? 'active-holiday' : ''}`} onClick={() => handleEditStatusChange('Holiday')}>
                     Nghỉ lễ
                   </button>
-                  <button type="button" className={`attendance-btn ${editStatus === 'Leave' ? 'active-leave' : ''}`} onClick={() => setEditStatus('Leave')}>
+                  <button type="button" className={`attendance-btn ${editStatus === 'Leave' ? 'active-leave' : ''}`} onClick={() => handleEditStatusChange('Leave')}>
                     Phép
                   </button>
-                  <button type="button" className={`attendance-btn ${editStatus === 'Travel' ? 'active-travel' : ''}`} onClick={() => setEditStatus('Travel')}>
+                  <button type="button" className={`attendance-btn ${editStatus === 'Travel' ? 'active-travel' : ''}`} onClick={() => handleEditStatusChange('Travel')}>
                     Di chuyển
                   </button>
                 </div>
