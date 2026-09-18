@@ -87,6 +87,9 @@ const Attendance = () => {
   const [mobileSearchTerm, setMobileSearchTerm] = useState('');
   const [mobileStatusFilter, setMobileStatusFilter] = useState('all');
   const [quickSavingKey, setQuickSavingKey] = useState('');
+  const [mobileDisplayMode, setMobileDisplayMode] = useState(() => {
+    return localStorage.getItem('attendance_mobile_mode') || 'cards';
+  });
 
   const daysInMonth = currentDate.daysInMonth();
   const year = currentDate.year();
@@ -350,19 +353,67 @@ const Attendance = () => {
         </div>
 
         <div className="mobile-attendance-controls">
-          <div className="mobile-date-row">
-            <button className="btn btn-outline" type="button" onClick={() => setCurrentDate((value) => value.subtract(1, 'day'))}>
-              <ChevronLeft size={16} />
+          <div className="mobile-view-toggle-bar">
+            <button
+              type="button"
+              className={`mobile-toggle-pill ${mobileDisplayMode === 'cards' ? 'active' : ''}`}
+              onClick={() => {
+                setMobileDisplayMode('cards');
+                localStorage.setItem('attendance_mobile_mode', 'cards');
+              }}
+            >
+              📋 Thẻ chấm công ngày
             </button>
-            <input
-              className="form-input mobile-date-input"
-              type="date"
-              value={mobileDateIso}
-              onChange={(event) => setCurrentDate(dayjs(event.target.value))}
-            />
-            <button className="btn btn-outline" type="button" onClick={() => setCurrentDate((value) => value.add(1, 'day'))}>
-              <ChevronRight size={16} />
+            <button
+              type="button"
+              className={`mobile-toggle-pill ${mobileDisplayMode === 'table' ? 'active' : ''}`}
+              onClick={() => {
+                setMobileDisplayMode('table');
+                localStorage.setItem('attendance_mobile_mode', 'table');
+              }}
+            >
+              📊 Bảng cả tháng
             </button>
+          </div>
+
+          <div className="mobile-date-nav-bar">
+            <button
+              className="btn btn-outline mobile-nav-arrow"
+              type="button"
+              onClick={() => setCurrentDate((value) => value.subtract(1, 'day'))}
+              title="Ngày trước"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <div className="mobile-date-picker-wrap">
+              <input
+                className="mobile-date-picker-input"
+                type="date"
+                value={mobileDateIso}
+                onChange={(event) => setCurrentDate(dayjs(event.target.value))}
+              />
+              <div className="mobile-date-display-label">
+                <span className="mobile-date-weekday">{weekdayLabels[currentDate.day()]}</span>
+                <span className="mobile-date-num">{currentDate.format('DD/MM/YYYY')}</span>
+              </div>
+            </div>
+            <button
+              className="btn btn-outline mobile-nav-arrow"
+              type="button"
+              onClick={() => setCurrentDate((value) => value.add(1, 'day'))}
+              title="Ngày sau"
+            >
+              <ChevronRight size={18} />
+            </button>
+            {mobileDateIso !== todayIso && (
+              <button
+                className="mobile-today-jump-btn"
+                type="button"
+                onClick={() => setCurrentDate(dayjs())}
+              >
+                Hôm nay
+              </button>
+            )}
           </div>
           <div className="mobile-progress">
             <div className="mobile-progress-copy">
@@ -438,61 +489,63 @@ const Attendance = () => {
           <div className="empty-state">Chưa có công nhân. Hãy thêm công nhân trước khi chấm công.</div>
         ) : (
           <>
-          <div className="mobile-attendance-list">
-            {mobileWorkers.length === 0 ? (
-              <div className="empty-state">Không có công nhân phù hợp bộ lọc.</div>
-            ) : mobileWorkers.map((worker) => {
-              const record = getDayRecord(worker.id, mobileDateIso);
-              const statusLabel = quickStatuses.find((item) => item.value === record?.status)?.label || 'Chưa chấm';
-              const travelCost = Number(record?.travelCost || 0);
-              return (
-                <article key={worker.id} className={`mobile-attendance-card ${record ? 'is-done' : ''}`}>
-                  <div className="mobile-attendance-card-head">
-                    <div className="worker-avatar">{(worker.name || '?').trim().charAt(0).toUpperCase()}</div>
-                    <div>
-                      <h3>{worker.name}</h3>
-                      <p>{worker.dailyRate ? `${Number(worker.dailyRate).toLocaleString('vi-VN')}đ/ngày` : 'Chưa có lương mặc định'}</p>
+          <div className={`attendance-content-wrap ${mobileDisplayMode === 'table' ? 'show-table-on-mobile' : 'show-cards-on-mobile'}`}>
+            <div className="mobile-attendance-list">
+              {mobileWorkers.length === 0 ? (
+                <div className="empty-state">Không có công nhân phù hợp bộ lọc.</div>
+              ) : mobileWorkers.map((worker) => {
+                const record = getDayRecord(worker.id, mobileDateIso);
+                const status = record?.status;
+                const statusLabel = quickStatuses.find((item) => item.value === status)?.label || 'Chưa chấm';
+                const travelCost = Number(record?.travelCost || 0);
+                return (
+                  <article key={worker.id} className={`mobile-attendance-card ${record ? 'is-done' : ''}`}>
+                    <div className="mobile-attendance-card-head">
+                      <div className="worker-avatar">{(worker.name || '?').trim().charAt(0).toUpperCase()}</div>
+                      <div>
+                        <h3>{worker.name}</h3>
+                        <p>{worker.dailyRate ? `${Number(worker.dailyRate).toLocaleString('vi-VN')}đ/ngày` : 'Chưa có lương mặc định'}</p>
+                      </div>
+                      <span className={`mobile-status-pill status-${status ? status.toLowerCase() : 'empty'}`}>{statusLabel}</span>
                     </div>
-                    <span className="mobile-status-pill">{statusLabel}</span>
-                  </div>
 
-                  {(record?.location || record?.position || record?.note || travelCost > 0) && (
-                    <div className="mobile-attendance-details">
-                      {record.location && <span><MapPin size={13} /> {record.location}</span>}
-                      {record.position && <span><Briefcase size={13} /> {record.position}</span>}
-                      {travelCost > 0 && <span><Truck size={13} /> {travelCost.toLocaleString('vi-VN')}đ</span>}
-                      {record.note && <span>{record.note}</span>}
+                    {(record?.location || record?.position || record?.note || travelCost > 0) && (
+                      <div className="mobile-attendance-details">
+                        {record.location && <span><MapPin size={13} /> {record.location}</span>}
+                        {record.position && <span><Briefcase size={13} /> {record.position}</span>}
+                        {travelCost > 0 && <span><Truck size={13} /> {travelCost.toLocaleString('vi-VN')}đ</span>}
+                        {record.note && <span>{record.note}</span>}
+                      </div>
+                    )}
+
+                    <div className="mobile-quick-status-grid">
+                      {quickStatuses.map((s) => {
+                        const key = `${worker.id}-${mobileDateIso}-${s.value}`;
+                        return (
+                          <button
+                            key={s.value}
+                            type="button"
+                            className={`quick-status-btn status-${s.value.toLowerCase()} ${record?.status === s.value ? 'active' : ''}`}
+                            onClick={() => handleQuickStatus(worker, s.value)}
+                            disabled={Boolean(quickSavingKey)}
+                          >
+                            {quickSavingKey === key ? '...' : s.label}
+                          </button>
+                        );
+                      })}
                     </div>
-                  )}
 
-                  <div className="mobile-quick-status-grid">
-                    {quickStatuses.map((status) => {
-                      const key = `${worker.id}-${mobileDateIso}-${status.value}`;
-                      return (
-                        <button
-                          key={status.value}
-                          type="button"
-                          className={`quick-status-btn ${record?.status === status.value ? 'active' : ''}`}
-                          onClick={() => handleQuickStatus(worker, status.value)}
-                          disabled={Boolean(quickSavingKey)}
-                        >
-                          {quickSavingKey === key ? '...' : status.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <button
-                    className="btn btn-outline mobile-detail-btn"
-                    type="button"
-                    onClick={() => handleCellClick(worker, currentDate.format('DD/MM'), mobileDateIso)}
-                  >
-                    Nhập chi tiết
-                  </button>
-                </article>
-              );
-            })}
-          </div>
+                    <button
+                      className="btn btn-outline mobile-detail-btn"
+                      type="button"
+                      onClick={() => handleCellClick(worker, currentDate.format('DD/MM'), mobileDateIso)}
+                    >
+                      Nhập chi tiết
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
 
           <div className="attendance-table-wrap desktop-attendance-table">
             <table className="attendance-table">
@@ -588,6 +641,7 @@ const Attendance = () => {
                 ))}
               </tbody>
             </table>
+          </div>
           </div>
           </>
         )}

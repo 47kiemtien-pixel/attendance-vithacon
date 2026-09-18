@@ -43,6 +43,33 @@ function AppShell({ activeTab, setActiveTab, currentUser, onLogout }) {
   return (
     <div className="app-shell">
       <UpdateBanner />
+
+      {/* Top Header for Mobile App Experience */}
+      <header className="mobile-top-header">
+        <div className="mobile-top-brand">
+          <img
+            src="./logo.png"
+            alt="Logo"
+            className="mobile-top-logo"
+          />
+          <div className="mobile-top-brand-text">
+            <span className="mobile-top-title">Việt Thành</span>
+            <span className="mobile-top-badge">Chấm công</span>
+          </div>
+        </div>
+        <div className="mobile-top-user-actions">
+          <span className="mobile-user-tag">{currentUser?.fullName || currentUser?.email || 'Nội bộ'}</span>
+          <button
+            type="button"
+            className="mobile-top-logout"
+            onClick={onLogout}
+            title="Đăng xuất"
+          >
+            <LogOut size={16} />
+          </button>
+        </div>
+      </header>
+
       <aside className="app-sidebar">
         <div className="sidebar-brand">
           <div className="sidebar-brand-mark" style={{ background: 'transparent', padding: 0 }}>

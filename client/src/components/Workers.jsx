@@ -851,6 +851,16 @@ const Workers = () => {
         </section>
       </div>
 
+      {/* Floating Action Button on mobile */}
+      <button
+        type="button"
+        className="mobile-fab-btn"
+        onClick={handleOpenAdd}
+        title="Thêm công nhân mới"
+      >
+        <Plus size={26} />
+      </button>
+
       {/* Pop-up Modal Thêm / Chỉnh sửa công nhân */}
       <WorkerModal
         isOpen={isWorkerModalOpen}
