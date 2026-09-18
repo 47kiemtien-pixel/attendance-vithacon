@@ -114,6 +114,11 @@ export const updateWorker = async (id, workerData) => {
     return response.data;
 };
 
+export const deleteWorker = async (id) => {
+    const response = await apiClient.delete(`/workers/${id}`);
+    return response.data;
+};
+
 export const getAttendance = async () => {
     const response = await apiClient.get('/attendance');
     return response.data;

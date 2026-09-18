@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { downloadReport, downloadWorkersReport, downloadWorkersReportDocx, getWorkers, getAttendance } from '../api';
 import dayjs from 'dayjs';
-import { FileSpreadsheet, Download, CalendarRange, FolderDown, User, Calendar, FileText, QrCode } from 'lucide-react';
+import { FileSpreadsheet, Download, CalendarRange, FolderDown, User, Calendar, FileText, QrCode, Image as ImageIcon } from 'lucide-react';
 import VietQRModal from './VietQRModal';
+import { downloadMultipleWorkersPayrollImages } from '../utils/payrollImage';
 
 function calculateWorkerSalary(worker, dateRange, attendance) {
   let current = dayjs(dateRange.start);
@@ -41,6 +42,8 @@ const Reports = () => {
   const [endDate, setEndDate] = useState(dayjs().endOf('week').format('YYYY-MM-DD'));
   const [exportType, setExportType] = useState('week'); // 'week', 'month', 'custom'
   const [qrModalWorker, setQrModalWorker] = useState(null);
+  const [generatingImages, setGeneratingImages] = useState(false);
+  const [imageProgress, setImageProgress] = useState('');
 
   useEffect(() => {
     getWorkers().then(setWorkers).catch(console.error);
@@ -73,6 +76,35 @@ const Reports = () => {
       console.error('Error exporting report:', error);
       alert('Không thể tải file Excel. Vui lòng thử lại.');
     });
+  };
+
+  const handleWorkerExportImage = async () => {
+    const workerIds = selectedWorkerIds.filter(Boolean);
+    if (!workerIds.length) {
+      alert('Vui lòng chọn ít nhất một công nhân.');
+      return;
+    }
+
+    const selectedWorkers = workers.filter((w) => workerIds.includes(String(w.id)));
+    if (!selectedWorkers.length) return;
+
+    try {
+      setGeneratingImages(true);
+      await downloadMultipleWorkersPayrollImages(
+        selectedWorkers,
+        { start: startDate, end: endDate },
+        attendance,
+        (current, total, workerName) => {
+          setImageProgress(`Đang tạo ảnh (${current}/${total})...`);
+        }
+      );
+    } catch (error) {
+      console.error('Error exporting worker payroll images:', error);
+      alert('Có lỗi khi tạo ảnh bảng lương: ' + (error?.message || error));
+    } finally {
+      setGeneratingImages(false);
+      setImageProgress('');
+    }
   };
 
   const handleWorkerExport = () => {
@@ -192,11 +224,11 @@ const Reports = () => {
               <User size={22} />
             </div>
             <h3>Báo cáo chi tiết theo mẫu</h3>
-            <p>Xuất file Excel & Word theo mẫu Vitha Cons, có kèm mã QR chuyển khoản VietQR, hiển thị chi tiết địa điểm, trạng thái, ghi chú, tổng số công và tổng lương.</p>
+            <p>Xuất ảnh bảng lương có kèm mã QR VietQR, hoặc file Word chi tiết cho từng cá nhân, hiển thị đầy đủ ngày công, tiền xe và tổng lương thực nhận.</p>
             <div className="report-note-list">
               <span><CalendarRange size={14} /> Chọn công nhân và khoảng thời gian</span>
               <span><QrCode size={14} /> Tích hợp mã VietQR chuyển lương</span>
-              <span><Download size={14} /> Tải file Excel & Word chuyên nghiệp</span>
+              <span><ImageIcon size={14} /> Tải ảnh bảng lương sắc nét kèm QR</span>
             </div>
           </div>
 
@@ -289,8 +321,15 @@ const Reports = () => {
             </div>
 
             <div style={{ display: 'flex', gap: '10px', marginTop: '1.5rem', flexWrap: 'wrap' }}>
-              <button className="btn btn-primary report-download-btn" style={{ flex: '1 1 140px' }} onClick={handleWorkerExport}>
-                <FileSpreadsheet size={18} /> Tải Excel
+              <button
+                type="button"
+                className="btn btn-primary report-download-btn"
+                style={{ flex: '1 1 160px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                onClick={handleWorkerExportImage}
+                disabled={generatingImages}
+              >
+                <ImageIcon size={18} />
+                {generatingImages ? (imageProgress || 'Đang tạo ảnh...') : 'Tải Ảnh Bảng Lương'}
               </button>
               <button className="btn btn-outline report-download-btn" style={{ flex: '1 1 140px' }} onClick={handleWorkerExportDocx}>
                 <FileText size={18} /> Tải Word (Mới)

@@ -371,6 +371,13 @@ async function createPostgresStore(options = {}) {
                 bankAccountHolder: row.bank_account_holder || ''
             };
         },
+        async deleteWorker(id) {
+            const result = await query(
+                `DELETE FROM workers WHERE id = $1 RETURNING id`,
+                [id]
+            );
+            return result.rowCount > 0;
+        },
         async getSettings() {
             const result = await query(
                 `SELECT id, name, position, location, rate

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { getWorkers, addWorker, updateWorker, getBanks } from '../api';
+import { getWorkers, addWorker, updateWorker, deleteWorker, getBanks } from '../api';
 import {
   Users,
   Plus,
@@ -98,6 +98,23 @@ const Workers = () => {
       await addWorker(workerData);
     }
     await fetchWorkers();
+  };
+
+  const handleDeleteWorker = async (workerId) => {
+    const worker = workers.find((w) => String(w.id) === String(workerId));
+    const confirmDelete = window.confirm(
+      `Bạn có chắc chắn muốn xóa hoàn toàn hồ sơ công nhân "${worker?.name || ''}" khỏi hệ thống?`
+    );
+    if (!confirmDelete) return;
+
+    try {
+      await deleteWorker(workerId);
+      await fetchWorkers();
+      handleCloseModal();
+    } catch (err) {
+      console.error('Error deleting worker:', err);
+      alert('Không thể xóa công nhân. Vui lòng thử lại.');
+    }
   };
 
   const handleQuickDeleteBankAccount = async (worker) => {
@@ -488,6 +505,7 @@ const Workers = () => {
         banks={banks}
         onClose={handleCloseModal}
         onSave={handleSaveWorker}
+        onDelete={handleDeleteWorker}
         onOpenQr={(w) => setQrModalWorker(w)}
       />
 

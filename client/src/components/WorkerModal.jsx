@@ -49,7 +49,8 @@ const WorkerModal = ({
   banks = [],
   onClose,
   onSave,
-  onOpenQr
+  onOpenQr,
+  onDelete
 }) => {
   const [formData, setFormData] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -621,43 +622,65 @@ const WorkerModal = ({
               background: '#f8fafc',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'flex-end',
+              justifyContent: 'space-between',
               gap: '12px'
             }}
           >
-            <button
-              type="button"
-              className="btn btn-outline"
-              onClick={onClose}
-              disabled={saving}
-              style={{ minWidth: '100px' }}
-            >
-              Hủy bỏ
-            </button>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={saving}
-              style={{
-                minWidth: '140px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}
-            >
-              {saving ? (
-                'Đang lưu...'
-              ) : isEditing ? (
-                <>
-                  <Check size={18} /> Lưu thay đổi
-                </>
-              ) : (
-                <>
-                  <Plus size={18} /> Thêm công nhân
-                </>
-              )}
-            </button>
+            {isEditing && onDelete ? (
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => onDelete(worker.id)}
+                disabled={saving}
+                style={{
+                  color: '#dc2626',
+                  borderColor: '#fca5a5',
+                  background: '#fff',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontWeight: '600'
+                }}
+              >
+                <Trash2 size={16} /> Xóa công nhân này
+              </button>
+            ) : <div />}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={onClose}
+                disabled={saving}
+                style={{ minWidth: '100px' }}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={saving}
+                style={{
+                  minWidth: '140px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+              >
+                {saving ? (
+                  'Đang lưu...'
+                ) : isEditing ? (
+                  <>
+                    <Check size={18} /> Lưu thay đổi
+                  </>
+                ) : (
+                  <>
+                    <Plus size={18} /> Thêm công nhân
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </form>
       </div>

@@ -693,6 +693,18 @@ async function createServer(options = {}) {
     app.get('/api/workers', async (req, res) => res.json(await store.getWorkers()));
     app.post('/api/workers', async (req, res) => res.json(await store.createWorker(req.body)));
     app.put('/api/workers/:id', async (req, res) => res.json(await store.updateWorker(req.params.id, req.body)));
+    app.delete('/api/workers/:id', async (req, res) => {
+        try {
+            const success = await store.deleteWorker(req.params.id);
+            if (!success) {
+                return res.status(404).json({ error: 'Worker not found' });
+            }
+            res.json({ success: true, id: req.params.id });
+        } catch (err) {
+            console.error('Error deleting worker:', err);
+            res.status(500).json({ error: err.message });
+        }
+    });
 
     // Attendance
     app.get('/api/attendance', async (req, res) => res.json(await store.getAttendance()));

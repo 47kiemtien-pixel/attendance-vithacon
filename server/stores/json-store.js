@@ -64,6 +64,13 @@ function createJsonStore(dataDir) {
             writeData(workersFile, workers);
             return workers[index];
         },
+        async deleteWorker(id) {
+            const workers = readData(workersFile);
+            const nextWorkers = workers.filter((worker) => String(worker.id) !== String(id));
+            if (nextWorkers.length === workers.length) return false;
+            writeData(workersFile, nextWorkers);
+            return true;
+        },
         async getSettings() {
             return readData(settingsFile);
         },
