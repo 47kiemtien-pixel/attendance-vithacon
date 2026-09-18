@@ -165,13 +165,16 @@ function Sync-Vercel([hashtable]$Config, [string]$TunnelUrl) {
         $previousToken = $env:VERCEL_TOKEN
         try {
             $env:VERCEL_TOKEN = $token
-            & $vercel redeploy "https://$($latestReady.url)" `
-                --target production `
-                --cwd (Join-Path $ProjectRoot "client") `
+            & $vercel deploy --prod --yes `
+                --cwd $ProjectRoot `
                 --non-interactive `
                 --no-color
             if ($LASTEXITCODE -ne 0) {
-                throw "Vercel redeploy failed with exit code $LASTEXITCODE."
+                # Fallback to redeploy if direct deploy fails
+                & $vercel redeploy "https://$($latestReady.url)" `
+                    --target production `
+                    --non-interactive `
+                    --no-color
             }
         } finally {
             $env:VERCEL_TOKEN = $previousToken

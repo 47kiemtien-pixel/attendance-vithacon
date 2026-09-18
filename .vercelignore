@@ -1,0 +1,14 @@
+node_modules
+client/node_modules
+server/node_modules
+release
+_github_runner
+dist
+build
+dist-electron
+*.log
+.git
+.env.cicd
+logs
+tools/cloudflared.exe
+server/data
