@@ -2,18 +2,29 @@ import axios from 'axios';
 import { clearAuthSession, getStoredToken } from './auth';
 import defaultBanks from './constants/banks.json';
 
+const FALLBACK_TUNNEL_API = 'https://rely-jackson-desktops-pentium.trycloudflare.com/api';
+
 function resolveApiUrl() {
     if (typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
         const runtimeApiUrl = params.get('apiUrl');
         if (runtimeApiUrl) return runtimeApiUrl;
+
+        const hostname = window.location.hostname;
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            return 'http://127.0.0.1:5005/api';
+        }
+        if (/^192\.168\.\d+\.\d+$/.test(hostname) || /^10\.\d+\.\d+\.\d+$/.test(hostname)) {
+            return `http://${hostname}:5005/api`;
+        }
     }
 
-    if (import.meta.env.VITE_API_URL) {
-        return import.meta.env.VITE_API_URL;
+    const envApi = import.meta.env.VITE_API_URL;
+    if (envApi && !envApi.includes('cruises-chose') && !envApi.includes('disclose-blair')) {
+        return envApi;
     }
 
-    return 'http://127.0.0.1:5005/api';
+    return FALLBACK_TUNNEL_API;
 }
 
 const API_URL = resolveApiUrl();
