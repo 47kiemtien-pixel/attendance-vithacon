@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 import { FileSpreadsheet, Download, CalendarRange, FolderDown, User, Calendar, FileText, QrCode, Image as ImageIcon } from 'lucide-react';
 import VietQRModal from './VietQRModal';
 import { downloadMultipleWorkersPayrollImages } from '../utils/payrollImage';
+import { useToast } from './Toast';
 
 function calculateWorkerSalary(worker, dateRange, attendance) {
   let current = dayjs(dateRange.start);
@@ -28,6 +29,7 @@ function calculateWorkerSalary(worker, dateRange, attendance) {
 }
 
 const Reports = () => {
+  const toast = useToast();
   const currentMonth = dayjs().format('MM');
   const currentYear = dayjs().format('YYYY');
 
@@ -68,20 +70,22 @@ const Reports = () => {
 
   const handleExport = () => {
     if (!month || !year) {
-      alert('Vui lòng chọn tháng và năm.');
+      toast.error('Vui lòng chọn tháng và năm.');
       return;
     }
 
-    downloadReport(month, year).catch((error) => {
-      console.error('Error exporting report:', error);
-      alert('Không thể tải file Excel. Vui lòng thử lại.');
-    });
+    downloadReport(month, year)
+      .then(() => toast.success(`Đã xuất bảng chấm công tháng ${month}/${year}!`))
+      .catch((error) => {
+        console.error('Error exporting report:', error);
+        toast.error('Không thể tải file Excel. Vui lòng thử lại.');
+      });
   };
 
   const handleWorkerExportImage = async () => {
     const workerIds = selectedWorkerIds.filter(Boolean);
     if (!workerIds.length) {
-      alert('Vui lòng chọn ít nhất một công nhân.');
+      toast.error('Vui lòng chọn ít nhất một công nhân.');
       return;
     }
 
@@ -98,9 +102,10 @@ const Reports = () => {
           setImageProgress(`Đang tạo ảnh (${current}/${total})...`);
         }
       );
+      toast.success(`Đã tạo và tải ${selectedWorkers.length} ảnh bảng lương thành công!`);
     } catch (error) {
       console.error('Error exporting worker payroll images:', error);
-      alert('Có lỗi khi tạo ảnh bảng lương: ' + (error?.message || error));
+      toast.error('Có lỗi khi tạo ảnh bảng lương: ' + (error?.message || error));
     } finally {
       setGeneratingImages(false);
       setImageProgress('');
@@ -110,7 +115,7 @@ const Reports = () => {
   const handleWorkerExport = () => {
     const workerIds = selectedWorkerIds.filter(Boolean);
     if (!workerIds.length) {
-      alert('Vui lòng chọn công nhân.');
+      toast.error('Vui lòng chọn ít nhất một công nhân.');
       return;
     }
 
@@ -121,16 +126,18 @@ const Reports = () => {
       label = `Tháng ${dayjs(startDate).format('MM/YYYY')}`;
     }
 
-    downloadWorkersReport(workerIds, startDate, endDate, label).catch((error) => {
-      console.error('Error exporting worker report:', error);
-      alert('Không thể tải file Excel. Vui lòng thử lại.');
-    });
+    downloadWorkersReport(workerIds, startDate, endDate, label)
+      .then(() => toast.success('Đã tải bảng lương Excel thành công!'))
+      .catch((error) => {
+        console.error('Error exporting worker report:', error);
+        toast.error('Không thể tải file Excel. Vui lòng thử lại.');
+      });
   };
 
   const handleWorkerExportDocx = () => {
     const workerIds = selectedWorkerIds.filter(Boolean);
     if (!workerIds.length) {
-      alert('Vui lòng chọn công nhân.');
+      toast.error('Vui lòng chọn ít nhất một công nhân.');
       return;
     }
 
@@ -141,20 +148,22 @@ const Reports = () => {
       label = `Tháng ${dayjs(startDate).format('MM/YYYY')}`;
     }
 
-    downloadWorkersReportDocx(workerIds, startDate, endDate, label).catch((error) => {
-      console.error('Error exporting worker Word report:', error);
-      if (error?.response?.status === 404) {
-        alert('Server chưa cập nhật chức năng xuất Word nhiều người. Vui lòng tắt app và chạy lại start-lan.bat.');
-        return;
-      }
-      alert('Không thể tải file Word. Vui lòng thử lại.');
-    });
+    downloadWorkersReportDocx(workerIds, startDate, endDate, label)
+      .then(() => toast.success('Đã tải bảng lương Word thành công!'))
+      .catch((error) => {
+        console.error('Error exporting worker Word report:', error);
+        if (error?.response?.status === 404) {
+          toast.error('Server chưa cập nhật chức năng xuất Word nhiều người.');
+          return;
+        }
+        toast.error('Không thể tải file Word. Vui lòng thử lại.');
+      });
   };
 
   const handleOpenQR = () => {
     const workerIds = selectedWorkerIds.filter(Boolean);
     if (!workerIds.length) {
-      alert('Vui lòng chọn ít nhất một công nhân để quét mã QR chuyển lương.');
+      toast.error('Vui lòng chọn ít nhất một công nhân để quét mã QR chuyển lương.');
       return;
     }
     const selectedWorkers = workers.filter((w) => workerIds.includes(String(w.id)));

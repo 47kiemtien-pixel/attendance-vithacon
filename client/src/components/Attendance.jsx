@@ -3,10 +3,11 @@ import { getWorkers, getAttendance, saveAttendanceRecord, getSettings } from '..
 import dayjs from 'dayjs';
 import { 
   CalendarCheck, ChevronLeft, ChevronRight, X, User, 
-  Briefcase, MapPin, Wallet, Truck, Search
+  Briefcase, MapPin, Wallet, Truck, Search, Users, Clock, UserX, CheckCircle2
 } from 'lucide-react';
 import CurrencyInput from './CurrencyInput';
 import { parseVndAmount } from '../utils/currency';
+import { useToast } from './Toast';
 
 const weekdayLabels = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 const getMonday = (date) => {
@@ -65,6 +66,7 @@ const buildAttendancePayload = ({ status, dailyRate, position, location, note, t
 };
 
 const Attendance = () => {
+  const toast = useToast();
   const [workers, setWorkers] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [presets, setPresets] = useState([]);
@@ -124,11 +126,27 @@ const Attendance = () => {
       }
     } catch (error) {
       console.error('Critical error fetching workers:', error);
-      alert('Không thể tải danh sách công nhân. Vui lòng kiểm tra kết nối máy chủ.');
+      toast.error('Không thể tải danh sách công nhân. Vui lòng kiểm tra kết nối máy chủ.');
     } finally {
       setLoading(false);
     }
   };
+
+  const todayIso = dayjs().format('YYYY-MM-DD');
+  const todaySummary = useMemo(() => {
+    const todayData = attendance.find((item) => item.date === todayIso);
+    let full = 0;
+    let half = 0;
+    let absent = 0;
+    if (todayData?.records) {
+      for (const r of todayData.records) {
+        if (r.status === 'Full') full++;
+        else if (r.status === 'Half') half++;
+        else if (r.status === 'Absent' || r.status === 'Leave') absent++;
+      }
+    }
+    return { full, half, absent };
+  }, [attendance, todayIso]);
 
   const getDayRecord = (workerId, dateStr) => {
     const dayData = attendance.find((item) => item.date === dateStr);
@@ -260,9 +278,10 @@ const Attendance = () => {
         recordPayload.travelCost
       );
       await fetchData();
+      toast.success(`Đã cập nhật công cho ${worker.name}`);
     } catch (error) {
       console.error('Error quick saving record', error);
-      alert('Không thể lưu chấm công nhanh. Vui lòng thử lại.');
+      toast.error('Không thể lưu chấm công nhanh. Vui lòng thử lại.');
     } finally {
       setQuickSavingKey('');
     }
@@ -295,9 +314,10 @@ const Attendance = () => {
       );
       await fetchData();
       setIsModalOpen(false);
+      toast.success('Đã lưu chi tiết chấm công thành công!');
     } catch (error) {
       console.error('Error saving record', error);
-      alert('Có lỗi xảy ra khi lưu.');
+      toast.error('Có lỗi xảy ra khi lưu chi tiết chấm công.');
     } finally {
       setSaving(false);
     }
@@ -308,6 +328,46 @@ const Attendance = () => {
 
   return (
     <div className="screen-page">
+      {/* KPI Cards Summary */}
+      <div className="kpi-grid">
+        <div className="kpi-card">
+          <div className="kpi-icon" style={{ background: 'rgba(15, 118, 110, 0.1)', color: 'var(--primary)' }}>
+            <Users size={22} />
+          </div>
+          <div>
+            <div className="kpi-val">{activeWorkers.length}</div>
+            <div className="kpi-label">Tổng thợ đang làm</div>
+          </div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-icon" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+            <CalendarCheck size={22} />
+          </div>
+          <div>
+            <div className="kpi-val">{todaySummary.full}</div>
+            <div className="kpi-label">Đủ công hôm nay</div>
+          </div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-icon" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
+            <Clock size={22} />
+          </div>
+          <div>
+            <div className="kpi-val">{todaySummary.half}</div>
+            <div className="kpi-label">Nửa công hôm nay</div>
+          </div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-icon" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
+            <UserX size={22} />
+          </div>
+          <div>
+            <div className="kpi-val">{todaySummary.absent}</div>
+            <div className="kpi-label">Vắng / Nghỉ phép</div>
+          </div>
+        </div>
+      </div>
+
       <section className="panel compact-panel">
         <div className="toolbar-row">
           <div>
@@ -493,12 +553,18 @@ const Attendance = () => {
               <thead>
                 <tr>
                   <th className="sticky-col sticky-head worker-col-head">Công nhân</th>
-                  {visibleDateHeaders.map((item) => (
-                    <th key={item.key} className={`date-head-cell ${item.isOutsideMonth ? 'is-muted' : ''}`}>
-                      <span className="date-head-weekday">{item.weekday}</span>
-                      <span className="date-head-date">{item.dateLabel}</span>
-                    </th>
-                  ))}
+                  {visibleDateHeaders.map((item) => {
+                    const isToday = item.iso === todayIso;
+                    return (
+                      <th
+                        key={item.key}
+                        className={`date-head-cell ${item.isOutsideMonth ? 'is-muted' : ''} ${isToday ? 'col-today-head' : ''}`}
+                      >
+                        <span className="date-head-weekday">{item.weekday}</span>
+                        <span className="date-head-date">{item.dateLabel}</span>
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
@@ -519,6 +585,7 @@ const Attendance = () => {
                       const showWorkDetails = WORK_DETAIL_STATUSES.has(status);
                       const travelCost = Number(record?.travelCost || 0);
                       const dailyRate = Number(record?.dailyRate || 0);
+                      const isToday = item.iso === todayIso;
                       const tone = 
                         status === 'Leave' ? 'leave' : 
                         status === 'Absent' ? 'absent' : 
@@ -533,7 +600,10 @@ const Attendance = () => {
                         status === 'Travel' ? 'Di chuyển' : '';
 
                       return (
-                        <td key={item.key} className={item.isOutsideMonth ? 'date-cell-muted' : ''}>
+                        <td
+                          key={item.key}
+                          className={`${item.isOutsideMonth ? 'date-cell-muted' : ''} ${isToday ? 'col-today-cell' : ''}`}
+                        >
                           <button
                             type="button"
                             className={`attendance-cell ${tone}`}

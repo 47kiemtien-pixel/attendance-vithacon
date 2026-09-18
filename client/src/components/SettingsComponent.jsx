@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { getSettings, saveSettings, exportBackup, importBackup } from '../api';
 import { Settings, Plus, Trash2, Save, Download, Upload, Database } from 'lucide-react';
 import CurrencyInput from './CurrencyInput';
+import { useToast } from './Toast';
 
 const normalizePreset = (preset) => ({
   id: preset.id,
@@ -11,6 +12,7 @@ const normalizePreset = (preset) => ({
 });
 
 const SettingsComponent = () => {
+  const toast = useToast();
   const [presets, setPresets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -40,10 +42,10 @@ const SettingsComponent = () => {
           name: [preset.position, preset.location].filter(Boolean).join(' - ')
         }))
       });
-      alert('Đã lưu cấu hình thành công.');
+      toast.success('Đã lưu cấu hình thành công!');
     } catch (error) {
       console.error('Error saving settings:', error);
-      alert('Có lỗi xảy ra khi lưu.');
+      toast.error('Có lỗi xảy ra khi lưu cấu hình.');
     } finally {
       setSaving(false);
     }
@@ -67,9 +69,10 @@ const SettingsComponent = () => {
   const handleExportBackup = async () => {
     try {
       await exportBackup();
+      toast.success('Đã xuất file sao lưu dữ liệu thành công!');
     } catch (error) {
       console.error('Error exporting backup:', error);
-      alert('Có lỗi xảy ra khi xuất dữ liệu.');
+      toast.error('Có lỗi xảy ra khi xuất dữ liệu.');
     }
   };
 
@@ -86,12 +89,12 @@ const SettingsComponent = () => {
           const data = JSON.parse(e.target.result);
           if (window.confirm('Bạn có chắc muốn ghi đè toàn bộ dữ liệu hiện tại bằng file backup này không? Hành động này không thể hoàn tác.')) {
             await importBackup(data);
-            alert('Khôi phục dữ liệu thành công. Ứng dụng sẽ tự động tải lại.');
-            window.location.reload();
+            toast.success('Khôi phục dữ liệu thành công. Ứng dụng sẽ tự động tải lại...');
+            setTimeout(() => window.location.reload(), 1200);
           }
         } catch (error) {
           console.error('Error importing backup:', error);
-          alert('File backup không hợp lệ hoặc có lỗi xảy ra.');
+          toast.error('File backup không hợp lệ hoặc có lỗi xảy ra.');
         }
       };
       reader.readAsText(file);

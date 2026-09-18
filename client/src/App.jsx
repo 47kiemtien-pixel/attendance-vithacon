@@ -6,6 +6,7 @@ import Reports from './components/Reports';
 import SettingsComponent from './components/SettingsComponent';
 import AuthScreen from './components/AuthScreen';
 import UpdateBanner from './components/UpdateBanner';
+import { ToastProvider } from './components/Toast';
 import { CalendarCheck, Users, FileSpreadsheet, Settings, LogOut } from 'lucide-react';
 import {
   clearAuthSession,
@@ -54,6 +55,13 @@ function AppShell({ activeTab, setActiveTab, currentUser, onLogout }) {
           <div>
             <div className="sidebar-brand-title">Chấm công Việt Thành</div>
             <div className="sidebar-brand-subtitle">Quản lý chấm công nội bộ</div>
+          </div>
+        </div>
+
+        <div style={{ padding: '0 4px', marginBottom: '8px' }}>
+          <div className="server-status-pill">
+            <span className="server-status-dot"></span>
+            <span>Máy chủ trực tuyến • 5005</span>
           </div>
         </div>
 
@@ -187,12 +195,14 @@ function App() {
   }
 
   return (
-    <AppShell
-      activeTab={activeTab}
-      setActiveTab={setActiveTab}
-      currentUser={currentUser}
-      onLogout={handleLogout}
-    />
+    <ToastProvider>
+      <AppShell
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        currentUser={currentUser}
+        onLogout={handleLogout}
+      />
+    </ToastProvider>
   );
 }
 

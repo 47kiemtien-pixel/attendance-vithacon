@@ -15,17 +15,22 @@ import {
   X,
   Trash2,
   LayoutGrid,
-  List
+  List,
+  Copy,
+  Check
 } from 'lucide-react';
 import WorkerModal from './WorkerModal';
 import VietQRModal from './VietQRModal';
 import { formatVndCurrency } from '../utils/currency';
+import { useToast } from './Toast';
 
 const Workers = () => {
+  const toast = useToast();
   const [workers, setWorkers] = useState([]);
   const [banks, setBanks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [viewMode, setViewMode] = useState(() => {
     return localStorage.getItem('workers_view_mode') || 'grid';
   });
@@ -52,11 +57,32 @@ const Workers = () => {
     }
   };
 
-  const filteredWorkers = useMemo(() => {
-    const keyword = searchTerm.trim().toLowerCase();
-    if (!keyword) return workers;
+  const counts = useMemo(() => {
+    let working = 0;
+    let resigned = 0;
+    let hasBank = 0;
+    workers.forEach((w) => {
+      if (w.status === 'resigned') resigned += 1;
+      else working += 1;
+      if (w.bankAccount) hasBank += 1;
+    });
+    return { all: workers.length, working, resigned, hasBank };
+  }, [workers]);
 
-    return workers.filter((worker) => {
+  const filteredWorkers = useMemo(() => {
+    let list = workers;
+    if (filterStatus === 'working') {
+      list = list.filter((w) => w.status !== 'resigned');
+    } else if (filterStatus === 'resigned') {
+      list = list.filter((w) => w.status === 'resigned');
+    } else if (filterStatus === 'hasBank') {
+      list = list.filter((w) => Boolean(w.bankAccount));
+    }
+
+    const keyword = searchTerm.trim().toLowerCase();
+    if (!keyword) return list;
+
+    return list.filter((worker) => {
       return [
         worker.name,
         worker.phone,
@@ -69,7 +95,7 @@ const Workers = () => {
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(keyword));
     });
-  }, [workers, searchTerm]);
+  }, [workers, filterStatus, searchTerm]);
 
   const activeWorkersCount = useMemo(() => {
     return workers.filter((w) => w.status !== 'resigned').length;
@@ -97,12 +123,20 @@ const Workers = () => {
   };
 
   const handleSaveWorker = async (workerData, isEdit, workerId) => {
-    if (isEdit && workerId) {
-      await updateWorker(workerId, workerData);
-    } else {
-      await addWorker(workerData);
+    try {
+      if (isEdit && workerId) {
+        await updateWorker(workerId, workerData);
+        toast.success(`Đã cập nhật hồ sơ công nhân "${workerData.name}"!`);
+      } else {
+        await addWorker(workerData);
+        toast.success(`Đã thêm công nhân mới "${workerData.name}"!`);
+      }
+      await fetchWorkers();
+      handleCloseModal();
+    } catch (err) {
+      console.error('Error saving worker:', err);
+      toast.error('Không thể lưu thông tin công nhân. Vui lòng thử lại.');
     }
-    await fetchWorkers();
   };
 
   const handleDeleteWorker = async (workerId) => {
@@ -116,9 +150,10 @@ const Workers = () => {
       await deleteWorker(workerId);
       await fetchWorkers();
       handleCloseModal();
+      toast.success(`Đã xóa hồ sơ "${worker?.name || ''}"!`);
     } catch (err) {
       console.error('Error deleting worker:', err);
-      alert('Không thể xóa công nhân. Vui lòng thử lại.');
+      toast.error('Không thể xóa công nhân. Vui lòng thử lại.');
     }
   };
 
@@ -142,9 +177,10 @@ const Workers = () => {
         bankAccountHolder: ''
       });
       await fetchWorkers();
+      toast.success(`Đã xóa thông tin STK của "${worker.name}"!`);
     } catch (err) {
       console.error('Error removing bank info:', err);
-      alert('Không thể xóa thông tin tài khoản ngân hàng. Vui lòng thử lại.');
+      toast.error('Không thể xóa thông tin tài khoản ngân hàng. Vui lòng thử lại.');
     }
   };
 
@@ -192,38 +228,45 @@ const Workers = () => {
         </button>
       </div>
 
-      {/* Thẻ thống kê */}
-      <section className="workers-stats">
-        <article className="worker-stat-card">
-          <div className="worker-stat-icon workers-stat-indigo">
-            <UserRound size={20} />
+      {/* Thống kê KPI */}
+      <div className="kpi-grid" style={{ marginBottom: '20px' }}>
+        <div className="kpi-card">
+          <div className="kpi-icon" style={{ background: 'rgba(15, 118, 110, 0.1)', color: 'var(--primary)' }}>
+            <Users size={22} />
           </div>
           <div>
-            <div className="worker-stat-label">Tổng công nhân</div>
-            <div className="worker-stat-value">{workers.length}</div>
+            <div className="kpi-val">{workers.length}</div>
+            <div className="kpi-label">Tổng nhân sự</div>
           </div>
-        </article>
-
-        <article className="worker-stat-card">
-          <div className="worker-stat-icon workers-stat-teal">
-            <UserCheck size={20} />
-          </div>
-          <div>
-            <div className="worker-stat-label">Đang làm việc</div>
-            <div className="worker-stat-value">{activeWorkersCount}</div>
-          </div>
-        </article>
-
-        <article className="worker-stat-card">
-          <div className="worker-stat-icon workers-stat-amber">
-            <Wallet size={20} />
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-icon" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+            <UserCheck size={22} />
           </div>
           <div>
-            <div className="worker-stat-label">Lương trung bình/ngày</div>
-            <div className="worker-stat-value">{formatVndCurrency(averageDailyRate)}</div>
+            <div className="kpi-val">{counts.working}</div>
+            <div className="kpi-label">Đang làm việc</div>
           </div>
-        </article>
-      </section>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-icon" style={{ background: 'rgba(2, 132, 199, 0.1)', color: '#0284c7' }}>
+            <CreditCard size={22} />
+          </div>
+          <div>
+            <div className="kpi-val">{counts.hasBank}</div>
+            <div className="kpi-label">Đã có STK ngân hàng</div>
+          </div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-icon" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
+            <Wallet size={22} />
+          </div>
+          <div>
+            <div className="kpi-val">{formatVndCurrency(averageDailyRate)}</div>
+            <div className="kpi-label">Lương bình quân / ngày</div>
+          </div>
+        </div>
+      </div>
 
       {/* Danh sách công nhân (Toàn màn hình, không bị chèn cột bên trái) */}
       <div className="workers-layout">
@@ -269,6 +312,37 @@ const Workers = () => {
                 <Plus size={16} /> Thêm mới
               </button>
             </div>
+          </div>
+
+          <div className="filter-pills-bar" style={{ marginBottom: '14px' }}>
+            <button
+              type="button"
+              className={`filter-pill-btn ${filterStatus === 'all' ? 'active' : ''}`}
+              onClick={() => setFilterStatus('all')}
+            >
+              Tất cả <span className="pill-count">{counts.all}</span>
+            </button>
+            <button
+              type="button"
+              className={`filter-pill-btn ${filterStatus === 'working' ? 'active' : ''}`}
+              onClick={() => setFilterStatus('working')}
+            >
+              Đang làm <span className="pill-count">{counts.working}</span>
+            </button>
+            <button
+              type="button"
+              className={`filter-pill-btn ${filterStatus === 'resigned' ? 'active' : ''}`}
+              onClick={() => setFilterStatus('resigned')}
+            >
+              Đã nghỉ <span className="pill-count">{counts.resigned}</span>
+            </button>
+            <button
+              type="button"
+              className={`filter-pill-btn ${filterStatus === 'hasBank' ? 'active' : ''}`}
+              onClick={() => setFilterStatus('hasBank')}
+            >
+              Có STK <span className="pill-count">{counts.hasBank}</span>
+            </button>
           </div>
 
           <div
@@ -466,6 +540,18 @@ const Workers = () => {
                               </span>
                             )}
                           </div>
+                          <button
+                            type="button"
+                            className="copy-badge-btn"
+                            title="Sao chép số tài khoản"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigator.clipboard.writeText(worker.bankAccount);
+                              toast.success(`Đã sao chép STK ${worker.bankAccount}`);
+                            }}
+                          >
+                            <Copy size={12} />
+                          </button>
                         </div>
                       ) : (
                         <div
@@ -655,6 +741,18 @@ const Workers = () => {
                                     • {worker.bankAccountHolder}
                                   </span>
                                 )}
+                                <button
+                                  type="button"
+                                  className="copy-badge-btn"
+                                  title="Sao chép số tài khoản"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigator.clipboard.writeText(worker.bankAccount);
+                                    toast.success(`Đã sao chép STK ${worker.bankAccount}`);
+                                  }}
+                                >
+                                  <Copy size={12} />
+                                </button>
                               </div>
                             ) : (
                               <div
