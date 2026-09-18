@@ -165,15 +165,19 @@ const BankSelector = ({
               title="Xóa chọn ngân hàng"
               style={{
                 border: 'none',
-                background: 'transparent',
+                background: '#fee2e2',
                 cursor: 'pointer',
-                padding: '2px 4px',
-                color: 'var(--text-soft)',
+                padding: '3px 8px',
+                borderRadius: '6px',
+                color: '#dc2626',
                 display: 'flex',
-                alignItems: 'center'
+                alignItems: 'center',
+                gap: '3px',
+                fontSize: '0.78rem',
+                fontWeight: '600'
               }}
             >
-              <X size={16} />
+              <X size={14} /> Bỏ chọn
             </button>
           )}
           <ChevronDown

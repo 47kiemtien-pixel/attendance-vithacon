@@ -10,7 +10,8 @@ import {
   Landmark,
   UserCheck,
   QrCode,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from 'lucide-react';
 import CurrencyInput from './CurrencyInput';
 import BankSelector from './BankSelector';
@@ -109,6 +110,17 @@ const WorkerModal = ({
     }
   };
 
+  const handleClearBankInfo = () => {
+    setFormData((current) => ({
+      ...current,
+      bankBin: '',
+      bankName: '',
+      bankShortName: '',
+      bankAccount: '',
+      bankAccountHolder: ''
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) {
@@ -123,17 +135,18 @@ const WorkerModal = ({
     setSaving(true);
     setErrorMsg('');
     try {
+      const hasAccount = Boolean(formData.bankAccount && formData.bankAccount.trim());
       const workerPayload = {
         name: formData.name.trim(),
         phone: formData.phone.trim(),
         cccd: formData.cccd.trim(),
         dailyRate: parseVndAmount(formData.dailyRate),
         status: formData.status || 'working',
-        bankBin: formData.bankBin || '',
-        bankName: formData.bankName || '',
-        bankShortName: formData.bankShortName || '',
-        bankAccount: formData.bankAccount.trim(),
-        bankAccountHolder: formData.bankAccountHolder ? formData.bankAccountHolder.trim().toUpperCase() : ''
+        bankBin: hasAccount ? (formData.bankBin || '') : '',
+        bankName: hasAccount ? (formData.bankName || '') : '',
+        bankShortName: hasAccount ? (formData.bankShortName || '') : '',
+        bankAccount: hasAccount ? formData.bankAccount.trim() : '',
+        bankAccountHolder: hasAccount && formData.bankAccountHolder ? formData.bankAccountHolder.trim().toUpperCase() : ''
       };
 
       await onSave(workerPayload, isEditing, worker?.id);
@@ -428,33 +441,60 @@ const WorkerModal = ({
                 >
                   <Landmark size={18} /> TÀI KHOẢN NGÂN HÀNG (STK & VIETQR CHUYỂN LƯƠNG)
                 </label>
-                {formData.bankAccount && (formData.bankBin || formData.bankShortName) && (
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    onClick={() =>
-                      onOpenQr &&
-                      onOpenQr({
-                        ...formData,
-                        name: formData.name || 'Công nhân'
-                      })
-                    }
-                    style={{
-                      padding: '4px 12px',
-                      fontSize: '0.8rem',
-                      height: '30px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      background: '#ffffff',
-                      borderColor: 'var(--primary, #0f766e)',
-                      color: 'var(--primary, #0f766e)',
-                      fontWeight: '600'
-                    }}
-                  >
-                    <QrCode size={15} /> Xem thử mã QR
-                  </button>
-                )}
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  {formData.bankAccount && (formData.bankBin || formData.bankShortName) && (
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      onClick={() =>
+                        onOpenQr &&
+                        onOpenQr({
+                          ...formData,
+                          name: formData.name || 'Công nhân'
+                        })
+                      }
+                      style={{
+                        padding: '4px 12px',
+                        fontSize: '0.8rem',
+                        height: '30px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        background: '#ffffff',
+                        borderColor: 'var(--primary, #0f766e)',
+                        color: 'var(--primary, #0f766e)',
+                        fontWeight: '600'
+                      }}
+                    >
+                      <QrCode size={15} /> Xem thử mã QR
+                    </button>
+                  )}
+
+                  {(formData.bankAccount || formData.bankBin || formData.bankShortName || formData.bankAccountHolder) && (
+                    <button
+                      type="button"
+                      onClick={handleClearBankInfo}
+                      className="btn btn-outline"
+                      style={{
+                        padding: '4px 12px',
+                        fontSize: '0.8rem',
+                        height: '30px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        background: '#fff',
+                        color: '#dc2626',
+                        borderColor: '#fca5a5',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                      title="Xóa toàn bộ số tài khoản và thông tin ngân hàng đã chọn"
+                    >
+                      <Trash2 size={14} /> Xóa STK & Ngân hàng
+                    </button>
+                  )}
+                </div>
               </div>
 
               <p
@@ -495,10 +535,29 @@ const WorkerModal = ({
                 }}
               >
                 <div>
-                  <label className="form-label" style={{ fontSize: '0.84rem', fontWeight: '600', marginBottom: '4px' }}>
-                    Số tài khoản (STK)
-                  </label>
-                  <div className="workers-input-shell" style={{ background: '#ffffff', height: '44px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label className="form-label" style={{ fontSize: '0.84rem', fontWeight: '600', margin: 0 }}>
+                      Số tài khoản (STK)
+                    </label>
+                    {formData.bankAccount && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData((c) => ({ ...c, bankAccount: '' }))}
+                        style={{
+                          border: 'none',
+                          background: 'transparent',
+                          color: '#dc2626',
+                          fontSize: '0.78rem',
+                          cursor: 'pointer',
+                          padding: 0,
+                          fontWeight: '600'
+                        }}
+                      >
+                        Xóa số này
+                      </button>
+                    )}
+                  </div>
+                  <div className="workers-input-shell" style={{ background: '#ffffff', height: '44px', display: 'flex', alignItems: 'center', paddingRight: '8px' }}>
                     <CreditCard size={18} color="var(--primary)" />
                     <input
                       type="text"
@@ -507,8 +566,29 @@ const WorkerModal = ({
                       value={formData.bankAccount}
                       onChange={handleInputChange}
                       placeholder="Nhập số tài khoản ngân hàng..."
-                      style={{ fontWeight: '600', letterSpacing: '0.5px' }}
+                      style={{ fontWeight: '600', letterSpacing: '0.5px', flex: 1 }}
                     />
+                    {formData.bankAccount && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData((c) => ({ ...c, bankAccount: '' }))}
+                        style={{
+                          border: 'none',
+                          background: '#f1f5f9',
+                          borderRadius: '50%',
+                          width: '24px',
+                          height: '24px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          color: '#64748b'
+                        }}
+                        title="Xóa nhanh số tài khoản"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
                   </div>
                 </div>
 
