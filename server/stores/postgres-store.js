@@ -86,6 +86,11 @@ async function createPostgresStore(options = {}) {
                 location TEXT DEFAULT '',
                 daily_rate INTEGER NOT NULL DEFAULT 0,
                 status TEXT NOT NULL DEFAULT 'working',
+                bank_name TEXT DEFAULT '',
+                bank_short_name TEXT DEFAULT '',
+                bank_bin TEXT DEFAULT '',
+                bank_account TEXT DEFAULT '',
+                bank_account_holder TEXT DEFAULT '',
                 created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
             );
@@ -134,6 +139,11 @@ async function createPostgresStore(options = {}) {
             await query('ALTER TABLE attendance_records DROP CONSTRAINT IF EXISTS attendance_records_status_check');
             await query(`ALTER TABLE attendance_records ADD CONSTRAINT attendance_records_status_check CHECK (status IN (${ATTENDANCE_STATUS_CHECK}))`);
             await query('ALTER TABLE workers ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT \'working\'');
+            await query('ALTER TABLE workers ADD COLUMN IF NOT EXISTS bank_name TEXT DEFAULT \'\'');
+            await query('ALTER TABLE workers ADD COLUMN IF NOT EXISTS bank_short_name TEXT DEFAULT \'\'');
+            await query('ALTER TABLE workers ADD COLUMN IF NOT EXISTS bank_bin TEXT DEFAULT \'\'');
+            await query('ALTER TABLE workers ADD COLUMN IF NOT EXISTS bank_account TEXT DEFAULT \'\'');
+            await query('ALTER TABLE workers ADD COLUMN IF NOT EXISTS bank_account_holder TEXT DEFAULT \'\'');
         } catch (e) {
             console.error('Migration error:', e);
         }
@@ -161,8 +171,8 @@ async function createPostgresStore(options = {}) {
         await transaction(async (client) => {
             for (const worker of workers) {
                 await client.query(
-                    `INSERT INTO workers (id, name, phone, cccd, position, location, daily_rate, status)
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+                    `INSERT INTO workers (id, name, phone, cccd, position, location, daily_rate, status, bank_name, bank_short_name, bank_bin, bank_account, bank_account_holder)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
                     [
                         String(worker.id),
                         worker.name || '',
@@ -171,7 +181,12 @@ async function createPostgresStore(options = {}) {
                         worker.position || '',
                         worker.location || '',
                         Number(worker.dailyRate || 0),
-                        worker.status || 'working'
+                        worker.status || 'working',
+                        worker.bankName || '',
+                        worker.bankShortName || '',
+                        worker.bankBin || '',
+                        worker.bankAccount || '',
+                        worker.bankAccountHolder || ''
                     ]
                 );
             }
@@ -244,7 +259,8 @@ async function createPostgresStore(options = {}) {
         driver: 'postgres',
         async getWorkers() {
             const result = await query(
-                `SELECT id, name, phone, cccd, position, location, daily_rate, status
+                `SELECT id, name, phone, cccd, position, location, daily_rate, status,
+                        bank_name, bank_short_name, bank_bin, bank_account, bank_account_holder
                  FROM workers
                  ORDER BY created_at ASC, id ASC`
             );
@@ -257,14 +273,20 @@ async function createPostgresStore(options = {}) {
                 position: row.position || '',
                 location: row.location || '',
                 dailyRate: Number(row.daily_rate || 0),
-                status: row.status || 'working'
+                status: row.status || 'working',
+                bankName: row.bank_name || '',
+                bankShortName: row.bank_short_name || '',
+                bankBin: row.bank_bin || '',
+                bankAccount: row.bank_account || '',
+                bankAccountHolder: row.bank_account_holder || ''
             }));
         },
         async createWorker(workerData) {
             const id = workerData.id || crypto.randomUUID();
             await query(
-                `INSERT INTO workers (id, name, phone, cccd, position, location, daily_rate, status)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+                `INSERT INTO workers (id, name, phone, cccd, position, location, daily_rate, status,
+                                     bank_name, bank_short_name, bank_bin, bank_account, bank_account_holder)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
                 [
                     id,
                     workerData.name || '',
@@ -273,7 +295,12 @@ async function createPostgresStore(options = {}) {
                     workerData.position || '',
                     workerData.location || '',
                     Number(workerData.dailyRate || 0),
-                    workerData.status || 'working'
+                    workerData.status || 'working',
+                    workerData.bankName || '',
+                    workerData.bankShortName || '',
+                    workerData.bankBin || '',
+                    workerData.bankAccount || '',
+                    workerData.bankAccountHolder || ''
                 ]
             );
 
@@ -281,7 +308,12 @@ async function createPostgresStore(options = {}) {
                 id,
                 ...workerData,
                 dailyRate: Number(workerData.dailyRate || 0),
-                status: workerData.status || 'working'
+                status: workerData.status || 'working',
+                bankName: workerData.bankName || '',
+                bankShortName: workerData.bankShortName || '',
+                bankBin: workerData.bankBin || '',
+                bankAccount: workerData.bankAccount || '',
+                bankAccountHolder: workerData.bankAccountHolder || ''
             };
         },
         async updateWorker(id, workerData) {
@@ -294,9 +326,15 @@ async function createPostgresStore(options = {}) {
                      location = $6,
                      daily_rate = $7,
                      status = $8,
+                     bank_name = $9,
+                     bank_short_name = $10,
+                     bank_bin = $11,
+                     bank_account = $12,
+                     bank_account_holder = $13,
                      updated_at = NOW()
                  WHERE id = $1
-                 RETURNING id, name, phone, cccd, position, location, daily_rate, status`,
+                 RETURNING id, name, phone, cccd, position, location, daily_rate, status,
+                           bank_name, bank_short_name, bank_bin, bank_account, bank_account_holder`,
                 [
                     id,
                     workerData.name || '',
@@ -305,7 +343,12 @@ async function createPostgresStore(options = {}) {
                     workerData.position || '',
                     workerData.location || '',
                     Number(workerData.dailyRate || 0),
-                    workerData.status || 'working'
+                    workerData.status || 'working',
+                    workerData.bankName || '',
+                    workerData.bankShortName || '',
+                    workerData.bankBin || '',
+                    workerData.bankAccount || '',
+                    workerData.bankAccountHolder || ''
                 ]
             );
 
@@ -320,7 +363,12 @@ async function createPostgresStore(options = {}) {
                 position: row.position || '',
                 location: row.location || '',
                 dailyRate: Number(row.daily_rate || 0),
-                status: row.status || 'working'
+                status: row.status || 'working',
+                bankName: row.bank_name || '',
+                bankShortName: row.bank_short_name || '',
+                bankBin: row.bank_bin || '',
+                bankAccount: row.bank_account || '',
+                bankAccountHolder: row.bank_account_holder || ''
             };
         },
         async getSettings() {
@@ -400,8 +448,9 @@ async function createPostgresStore(options = {}) {
 
                 for (const worker of workers) {
                     await client.query(
-                        `INSERT INTO workers (id, name, phone, cccd, position, location, daily_rate)
-                         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                        `INSERT INTO workers (id, name, phone, cccd, position, location, daily_rate, status,
+                                             bank_name, bank_short_name, bank_bin, bank_account, bank_account_holder)
+                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
                         [
                             String(worker.id),
                             worker.name || '',
@@ -409,7 +458,13 @@ async function createPostgresStore(options = {}) {
                             worker.cccd || '',
                             worker.position || '',
                             worker.location || '',
-                            Number(worker.dailyRate || 0)
+                            Number(worker.dailyRate || 0),
+                            worker.status || 'working',
+                            worker.bankName || '',
+                            worker.bankShortName || '',
+                            worker.bankBin || '',
+                            worker.bankAccount || '',
+                            worker.bankAccountHolder || ''
                         ]
                     );
                 }

@@ -10,6 +10,12 @@ const ExcelJS = require('exceljs');
 const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, WidthType, VerticalAlign, ImageRun, BorderStyle, HeightRule, PageBreak } = require('docx');
 const { createJsonStore } = require('./stores/json-store');
 const { createPostgresStore } = require('./stores/postgres-store');
+const {
+    generateVietQREmvCo,
+    getVietQRImageUrl,
+    getBankLogoBuffer,
+    getVietQRImageBuffer
+} = require('./lib/vietqr');
 
 async function createStore(options = {}) {
     const dataDir = options.dataDir || path.join(__dirname, 'data');
@@ -27,7 +33,7 @@ async function createStore(options = {}) {
 }
 
 // DOCX Generation Logic
-function buildWorkerReportChildren(worker, dateRange, attendance, options = {}) {
+async function buildWorkerReportChildren(worker, dateRange, attendance, options = {}) {
     if (!worker) throw new Error('Worker not found');
     const logoPath = path.join(__dirname, '..', 'client', 'public', 'logo.png');
     let logoImage = null;
@@ -137,92 +143,226 @@ function buildWorkerReportChildren(worker, dateRange, attendance, options = {}) 
         }));
     }
 
+    const netSalary = totalWage + totalTravelCost;
+
+    // Build VietQR and Payment Box
+    let paymentSection = null;
+    if (worker.bankAccount) {
+        let qrBuffer = null;
+        try {
+            qrBuffer = await getVietQRImageBuffer({
+                bin: worker.bankBin,
+                accountNumber: worker.bankAccount,
+                amount: netSalary > 0 ? netSalary : 0,
+                memo: `Luong ${worker.name}`,
+                accountName: worker.bankAccountHolder || worker.name,
+                bankCode: worker.bankShortName || worker.bankCode
+            });
+        } catch (e) {
+            console.error('Error fetching VietQR image for DOCX:', e);
+        }
+
+        const bankLogoBuf = getBankLogoBuffer(worker.bankShortName || worker.bankBin || worker.bankCode || worker.bankName);
+
+        let qrImageRun = null;
+        if (qrBuffer) {
+            qrImageRun = new ImageRun({
+                data: qrBuffer,
+                transformation: { width: 135, height: 135 },
+            });
+        }
+
+        let bankLogoRun = null;
+        if (bankLogoBuf) {
+            bankLogoRun = new ImageRun({
+                data: bankLogoBuf,
+                transformation: { width: 75, height: 30 },
+            });
+        }
+
+        const infoCells = [
+            new Paragraph({
+                children: [
+                    new TextRun({ text: 'THÔNG TIN CHUYỂN KHOẢN LƯƠNG', bold: true, size: 20, color: navy })
+                ],
+                spacing: { after: 100 }
+            }),
+            ...(bankLogoRun ? [new Paragraph({ children: [bankLogoRun], spacing: { after: 60 } })] : []),
+            new Paragraph({
+                children: [
+                    new TextRun({ text: 'Ngân hàng: ', size: 18, color: slate }),
+                    new TextRun({ text: `${worker.bankShortName ? worker.bankShortName + ' - ' : ''}${worker.bankName || ''}`, bold: true, size: 18, color: '000000' }),
+                ],
+                spacing: { after: 50 }
+            }),
+            new Paragraph({
+                children: [
+                    new TextRun({ text: 'Số tài khoản (STK): ', size: 18, color: slate }),
+                    new TextRun({ text: worker.bankAccount, bold: true, size: 22, color: navy }),
+                ],
+                spacing: { after: 50 }
+            }),
+            new Paragraph({
+                children: [
+                    new TextRun({ text: 'Người thụ hưởng: ', size: 18, color: slate }),
+                    new TextRun({ text: (worker.bankAccountHolder || worker.name).toUpperCase(), bold: true, size: 18, color: '000000' }),
+                ],
+                spacing: { after: 50 }
+            }),
+            new Paragraph({
+                children: [
+                    new TextRun({ text: 'Số tiền chuyển: ', size: 18, color: slate }),
+                    new TextRun({ text: `${netSalary.toLocaleString('vi-VN')}đ`, bold: true, size: 22, color: '15803D' }),
+                ],
+                spacing: { after: 50 }
+            }),
+            new Paragraph({
+                children: [
+                    new TextRun({ text: 'Nội dung CK: ', size: 16, color: slate }),
+                    new TextRun({ text: `Luong ${worker.name}`, italic: true, size: 16, color: slate }),
+                ],
+            }),
+        ];
+
+        const qrCellChildren = qrImageRun ? [
+            new Paragraph({ children: [qrImageRun], alignment: AlignmentType.CENTER }),
+            new Paragraph({
+                children: [new TextRun({ text: 'Quét mã VietQR chuyển khoản', italic: true, size: 15, color: slate })],
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 50 }
+            })
+        ] : [
+            new Paragraph({
+                children: [new TextRun({ text: 'Chưa có ảnh mã QR', italic: true, size: 16, color: slate })],
+                alignment: AlignmentType.CENTER
+            })
+        ];
+
+        paymentSection = new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            borders: {
+                top: { style: BorderStyle.SINGLE, color: 'CBD5E1', size: 4 },
+                bottom: { style: BorderStyle.SINGLE, color: 'CBD5E1', size: 4 },
+                left: { style: BorderStyle.SINGLE, color: 'CBD5E1', size: 4 },
+                right: { style: BorderStyle.SINGLE, color: 'CBD5E1', size: 4 },
+                insideHorizontal: BorderStyle.NONE,
+                insideVertical: { style: BorderStyle.SINGLE, color: 'E2E8F0', size: 2 }
+            },
+            rows: [
+                new TableRow({
+                    children: [
+                        new TableCell({
+                            width: { size: 68, type: WidthType.PERCENTAGE },
+                            children: infoCells,
+                            shading: { fill: 'F8FAFC' },
+                            verticalAlign: VerticalAlign.CENTER
+                        }),
+                        new TableCell({
+                            width: { size: 32, type: WidthType.PERCENTAGE },
+                            children: qrCellChildren,
+                            shading: { fill: 'FFFFFF' },
+                            verticalAlign: VerticalAlign.CENTER
+                        })
+                    ]
+                })
+            ]
+        });
+    } else {
+        paymentSection = new Paragraph({
+            children: [new TextRun({ text: '* Ghi chú: Nhân viên chưa cập nhật tài khoản ngân hàng để chuyển lương.', italic: true, size: 16, color: slate })],
+            spacing: { before: 150 }
+        });
+    }
+
     return [
         ...(options.pageBreakBefore ? [new Paragraph({ children: [new PageBreak()] })] : []),
         headerTable,
-                new Paragraph({ border: { bottom: { color: navy, size: 6, style: BorderStyle.SINGLE } }, spacing: { after: 300 } }),
-                new Paragraph({ children: [new TextRun({ text: 'BẢNG CHẤM CÔNG CHI TIẾT', bold: true, size: 40, color: '111827' })], alignment: AlignmentType.CENTER, spacing: { before: 200, after: 100 } }),
-                new Paragraph({
+        new Paragraph({ border: { bottom: { color: navy, size: 6, style: BorderStyle.SINGLE } }, spacing: { after: 300 } }),
+        new Paragraph({ children: [new TextRun({ text: 'BẢNG CHẤM CÔNG CHI TIẾT', bold: true, size: 40, color: '111827' })], alignment: AlignmentType.CENTER, spacing: { before: 200, after: 100 } }),
+        new Paragraph({
+            children: [
+                new TextRun({ text: 'NHÂN VIÊN: ', size: 20, color: slate }),
+                new TextRun({ text: worker.name.toUpperCase(), bold: true, size: 20, color: '000000' }),
+                new TextRun({ text: '    |    MÃ THỢ: ', size: 20, color: slate }),
+                new TextRun({ text: `VH-${String(worker.id).padStart(3, '0')}`, bold: true, size: 20, color: '000000' }),
+            ],
+            alignment: AlignmentType.CENTER,
+        }),
+        new Paragraph({
+            children: [new TextRun({ text: `Kỳ báo cáo: Từ ${dayjs(dateRange.start).format('DD/MM/YYYY')} đến ${dayjs(dateRange.end).format('DD/MM/YYYY')}`, italic: true, size: 16, color: slate })],
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 400 },
+        }),
+        new Table({ rows: tableRows, width: { size: 100, type: WidthType.PERCENTAGE } }),
+        new Paragraph({ text: '', spacing: { before: 300 } }),
+        new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            borders: { top: BorderStyle.NONE, bottom: BorderStyle.NONE, left: BorderStyle.NONE, right: BorderStyle.NONE, insideHorizontal: BorderStyle.NONE, insideVertical: BorderStyle.NONE },
+            rows: [
+                new TableRow({
                     children: [
-                        new TextRun({ text: 'NHÂN VIÊN: ', size: 20, color: slate }),
-                        new TextRun({ text: worker.name.toUpperCase(), bold: true, size: 20, color: '000000' }),
-                        new TextRun({ text: '    |    MÃ THỢ: ', size: 20, color: slate }),
-                        new TextRun({ text: `VH-${String(worker.id).padStart(3, '0')}`, bold: true, size: 20, color: '000000' }),
-                    ],
-                    alignment: AlignmentType.CENTER,
-                }),
-                new Paragraph({
-                    children: [new TextRun({ text: `Kỳ báo cáo: Từ ${dayjs(dateRange.start).format('DD/MM/YYYY')} đến ${dayjs(dateRange.end).format('DD/MM/YYYY')}`, italic: true, size: 16, color: slate })],
-                    alignment: AlignmentType.CENTER,
-                    spacing: { after: 400 },
-                }),
-                new Table({ rows: tableRows, width: { size: 100, type: WidthType.PERCENTAGE } }),
-                new Paragraph({ text: '', spacing: { before: 300 } }),
-                new Table({
-                    width: { size: 100, type: WidthType.PERCENTAGE },
-                    borders: { top: BorderStyle.NONE, bottom: BorderStyle.NONE, left: BorderStyle.NONE, right: BorderStyle.NONE, insideHorizontal: BorderStyle.NONE, insideVertical: BorderStyle.NONE },
-                    rows: [
-                        new TableRow({
+                        new TableCell({ 
                             children: [
-                                new TableCell({ 
+                                new Paragraph({
                                     children: [
-                                        new Paragraph({
-                                            children: [
-                                                new TextRun({ text: 'Tổng số công: ', size: 20, color: slate }),
-                                                new TextRun({ text: `${totalFull}`, bold: true, size: 20, color: navy }),
-                                            ]
-                                        }),
-                                        new Paragraph({
-                                            children: [
-                                                new TextRun({ text: 'Tổng lương: ', size: 20, color: slate }),
-                                                new TextRun({ text: `${totalWage.toLocaleString('vi-VN')}đ`, bold: true, size: 20, color: navy }),
-                                            ]
-                                        })
-                                    ] 
+                                        new TextRun({ text: 'Tổng số công: ', size: 20, color: slate }),
+                                        new TextRun({ text: `${totalFull}`, bold: true, size: 20, color: navy }),
+                                    ]
                                 }),
-                                new TableCell({ 
+                                new Paragraph({
                                     children: [
-                                        new Paragraph({
-                                            children: [
-                                                new TextRun({ text: 'Tiền xe/Di chuyển: ', size: 20, color: slate }),
-                                                new TextRun({ text: `${totalTravelCost.toLocaleString('vi-VN')}đ`, bold: true, size: 20, color: 'B45309' }),
-                                            ],
-                                            alignment: AlignmentType.RIGHT,
-                                        }),
-                                        new Paragraph({
-                                            children: [
-                                                new TextRun({ text: 'Thực nhận: ', bold: true, size: 22, color: slate }),
-                                                new TextRun({ text: `${(totalWage + totalTravelCost).toLocaleString('vi-VN')}đ`, bold: true, size: 26, color: '15803d' }),
-                                            ],
-                                            alignment: AlignmentType.RIGHT,
-                                        })
-                                    ] 
-                                }),
-                            ]
-                        })
-                    ]
-                }),
-                new Paragraph({ text: '', spacing: { before: 600 } }),
-                new Table({
-                    width: { size: 100, type: WidthType.PERCENTAGE },
-                    borders: { top: BorderStyle.NONE, bottom: BorderStyle.NONE, left: BorderStyle.NONE, right: BorderStyle.NONE, insideHorizontal: BorderStyle.NONE, insideVertical: BorderStyle.NONE },
-                    rows: [
-                        new TableRow({
-                            children: [
-                                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'NGƯỜI LẬP BIỂU', bold: true, size: 20 })], alignment: AlignmentType.CENTER })] }),
-                                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'GIÁM ĐỐC XÁC NHẬN', bold: true, size: 20 })], alignment: AlignmentType.CENTER })] }),
-                            ],
+                                        new TextRun({ text: 'Tổng lương: ', size: 20, color: slate }),
+                                        new TextRun({ text: `${totalWage.toLocaleString('vi-VN')}đ`, bold: true, size: 20, color: navy }),
+                                    ]
+                                })
+                            ] 
                         }),
-                        new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: '', spacing: { before: 1200 } })] }), new TableCell({ children: [new Paragraph({ text: '', spacing: { before: 1200 } })] })] }),
+                        new TableCell({ 
+                            children: [
+                                new Paragraph({
+                                    children: [
+                                        new TextRun({ text: 'Tiền xe/Di chuyển: ', size: 20, color: slate }),
+                                        new TextRun({ text: `${totalTravelCost.toLocaleString('vi-VN')}đ`, bold: true, size: 20, color: 'B45309' }),
+                                    ],
+                                    alignment: AlignmentType.RIGHT,
+                                }),
+                                new Paragraph({
+                                    children: [
+                                        new TextRun({ text: 'Thực nhận: ', bold: true, size: 22, color: slate }),
+                                        new TextRun({ text: `${netSalary.toLocaleString('vi-VN')}đ`, bold: true, size: 26, color: '15803d' }),
+                                    ],
+                                    alignment: AlignmentType.RIGHT,
+                                })
+                            ] 
+                        }),
+                    ]
+                })
+            ]
+        }),
+        new Paragraph({ text: '', spacing: { before: 300 } }),
+        paymentSection,
+        new Paragraph({ text: '', spacing: { before: 500 } }),
+        new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            borders: { top: BorderStyle.NONE, bottom: BorderStyle.NONE, left: BorderStyle.NONE, right: BorderStyle.NONE, insideHorizontal: BorderStyle.NONE, insideVertical: BorderStyle.NONE },
+            rows: [
+                new TableRow({
+                    children: [
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'NGƯỜI LẬP BIỂU', bold: true, size: 20 })], alignment: AlignmentType.CENTER })] }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'GIÁM ĐỐC XÁC NHẬN', bold: true, size: 20 })], alignment: AlignmentType.CENTER })] }),
                     ],
                 }),
+                new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: '', spacing: { before: 1200 } })] }), new TableCell({ children: [new Paragraph({ text: '', spacing: { before: 1200 } })] })] }),
+            ],
+        }),
     ];
 }
 
 async function buildWorkerReportDocx(worker, dateRange, attendance) {
+    const children = await buildWorkerReportChildren(worker, dateRange, attendance);
     const doc = new Document({
         styles: { default: { document: { run: { font: 'Arial', size: 20 } } } },
-        sections: [{ children: buildWorkerReportChildren(worker, dateRange, attendance) }],
+        sections: [{ children }],
     });
     return await Packer.toBuffer(doc);
 }
@@ -232,7 +372,7 @@ function buildWorkersSummaryChildren(workers, dateRange, attendance) {
     let allWorkersWageTotal = 0;
     const rows = [
         new TableRow({
-            children: ['STT', 'HỌ VÀ TÊN', 'TỔNG SỐ CÔNG', 'TỔNG LƯƠNG'].map((text) => new TableCell({
+            children: ['STT', 'HỌ VÀ TÊN', 'NGÂN HÀNG', 'SỐ TÀI KHOẢN', 'TÊN THỤ HƯỞNG', 'TỔNG CÔNG', 'TỔNG LƯƠNG'].map((text) => new TableCell({
                 children: [new Paragraph({
                     children: [new TextRun({ text, bold: true, color: 'FFFFFF' })],
                     alignment: AlignmentType.CENTER,
@@ -251,6 +391,9 @@ function buildWorkersSummaryChildren(workers, dateRange, attendance) {
             children: [
                 `${index + 1}`,
                 worker.name,
+                worker.bankShortName || worker.bankName || '-',
+                worker.bankAccount || '-',
+                (worker.bankAccountHolder || worker.name || '-').toUpperCase(),
                 `${workTotal}`,
                 `${wageTotal.toLocaleString('vi-VN')}đ`,
             ].map((text) => new TableCell({
@@ -263,7 +406,7 @@ function buildWorkersSummaryChildren(workers, dateRange, attendance) {
     rows.push(new TableRow({
         children: [
             new TableCell({
-                columnSpan: 2,
+                columnSpan: 5,
                 children: [new Paragraph({
                     children: [new TextRun({ text: 'TỔNG CỘNG', bold: true })],
                     alignment: AlignmentType.CENTER,
@@ -308,16 +451,18 @@ function buildWorkersSummaryChildren(workers, dateRange, attendance) {
 }
 
 async function buildWorkersReportDocx(workers, dateRange, attendance) {
-    const children = [
-        ...buildWorkersSummaryChildren(workers, dateRange, attendance),
-        ...workers.flatMap((worker) => buildWorkerReportChildren(worker, dateRange, attendance, {
+    const summaryChildren = buildWorkersSummaryChildren(workers, dateRange, attendance);
+    const workerChildren = [];
+    for (const worker of workers) {
+        const children = await buildWorkerReportChildren(worker, dateRange, attendance, {
             pageBreakBefore: true,
-        })),
-    ];
+        });
+        workerChildren.push(...children);
+    }
 
     const doc = new Document({
         styles: { default: { document: { run: { font: 'Arial', size: 20 } } } },
-        sections: [{ children }],
+        sections: [{ children: [...summaryChildren, ...workerChildren] }],
     });
 
     return await Packer.toBuffer(doc);
@@ -375,7 +520,7 @@ function calculateWorkerReportTotals(worker, dateRange, attendance) {
 
 function addWorkersSummarySheet(workbook, workers, dateRange, attendance) {
     const sheet = workbook.addWorksheet('Tổng hợp');
-    sheet.addRow(['STT', 'HỌ VÀ TÊN', 'TỔNG SỐ CÔNG', 'TỔNG LƯƠNG']);
+    sheet.addRow(['STT', 'HỌ VÀ TÊN', 'NGÂN HÀNG', 'SỐ TÀI KHOẢN', 'TÊN THỤ HƯỞNG', 'TỔNG SỐ CÔNG', 'TỔNG LƯƠNG']);
 
     let allWorkersWorkTotal = 0;
     let allWorkersWageTotal = 0;
@@ -383,20 +528,32 @@ function addWorkersSummarySheet(workbook, workers, dateRange, attendance) {
         const { workTotal, wageTotal } = calculateWorkerReportTotals(worker, dateRange, attendance);
         allWorkersWorkTotal += workTotal;
         allWorkersWageTotal += wageTotal;
-        sheet.addRow([index + 1, worker.name, workTotal, wageTotal]);
+        sheet.addRow([
+            index + 1,
+            worker.name,
+            worker.bankShortName || worker.bankName || '-',
+            worker.bankAccount || '-',
+            (worker.bankAccountHolder || worker.name || '-').toUpperCase(),
+            workTotal,
+            wageTotal
+        ]);
     });
 
     sheet.addRow([]);
-    sheet.addRow(['TỔNG CỘNG', '', allWorkersWorkTotal, allWorkersWageTotal]);
-    sheet.getColumn(2).width = 30;
+    sheet.addRow(['TỔNG CỘNG', '', '', '', '', allWorkersWorkTotal, allWorkersWageTotal]);
+    sheet.getColumn(1).width = 8;
+    sheet.getColumn(2).width = 28;
     sheet.getColumn(3).width = 18;
-    sheet.getColumn(4).width = 22;
-    sheet.getColumn(4).numFmt = '#,##0"đ"';
+    sheet.getColumn(4).width = 20;
+    sheet.getColumn(5).width = 26;
+    sheet.getColumn(6).width = 16;
+    sheet.getColumn(7).width = 22;
+    sheet.getColumn(7).numFmt = '#,##0"đ"';
     sheet.getRow(1).font = { bold: true };
     sheet.getRow(sheet.rowCount).font = { bold: true };
 }
 
-function addWorkerReportSheet(workbook, worker, dateRange, attendance, index) {
+async function addWorkerReportSheet(workbook, worker, dateRange, attendance, index) {
     const sheet = workbook.addWorksheet(getSafeSheetName(worker, index));
     sheet.addRow(['THỨ / NGÀY', 'ĐỊA ĐIỂM', 'TRẠNG THÁI', 'LƯƠNG NGÀY', 'TIỀN CÔNG', 'TIỀN XE', 'GHI CHÚ']);
 
@@ -436,12 +593,53 @@ function addWorkerReportSheet(workbook, worker, dateRange, attendance, index) {
         current = current.add(1, 'day');
     }
 
+    const netSalary = wageTotal + travelTotal;
+
     sheet.addRow([]);
     sheet.addRow(['TỔNG CỘNG', '', total, 'Tổng lương:', wageTotal, 'Tổng tiền xe:', travelTotal]);
-    sheet.addRow(['THỰC NHẬN', '', '', '', wageTotal + travelTotal, '', '']);
+    sheet.addRow(['THỰC NHẬN', '', '', '', netSalary, '', '']);
     sheet.columns.forEach((column) => {
         column.width = 18;
     });
+
+    // Thông tin thanh toán lương
+    sheet.addRow([]);
+    const paymentHeaderRow = sheet.addRow(['THÔNG TIN CHUYỂN KHOẢN LƯƠNG (VIETQR)']);
+    paymentHeaderRow.font = { bold: true, color: { argb: 'FF1E3A8A' } };
+
+    const bankDisplay = worker.bankShortName
+        ? `${worker.bankShortName} - ${worker.bankName || ''}`
+        : (worker.bankName || 'Chưa cập nhật');
+    sheet.addRow(['Ngân hàng:', bankDisplay]);
+    sheet.addRow(['Số tài khoản (STK):', worker.bankAccount || 'Chưa cập nhật']);
+    sheet.addRow(['Người thụ hưởng:', (worker.bankAccountHolder || worker.name || '').toUpperCase()]);
+    sheet.addRow(['Số tiền chuyển:', netSalary]);
+    sheet.addRow(['Nội dung CK:', `Luong ${worker.name}`]);
+
+    if (worker.bankAccount && (worker.bankBin || worker.bankShortName || worker.bankName)) {
+        try {
+            const qrBuffer = await getVietQRImageBuffer({
+                bin: worker.bankBin,
+                accountNumber: worker.bankAccount,
+                amount: netSalary > 0 ? netSalary : 0,
+                memo: `Luong ${worker.name}`,
+                accountName: worker.bankAccountHolder || worker.name,
+                bankCode: worker.bankShortName || worker.bankCode
+            });
+            if (qrBuffer) {
+                const imageId = workbook.addImage({
+                    buffer: qrBuffer,
+                    extension: 'png',
+                });
+                sheet.addImage(imageId, {
+                    tl: { col: 3.5, row: paymentHeaderRow.number - 1 },
+                    ext: { width: 140, height: 140 }
+                });
+            }
+        } catch (e) {
+            console.error('Error attaching QR image to Excel sheet:', e);
+        }
+    }
 }
 
 function sanitizeFilenamePart(value) {
@@ -478,6 +676,18 @@ async function createServer(options = {}) {
     const store = await createStore(options);
     app.use(cors());
     app.use(bodyParser.json());
+
+    // Banks & VietQR APIs
+    const banksFilePath = path.join(__dirname, 'data', 'banks.json');
+    const banksData = fs.existsSync(banksFilePath) ? JSON.parse(fs.readFileSync(banksFilePath, 'utf8')) : [];
+    app.get('/api/banks', (req, res) => res.json(banksData));
+    app.use('/api/bank-logos', express.static(path.join(__dirname, 'data', 'bank-logos')));
+    app.get('/api/vietqr', (req, res) => {
+        const { bin, accountNumber, amount, memo, accountName } = req.query;
+        const url = getVietQRImageUrl({ bin, accountNumber, amount, memo, accountName });
+        const emv = generateVietQREmvCo({ bin, accountNumber, amount, memo });
+        res.json({ url, emv });
+    });
 
     // Workers
     app.get('/api/workers', async (req, res) => res.json(await store.getWorkers()));
@@ -516,7 +726,7 @@ async function createServer(options = {}) {
 
             const workbook = new ExcelJS.Workbook();
             const sheet = workbook.addWorksheet(`Tháng ${month}-${year}`);
-            sheet.addRow(['STT', 'Họ và tên', ...Array.from({ length: 31 }, (_, i) => i + 1), 'Tổng công', 'Tổng tiền công', 'Tổng tiền xe', 'Thực nhận']);
+            sheet.addRow(['STT', 'Họ và tên', ...Array.from({ length: 31 }, (_, i) => i + 1), 'Tổng công', 'Tổng tiền công', 'Tổng tiền xe', 'Thực nhận', 'Ngân hàng', 'Số tài khoản', 'Tên thụ hưởng']);
             workers.forEach((w, idx) => {
                 let total = 0;
                 let travelTotal = 0;
@@ -546,6 +756,9 @@ async function createServer(options = {}) {
                 rowData.push(wageTotal);
                 rowData.push(travelTotal);
                 rowData.push(wageTotal + travelTotal);
+                rowData.push(w.bankShortName || w.bankName || '');
+                rowData.push(w.bankAccount || '');
+                rowData.push(w.bankAccountHolder || w.name || '');
                 sheet.addRow(rowData);
             });
             res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -565,45 +778,9 @@ async function createServer(options = {}) {
             if (!worker) return res.status(404).send('Worker not found');
             const attendance = await store.getAttendance();
             const workbook = new ExcelJS.Workbook();
-            const sheet = workbook.addWorksheet('Bao Cao');
-            sheet.addRow(['THỨ / NGÀY', 'ĐỊA ĐIỂM', 'TRẠNG THÁI', 'LƯƠNG NGÀY', 'TIỀN CÔNG', 'TIỀN XE', 'GHI CHÚ']);
-            let current = dayjs(startDate);
-            const end = dayjs(endDate);
-            let total = 0;
-            let travelTotal = 0;
-            let wageTotal = 0;
-            while(current.isBefore(end) || current.isSame(end)) {
-                const dateStr = current.format('YYYY-MM-DD');
-                const att = attendance.find(a => a.date === dateStr);
-                const rec = att?.records.find(r => String(r.workerId) === String(workerId));
-                let status = '-';
-                const rate = Number(rec?.dailyRate || 0);
-                let wage = 0;
-                if(rec?.status === 'Full') { status = 'CÔNG'; total += 1; wage = rate; }
-                else if(rec?.status === 'Half') { status = '1/2 CÔNG'; total += 0.5; wage = rate * 0.5; }
-                else if(rec?.status === 'Absent') { status = 'NGHỈ'; }
-                else if(rec?.status === 'Travel') { status = 'DI CHUYỂN'; }
-                else if(rec?.status === 'Holiday') { status = 'NGHỈ LỄ'; }
-                else if(rec?.status === 'Leave') { status = 'PHÉP'; }
-                
-                const tCost = Number(rec?.travelCost || 0);
-                travelTotal += tCost;
-                wageTotal += wage;
-                
-                sheet.addRow([
-                    current.format('DD/MM/YYYY'),
-                    rec?.location || '-',
-                    status,
-                    rate > 0 ? rate : '-',
-                    wage > 0 ? wage : '-',
-                    tCost > 0 ? tCost : '-',
-                    rec?.note || '-'
-                ]);
-                current = current.add(1, 'day');
-            }
-            sheet.addRow([]);
-            sheet.addRow(['TỔNG CỘNG', '', total, 'Tổng lương:', wageTotal, 'Tổng tiền xe:', travelTotal]);
-            sheet.addRow(['THỰC NHẬN', '', '', '', wageTotal + travelTotal, '', '']);
+            
+            await addWorkerReportSheet(workbook, worker, { start: startDate, end: endDate }, attendance, 0);
+
             res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             setDownloadFilename(res, buildReportFilename(['Bao_Cao_Ca_Nhan', worker.name, dateRangePart(startDate, endDate)], 'xlsx'));
             await workbook.xlsx.write(res);
@@ -620,9 +797,9 @@ async function createServer(options = {}) {
             const workbook = new ExcelJS.Workbook();
 
             addWorkersSummarySheet(workbook, workers, { start: startDate, end: endDate }, attendance);
-            workers.forEach((worker, index) => {
-                addWorkerReportSheet(workbook, worker, { start: startDate, end: endDate }, attendance, index);
-            });
+            for (let index = 0; index < workers.length; index++) {
+                await addWorkerReportSheet(workbook, workers[index], { start: startDate, end: endDate }, attendance, index);
+            }
 
             res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             setDownloadFilename(res, buildReportFilename(['Bao_Cao_Nhieu_Nguoi', dateRangePart(startDate, endDate)], 'xlsx'));
@@ -657,6 +834,16 @@ async function createServer(options = {}) {
             res.end(buffer, 'binary');
         } catch (e) { console.error('Multiple DOCX Export Error:', e); res.status(500).send(e.message); }
     });
+
+    // Serve static client dist if available
+    const clientDist = path.join(__dirname, '..', 'client', 'dist');
+    if (fs.existsSync(clientDist)) {
+        app.use(express.static(clientDist));
+        app.get('*', (req, res, next) => {
+            if (req.path.startsWith('/api')) return next();
+            res.sendFile(path.join(clientDist, 'index.html'));
+        });
+    }
 
     return { app, port };
 }

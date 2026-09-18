@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { clearAuthSession, getStoredToken } from './auth';
+import defaultBanks from './constants/banks.json';
 
 function resolveApiUrl() {
     if (typeof window !== 'undefined') {
@@ -78,6 +79,23 @@ export const login = async (payload) => {
 
 export const getCurrentUser = async () => {
     const response = await apiClient.get('/auth/me');
+    return response.data;
+};
+
+export const getBanks = async () => {
+    try {
+        const response = await apiClient.get('/banks');
+        if (Array.isArray(response.data) && response.data.length > 0) {
+            return response.data;
+        }
+    } catch (e) {
+        console.warn('Could not fetch banks from server, using local list:', e);
+    }
+    return defaultBanks;
+};
+
+export const getVietQRInfo = async (params) => {
+    const response = await apiClient.get('/vietqr', { params });
     return response.data;
 };
 

@@ -7,10 +7,14 @@ release/
 dist-electron/
 *.log
 .env
-server/data/
+server/data/*
+!server/data/banks.json
+!server/data/bank-logos/
 .env.cicd
 .vercel/
 client/.vercel/
 logs/
 tools/cloudflared.exe
 _github_runner/
+.tmp/
+update.finished

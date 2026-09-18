@@ -1,21 +1,50 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { getWorkers, addWorker, updateWorker } from '../api';
-import { Users, Plus, Pencil, Check, X, Search, Wallet, CreditCard, Phone, UserRound } from 'lucide-react';
+import { getWorkers, addWorker, updateWorker, getBanks } from '../api';
+import { Users, Plus, Pencil, Check, X, Search, Wallet, CreditCard, Phone, UserRound, Landmark, QrCode, UserCheck } from 'lucide-react';
 import CurrencyInput from './CurrencyInput';
+import BankSelector from './BankSelector';
+import VietQRModal from './VietQRModal';
 import { formatVndCurrency, parseVndAmount } from '../utils/currency';
 
-const emptyForm = { name: '', phone: '', cccd: '', dailyRate: '', status: 'working' };
+function formatBeneficiaryName(str) {
+  if (!str) return '';
+  return String(str)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .replace(/[^a-zA-Z0-9 ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toUpperCase();
+}
+
+const emptyForm = {
+  name: '',
+  phone: '',
+  cccd: '',
+  dailyRate: '',
+  status: 'working',
+  bankBin: '',
+  bankName: '',
+  bankShortName: '',
+  bankAccount: '',
+  bankAccountHolder: ''
+};
 
 const Workers = () => {
   const [workers, setWorkers] = useState([]);
+  const [banks, setBanks] = useState([]);
   const [formData, setFormData] = useState(emptyForm);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [saving, setSaving] = useState(false);
+  const [qrModalWorker, setQrModalWorker] = useState(null);
 
   useEffect(() => {
     fetchWorkers();
+    getBanks().then(setBanks).catch(console.error);
   }, []);
 
   const fetchWorkers = async () => {
@@ -35,7 +64,15 @@ const Workers = () => {
     if (!keyword) return workers;
 
     return workers.filter((worker) => {
-      return [worker.name, worker.phone, worker.cccd]
+      return [
+        worker.name,
+        worker.phone,
+        worker.cccd,
+        worker.bankAccount,
+        worker.bankShortName,
+        worker.bankName,
+        worker.bankAccountHolder
+      ]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(keyword));
     });
@@ -49,7 +86,19 @@ const Workers = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((current) => ({ ...current, [name]: value }));
+    if (name === 'name') {
+      const prevExpected = formatBeneficiaryName(formData.name);
+      setFormData((current) => {
+        const nextHolder = (!current.bankAccountHolder || current.bankAccountHolder === prevExpected)
+          ? formatBeneficiaryName(value)
+          : current.bankAccountHolder;
+        return { ...current, name: value, bankAccountHolder: nextHolder };
+      });
+    } else if (name === 'bankAccountHolder') {
+      setFormData((current) => ({ ...current, [name]: value.toUpperCase() }));
+    } else {
+      setFormData((current) => ({ ...current, [name]: value }));
+    }
   };
 
   const handleEditClick = (worker) => {
@@ -59,7 +108,12 @@ const Workers = () => {
       phone: worker.phone || '',
       cccd: worker.cccd || '',
       dailyRate: worker.dailyRate || '',
-      status: worker.status || 'working'
+      status: worker.status || 'working',
+      bankBin: worker.bankBin || '',
+      bankName: worker.bankName || '',
+      bankShortName: worker.bankShortName || '',
+      bankAccount: worker.bankAccount || '',
+      bankAccountHolder: worker.bankAccountHolder || (worker.name ? formatBeneficiaryName(worker.name) : '')
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -82,7 +136,12 @@ const Workers = () => {
         phone: formData.phone.trim(),
         cccd: formData.cccd.trim(),
         dailyRate: parseVndAmount(formData.dailyRate),
-        status: formData.status || 'working'
+        status: formData.status || 'working',
+        bankBin: formData.bankBin || '',
+        bankName: formData.bankName || '',
+        bankShortName: formData.bankShortName || '',
+        bankAccount: formData.bankAccount.trim(),
+        bankAccountHolder: formData.bankAccountHolder ? formData.bankAccountHolder.trim().toUpperCase() : ''
       };
 
       if (editingId) {
@@ -258,6 +317,97 @@ const Workers = () => {
               </div>
             </div>
 
+            {/* Thông tin tài khoản ngân hàng & VietQR */}
+            <div
+              className="form-group workers-field-span-2"
+              style={{
+                background: 'linear-gradient(135deg, rgba(15, 118, 110, 0.05) 0%, rgba(2, 132, 199, 0.05) 100%)',
+                border: '1.5px solid rgba(15, 118, 110, 0.3)',
+                borderRadius: '12px',
+                padding: '16px',
+                marginTop: '10px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <label className="form-label" style={{ fontWeight: '800', fontSize: '0.95rem', color: 'var(--primary, #0f766e)', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                  <Landmark size={18} /> TÀI KHOẢN NGÂN HÀNG (STK & VIETQR CHUYỂN LƯƠNG)
+                </label>
+                {formData.bankAccount && (formData.bankBin || formData.bankShortName) && (
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={() => setQrModalWorker({
+                      ...formData,
+                      name: formData.name || 'Công nhân'
+                    })}
+                    style={{ padding: '4px 12px', fontSize: '0.8rem', height: '28px', display: 'flex', alignItems: 'center', gap: '4px', background: '#ffffff' }}
+                  >
+                    <QrCode size={14} /> Xem thử mã QR
+                  </button>
+                )}
+              </div>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-muted, #64748b)', margin: '0 0 12px 0' }}>
+                Mỗi công nhân có số tài khoản ngân hàng riêng. Thông tin này sẽ tự động gắn vào báo cáo Word/Excel và tạo mã QR để chuyển khoản lương nhanh.
+              </p>
+
+              <div style={{ marginBottom: '12px' }}>
+                <label className="form-label" style={{ fontSize: '0.84rem', fontWeight: '600', marginBottom: '4px' }}>
+                  Ngân hàng thụ hưởng
+                </label>
+                <BankSelector
+                  banks={banks}
+                  selectedBin={formData.bankBin}
+                  selectedShortName={formData.bankShortName}
+                  onSelectBank={(b) => {
+                    setFormData((curr) => ({
+                      ...curr,
+                      bankBin: b.bin || '',
+                      bankName: b.name || '',
+                      bankShortName: b.shortName || b.code || ''
+                    }));
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.84rem', fontWeight: '600', marginBottom: '4px' }}>
+                    Số tài khoản (STK)
+                  </label>
+                  <div className="workers-input-shell" style={{ background: '#ffffff' }}>
+                    <CreditCard size={18} color="var(--primary)" />
+                    <input
+                      type="text"
+                      name="bankAccount"
+                      className="form-input workers-shell-input"
+                      value={formData.bankAccount}
+                      onChange={handleInputChange}
+                      placeholder="Nhập số tài khoản ngân hàng..."
+                      style={{ fontWeight: '600', letterSpacing: '0.5px' }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.84rem', fontWeight: '600', marginBottom: '4px' }}>
+                    Tên người thụ hưởng (Chủ tài khoản)
+                  </label>
+                  <div className="workers-input-shell" style={{ background: '#ffffff' }}>
+                    <UserCheck size={18} color="var(--primary)" />
+                    <input
+                      type="text"
+                      name="bankAccountHolder"
+                      className="form-input workers-shell-input"
+                      value={formData.bankAccountHolder}
+                      onChange={handleInputChange}
+                      placeholder="Tự động theo tên hoặc nhập NGUYEN VAN A"
+                      style={{ textTransform: 'uppercase', fontWeight: '600' }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="workers-form-actions">
               <button type="submit" className="btn btn-primary" disabled={saving}>
                 {editingId ? <Check size={18} /> : <Plus size={18} />}
@@ -287,7 +437,7 @@ const Workers = () => {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Tìm theo tên, số điện thoại, CCCD..."
+                placeholder="Tìm theo tên, số điện thoại, CCCD, STK, ngân hàng..."
               />
               {searchTerm && (
                 <button type="button" className="workers-search-clear" onClick={() => setSearchTerm('')}>
@@ -347,6 +497,48 @@ const Workers = () => {
                         <div className="worker-meta-grid">
                           <span><Phone size={14} /> {worker.phone || 'Chưa có số điện thoại'}</span>
                           <span><CreditCard size={14} /> {worker.cccd || 'Chưa có CCCD'}</span>
+                          <div style={{ gridColumn: 'span 2', marginTop: '4px' }}>
+                            {worker.bankAccount ? (
+                              <div style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                background: 'rgba(15, 118, 110, 0.08)',
+                                border: '1px solid rgba(15, 118, 110, 0.25)',
+                                padding: '3px 10px',
+                                borderRadius: '8px',
+                                fontSize: '0.85rem'
+                              }}>
+                                <Landmark size={14} color="var(--primary, #0f766e)" />
+                                <strong style={{ color: 'var(--primary, #0f766e)' }}>
+                                  {worker.bankShortName || worker.bankName || 'Ngân hàng'}:
+                                </strong>
+                                <span style={{ fontFamily: 'monospace', fontWeight: '700', color: 'var(--primary, #0f766e)', letterSpacing: '0.5px' }}>
+                                  {worker.bankAccount}
+                                </span>
+                                {worker.bankAccountHolder && (
+                                  <span style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.78rem' }}>
+                                    • {worker.bankAccountHolder}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <div style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                background: 'rgba(148, 163, 184, 0.08)',
+                                border: '1px dashed #cbd5e1',
+                                padding: '3px 10px',
+                                borderRadius: '8px',
+                                fontSize: '0.8rem',
+                                color: '#94a3b8'
+                              }}>
+                                <Landmark size={13} />
+                                <span>Chưa có STK ngân hàng</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -354,16 +546,32 @@ const Workers = () => {
                     <div className="worker-row-side">
                       <div className="worker-rate-label">Lương/ngày</div>
                       <div className="worker-rate-value">{formatVndCurrency(worker.dailyRate)}</div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditClick(worker);
-                        }}
-                        className="btn btn-outline worker-edit-btn"
-                        title="Sửa thông tin công nhân"
-                      >
-                        <Pencil size={16} /> Chỉnh sửa
-                      </button>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                        {worker.bankAccount && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setQrModalWorker(worker);
+                            }}
+                            className="btn btn-outline"
+                            style={{ padding: '6px 10px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                            title="Xem mã VietQR chuyển khoản"
+                          >
+                            <QrCode size={14} /> QR Chuyển tiền
+                          </button>
+                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditClick(worker);
+                          }}
+                          className="btn btn-outline worker-edit-btn"
+                          title="Sửa thông tin công nhân"
+                        >
+                          <Pencil size={16} /> Chỉnh sửa
+                        </button>
+                      </div>
                     </div>
                   </article>
                 );
@@ -372,6 +580,13 @@ const Workers = () => {
           )}
         </section>
       </div>
+
+      {qrModalWorker && (
+        <VietQRModal
+          worker={qrModalWorker}
+          onClose={() => setQrModalWorker(null)}
+        />
+      )}
     </div>
   );
 };

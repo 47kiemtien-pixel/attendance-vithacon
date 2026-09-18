@@ -3,7 +3,9 @@ const path = require('path');
 
 const root = __dirname;
 const userProfile = process.env.USERPROFILE || process.env.HOME || root;
-const runnerScript = path.join(userProfile, 'attendance-github-runner', 'run.cmd');
+const localRunnerScript = path.join(root, '_github_runner', 'run.cmd');
+const userRunnerScript = path.join(userProfile, 'attendance-github-runner', 'run.cmd');
+const runnerScript = fs.existsSync(localRunnerScript) ? localRunnerScript : userRunnerScript;
 const hiddenRunnerScript = path.join(root, 'tools', 'run-github-runner-hidden.vbs');
 
 const apps = [

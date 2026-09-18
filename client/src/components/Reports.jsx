@@ -1,7 +1,30 @@
 import React, { useEffect, useState } from 'react';
-import { downloadReport, downloadWorkersReport, downloadWorkersReportDocx, getWorkers } from '../api';
+import { downloadReport, downloadWorkersReport, downloadWorkersReportDocx, getWorkers, getAttendance } from '../api';
 import dayjs from 'dayjs';
-import { FileSpreadsheet, Download, CalendarRange, FolderDown, User, Calendar, FileText } from 'lucide-react';
+import { FileSpreadsheet, Download, CalendarRange, FolderDown, User, Calendar, FileText, QrCode } from 'lucide-react';
+import VietQRModal from './VietQRModal';
+
+function calculateWorkerSalary(worker, dateRange, attendance) {
+  let current = dayjs(dateRange.start);
+  const end = dayjs(dateRange.end);
+  let totalWage = 0;
+  let totalTravelCost = 0;
+
+  while (current.isBefore(end) || current.isSame(end)) {
+    const dateStr = current.format('YYYY-MM-DD');
+    const dayRec = attendance.find((a) => a.date === dateStr);
+    const rec = dayRec?.records.find((r) => String(r.workerId) === String(worker.id));
+    if (rec) {
+      totalTravelCost += Number(rec.travelCost || 0);
+      const rate = Number(rec.dailyRate || 0);
+      if (rec.status === 'Full') totalWage += rate;
+      else if (rec.status === 'Half') totalWage += rate * 0.5;
+    }
+    current = current.add(1, 'day');
+  }
+
+  return totalWage + totalTravelCost;
+}
 
 const Reports = () => {
   const currentMonth = dayjs().format('MM');
@@ -12,13 +35,16 @@ const Reports = () => {
   
   // State for individual report
   const [workers, setWorkers] = useState([]);
+  const [attendance, setAttendance] = useState([]);
   const [selectedWorkerIds, setSelectedWorkerIds] = useState([]);
-  const [startDate, setStartDate] = useState(dayjs().subtract(1, 'week').startOf('week').add(1, 'day').format('YYYY-MM-DD'));
-  const [endDate, setEndDate] = useState(dayjs().subtract(1, 'week').startOf('week').add(7, 'day').format('YYYY-MM-DD'));
-  const [exportType, setExportType] = useState('previousWeek'); // 'week', 'previousWeek', 'month'
+  const [startDate, setStartDate] = useState(dayjs().startOf('week').format('YYYY-MM-DD'));
+  const [endDate, setEndDate] = useState(dayjs().endOf('week').format('YYYY-MM-DD'));
+  const [exportType, setExportType] = useState('week'); // 'week', 'month', 'custom'
+  const [qrModalWorker, setQrModalWorker] = useState(null);
 
   useEffect(() => {
     getWorkers().then(setWorkers).catch(console.error);
+    getAttendance().then(setAttendance).catch(console.error);
   }, []);
 
   const selectedCount = selectedWorkerIds.length;
@@ -57,7 +83,7 @@ const Reports = () => {
     }
 
     let label = '';
-    if (exportType === 'week' || exportType === 'previousWeek') {
+    if (exportType === 'week') {
       label = `Tuần ${dayjs(startDate).format('DD/MM')} - ${dayjs(endDate).format('DD/MM/YYYY')}`;
     } else if (exportType === 'month') {
       label = `Tháng ${dayjs(startDate).format('MM/YYYY')}`;
@@ -77,7 +103,7 @@ const Reports = () => {
     }
 
     let label = '';
-    if (exportType === 'week' || exportType === 'previousWeek') {
+    if (exportType === 'week') {
       label = `Tuần ${dayjs(startDate).format('DD/MM')} - ${dayjs(endDate).format('DD/MM/YYYY')}`;
     } else if (exportType === 'month') {
       label = `Tháng ${dayjs(startDate).format('MM/YYYY')}`;
@@ -93,14 +119,43 @@ const Reports = () => {
     });
   };
 
+  const handleOpenQR = () => {
+    const workerIds = selectedWorkerIds.filter(Boolean);
+    if (!workerIds.length) {
+      alert('Vui lòng chọn ít nhất một công nhân để quét mã QR chuyển lương.');
+      return;
+    }
+    const selectedWorkers = workers.filter((w) => workerIds.includes(String(w.id)));
+    if (!selectedWorkers.length) return;
+
+    let memoLabel = '';
+    if (exportType === 'week') {
+      memoLabel = `Luong ${dayjs(startDate).format('DD/MM')}-${dayjs(endDate).format('DD/MM')}`;
+    } else if (exportType === 'month') {
+      memoLabel = `Luong T${dayjs(startDate).format('MM/YYYY')}`;
+    } else {
+      memoLabel = `Luong ${dayjs(startDate).format('DD/MM')}-${dayjs(endDate).format('DD/MM')}`;
+    }
+
+    const preparedList = selectedWorkers.map((w) => {
+      const salary = calculateWorkerSalary(w, { start: startDate, end: endDate }, attendance);
+      return {
+        ...w,
+        amount: salary,
+        memo: `${memoLabel} ${w.name}`.slice(0, 25)
+      };
+    });
+
+    setQrModalWorker({
+      list: preparedList
+    });
+  };
+
   const handleExportTypeChange = (type) => {
     setExportType(type);
     if (type === 'week') {
-      setStartDate(dayjs().startOf('week').add(1, 'day').format('YYYY-MM-DD'));
-      setEndDate(dayjs().startOf('week').add(7, 'day').format('YYYY-MM-DD'));
-    } else if (type === 'previousWeek') {
-      setStartDate(dayjs().subtract(1, 'week').startOf('week').add(1, 'day').format('YYYY-MM-DD'));
-      setEndDate(dayjs().subtract(1, 'week').startOf('week').add(7, 'day').format('YYYY-MM-DD'));
+      setStartDate(dayjs().startOf('week').add(1, 'day').format('YYYY-MM-DD')); // Monday
+      setEndDate(dayjs().startOf('week').add(7, 'day').format('YYYY-MM-DD')); // Sunday
     } else if (type === 'month') {
       setStartDate(dayjs().startOf('month').format('YYYY-MM-DD'));
       setEndDate(dayjs().endOf('month').format('YYYY-MM-DD'));
@@ -137,10 +192,11 @@ const Reports = () => {
               <User size={22} />
             </div>
             <h3>Báo cáo chi tiết theo mẫu</h3>
-            <p>Xuất file Excel theo mẫu Vitha Cons, hiển thị chi tiết địa điểm, trạng thái, ghi chú, tổng số công và tổng lương.</p>
+            <p>Xuất file Excel & Word theo mẫu Vitha Cons, có kèm mã QR chuyển khoản VietQR, hiển thị chi tiết địa điểm, trạng thái, ghi chú, tổng số công và tổng lương.</p>
             <div className="report-note-list">
               <span><CalendarRange size={14} /> Chọn công nhân và khoảng thời gian</span>
-              <span><Download size={14} /> Tải file Excel chuyên nghiệp</span>
+              <span><QrCode size={14} /> Tích hợp mã VietQR chuyển lương</span>
+              <span><Download size={14} /> Tải file Excel & Word chuyên nghiệp</span>
             </div>
           </div>
 
@@ -148,18 +204,31 @@ const Reports = () => {
             <div className="form-group">
               <label className="form-label">Chọn công nhân</label>
               <div style={{ marginTop: '0.75rem', maxHeight: '240px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--bg)' }}>
-                {workers.map(w => {
+                {workers.map((w) => {
                   const workerId = String(w.id);
                   return (
-                    <label key={w.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={selectedWorkerIds.includes(workerId)}
-                        onChange={() => toggleWorkerSelection(workerId)}
-                      />
-                      <span>
-                        {w.name} {w.status === 'resigned' && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: '6px' }}>(Đã nghỉ làm)</span>}
-                      </span>
+                    <label key={w.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedWorkerIds.includes(workerId)}
+                          onChange={() => toggleWorkerSelection(workerId)}
+                        />
+                        <span style={{ fontWeight: '500' }}>
+                          {w.name} {w.status === 'resigned' && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: '6px' }}>(Đã nghỉ làm)</span>}
+                        </span>
+                      </div>
+                      <div>
+                        {w.bankAccount ? (
+                          <span style={{ fontSize: '0.78rem', background: 'rgba(15, 118, 110, 0.08)', color: 'var(--primary)', padding: '2px 8px', borderRadius: '6px', fontWeight: '600' }}>
+                            {w.bankShortName || w.bankName} - {w.bankAccount}
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '0.78rem', color: 'var(--text-soft)', fontStyle: 'italic' }}>
+                            Chưa có STK
+                          </span>
+                        )}
+                      </div>
                     </label>
                   );
                 })}
@@ -190,10 +259,10 @@ const Reports = () => {
                   Theo tháng
                 </button>
                 <button 
-                  className={`segment-btn ${exportType === 'previousWeek' ? 'active' : ''}`}
-                  onClick={() => handleExportTypeChange('previousWeek')}
+                  className={`segment-btn ${exportType === 'custom' ? 'active' : ''}`} 
+                  onClick={() => setExportType('custom')}
                 >
-                  Tuần trước
+                  Tùy chỉnh
                 </button>
               </div>
 
@@ -219,12 +288,26 @@ const Reports = () => {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '10px', marginTop: '1.5rem' }}>
-              <button className="btn btn-primary report-download-btn" style={{ flex: 1 }} onClick={handleWorkerExport}>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '1.5rem', flexWrap: 'wrap' }}>
+              <button className="btn btn-primary report-download-btn" style={{ flex: '1 1 140px' }} onClick={handleWorkerExport}>
                 <FileSpreadsheet size={18} /> Tải Excel
               </button>
-              <button className="btn btn-outline report-download-btn" style={{ flex: 1 }} onClick={handleWorkerExportDocx}>
+              <button className="btn btn-outline report-download-btn" style={{ flex: '1 1 140px' }} onClick={handleWorkerExportDocx}>
                 <FileText size={18} /> Tải Word (Mới)
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline report-download-btn"
+                style={{
+                  flex: '1 1 100%',
+                  borderColor: 'var(--primary)',
+                  color: 'var(--primary)',
+                  fontWeight: '700',
+                  background: 'rgba(15, 118, 110, 0.06)'
+                }}
+                onClick={handleOpenQR}
+              >
+                <QrCode size={18} /> Quét QR Chuyển Lương Trực Tiếp
               </button>
             </div>
           </div>
@@ -279,6 +362,14 @@ const Reports = () => {
           </div>
         </div>
       </section>
+
+      {qrModalWorker && (
+        <VietQRModal
+          workersList={qrModalWorker.list || (qrModalWorker.id ? [qrModalWorker] : [])}
+          worker={qrModalWorker.list ? qrModalWorker.list[0] : qrModalWorker}
+          onClose={() => setQrModalWorker(null)}
+        />
+      )}
     </div>
   );
 };

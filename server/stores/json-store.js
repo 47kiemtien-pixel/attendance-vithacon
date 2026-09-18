@@ -31,7 +31,22 @@ function createJsonStore(dataDir) {
     return {
         driver: 'json',
         async getWorkers() {
-            return readData(workersFile);
+            const workers = readData(workersFile);
+            return workers.map((worker) => ({
+                id: worker.id,
+                name: worker.name || '',
+                phone: worker.phone || '',
+                cccd: worker.cccd || '',
+                position: worker.position || '',
+                location: worker.location || '',
+                dailyRate: Number(worker.dailyRate || 0),
+                status: worker.status || 'working',
+                bankName: worker.bankName || '',
+                bankShortName: worker.bankShortName || '',
+                bankBin: worker.bankBin || '',
+                bankAccount: worker.bankAccount || '',
+                bankAccountHolder: worker.bankAccountHolder || ''
+            }));
         },
         async createWorker(workerData) {
             const workers = readData(workersFile);
