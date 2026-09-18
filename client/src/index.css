@@ -1208,18 +1208,17 @@ button, input, select {
 }
 
 .workers-layout {
-  display: grid;
-  grid-template-columns: minmax(360px, 420px) minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 16px;
-  align-items: start;
 }
 
 .workers-form-card {
-  position: sticky;
-  top: 20px;
+  display: none;
 }
 
 .workers-list-card {
+  width: 100%;
   min-width: 0;
 }
 
@@ -2170,5 +2169,25 @@ button, input, select {
 
   .worker-rate-value {
     text-align: left;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }

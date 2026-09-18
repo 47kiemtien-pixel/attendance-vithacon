@@ -1,45 +1,32 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { getWorkers, addWorker, updateWorker, getBanks } from '../api';
-import { Users, Plus, Pencil, Check, X, Search, Wallet, CreditCard, Phone, UserRound, Landmark, QrCode, UserCheck } from 'lucide-react';
-import CurrencyInput from './CurrencyInput';
-import BankSelector from './BankSelector';
+import {
+  Users,
+  Plus,
+  Pencil,
+  Search,
+  Wallet,
+  CreditCard,
+  Phone,
+  UserRound,
+  Landmark,
+  QrCode,
+  UserCheck,
+  X
+} from 'lucide-react';
+import WorkerModal from './WorkerModal';
 import VietQRModal from './VietQRModal';
-import { formatVndCurrency, parseVndAmount } from '../utils/currency';
-
-function formatBeneficiaryName(str) {
-  if (!str) return '';
-  return String(str)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd')
-    .replace(/Đ/g, 'D')
-    .replace(/[^a-zA-Z0-9 ]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .toUpperCase();
-}
-
-const emptyForm = {
-  name: '',
-  phone: '',
-  cccd: '',
-  dailyRate: '',
-  status: 'working',
-  bankBin: '',
-  bankName: '',
-  bankShortName: '',
-  bankAccount: '',
-  bankAccountHolder: ''
-};
+import { formatVndCurrency } from '../utils/currency';
 
 const Workers = () => {
   const [workers, setWorkers] = useState([]);
   const [banks, setBanks] = useState([]);
-  const [formData, setFormData] = useState(emptyForm);
   const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [saving, setSaving] = useState(false);
+
+  // Modal states
+  const [isWorkerModalOpen, setIsWorkerModalOpen] = useState(false);
+  const [editingWorker, setEditingWorker] = useState(null); // null = Thêm mới, object = Sửa
   const [qrModalWorker, setQrModalWorker] = useState(null);
 
   useEffect(() => {
@@ -78,103 +65,85 @@ const Workers = () => {
     });
   }, [workers, searchTerm]);
 
+  const activeWorkersCount = useMemo(() => {
+    return workers.filter((w) => w.status !== 'resigned').length;
+  }, [workers]);
+
   const averageDailyRate = useMemo(() => {
     if (!workers.length) return 0;
     const total = workers.reduce((sum, worker) => sum + Number(worker.dailyRate || 0), 0);
     return Math.round(total / workers.length);
   }, [workers]);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    if (name === 'name') {
-      const prevExpected = formatBeneficiaryName(formData.name);
-      setFormData((current) => {
-        const nextHolder = (!current.bankAccountHolder || current.bankAccountHolder === prevExpected)
-          ? formatBeneficiaryName(value)
-          : current.bankAccountHolder;
-        return { ...current, name: value, bankAccountHolder: nextHolder };
-      });
-    } else if (name === 'bankAccountHolder') {
-      setFormData((current) => ({ ...current, [name]: value.toUpperCase() }));
+  const handleOpenAdd = () => {
+    setEditingWorker(null);
+    setIsWorkerModalOpen(true);
+  };
+
+  const handleOpenEdit = (worker) => {
+    setEditingWorker(worker);
+    setIsWorkerModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsWorkerModalOpen(false);
+    setEditingWorker(null);
+  };
+
+  const handleSaveWorker = async (workerData, isEdit, workerId) => {
+    if (isEdit && workerId) {
+      await updateWorker(workerId, workerData);
     } else {
-      setFormData((current) => ({ ...current, [name]: value }));
+      await addWorker(workerData);
     }
-  };
-
-  const handleEditClick = (worker) => {
-    setEditingId(worker.id);
-    setFormData({
-      name: worker.name || '',
-      phone: worker.phone || '',
-      cccd: worker.cccd || '',
-      dailyRate: worker.dailyRate || '',
-      status: worker.status || 'working',
-      bankBin: worker.bankBin || '',
-      bankName: worker.bankName || '',
-      bankShortName: worker.bankShortName || '',
-      bankAccount: worker.bankAccount || '',
-      bankAccountHolder: worker.bankAccountHolder || (worker.name ? formatBeneficiaryName(worker.name) : '')
-    });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setFormData(emptyForm);
-  };
-
-  const editingWorker = workers.find((worker) => worker.id === editingId) || null;
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.name || !formData.dailyRate) return;
-
-    setSaving(true);
-    try {
-      const workerData = {
-        name: formData.name.trim(),
-        phone: formData.phone.trim(),
-        cccd: formData.cccd.trim(),
-        dailyRate: parseVndAmount(formData.dailyRate),
-        status: formData.status || 'working',
-        bankBin: formData.bankBin || '',
-        bankName: formData.bankName || '',
-        bankShortName: formData.bankShortName || '',
-        bankAccount: formData.bankAccount.trim(),
-        bankAccountHolder: formData.bankAccountHolder ? formData.bankAccountHolder.trim().toUpperCase() : ''
-      };
-
-      if (editingId) {
-        await updateWorker(editingId, workerData);
-        setEditingId(null);
-      } else {
-        await addWorker(workerData);
-      }
-
-      setFormData(emptyForm);
-      await fetchWorkers();
-    } catch (error) {
-      console.error('Error saving worker:', error);
-      alert('Khong the luu cong nhan. Vui long kiem tra server va thu lai.');
-    } finally {
-      setSaving(false);
-    }
+    await fetchWorkers();
   };
 
   return (
     <div className="workers-page">
-      <div className="page-header workers-header">
+      {/* Header với nút Thêm công nhân */}
+      <div
+        className="page-header workers-header"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '16px',
+          marginBottom: '20px'
+        }}
+      >
         <div>
           <h1 className="page-title flex items-center gap-4">
             <Users size={32} color="var(--primary)" />
             Quản Lý Công Nhân
           </h1>
           <p className="workers-subtitle">
-            Thêm mới, tìm kiếm và cập nhật thông tin công nhân trong một màn hình rõ ràng, ít thao tác hơn.
+            Hồ sơ nhân viên, mức lương và thông tin tài khoản ngân hàng / VietQR chuyển khoản lương.
           </p>
         </div>
+
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={handleOpenAdd}
+          style={{
+            padding: '11px 22px',
+            fontSize: '0.96rem',
+            fontWeight: '600',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 4px 14px rgba(15, 118, 110, 0.28)',
+            borderRadius: '12px'
+          }}
+        >
+          <Plus size={20} />
+          Thêm Công Nhân Mới
+        </button>
       </div>
 
+      {/* Thẻ thống kê */}
       <section className="workers-stats">
         <article className="worker-stat-card">
           <div className="worker-stat-icon workers-stat-indigo">
@@ -188,6 +157,16 @@ const Workers = () => {
 
         <article className="worker-stat-card">
           <div className="worker-stat-icon workers-stat-teal">
+            <UserCheck size={20} />
+          </div>
+          <div>
+            <div className="worker-stat-label">Đang làm việc</div>
+            <div className="worker-stat-value">{activeWorkersCount}</div>
+          </div>
+        </article>
+
+        <article className="worker-stat-card">
+          <div className="worker-stat-icon workers-stat-amber">
             <Wallet size={20} />
           </div>
           <div>
@@ -195,325 +174,181 @@ const Workers = () => {
             <div className="worker-stat-value">{formatVndCurrency(averageDailyRate)}</div>
           </div>
         </article>
-
-        <article className="worker-stat-card">
-          <div className="worker-stat-icon workers-stat-amber">
-            <Search size={20} />
-          </div>
-          <div>
-            <div className="worker-stat-label">Kết quả hiển thị</div>
-            <div className="worker-stat-value">{filteredWorkers.length}</div>
-          </div>
-        </article>
       </section>
 
+      {/* Danh sách công nhân (Toàn màn hình, không bị chèn cột bên trái) */}
       <div className="workers-layout">
-        <section className="card workers-form-card">
-          <div className="workers-card-head">
+        <section className="card workers-list-card">
+          <div className="workers-card-head workers-list-head" style={{ flexWrap: 'wrap', gap: '14px' }}>
             <div>
-              <div className="workers-section-kicker">{editingId ? 'Đang chỉnh sửa' : 'Nhập nhanh'}</div>
-              <h2 className="workers-section-title">
-                {editingId ? 'Cập Nhật Công Nhân' : 'Thêm Công Nhân Mới'}
-              </h2>
-              <p className="workers-section-note">
-                Họ tên và lương ngày là 2 trường bắt buộc. Số điện thoại và CCCD có thể để trống nếu chưa có.
+              <div className="workers-section-kicker">Danh sách công nhân</div>
+              <h2 className="workers-section-title">Hồ Sơ & Danh Sách</h2>
+              <p className="workers-section-note workers-list-note">
+                Bấm vào một công nhân hoặc nút <strong>Chỉnh sửa</strong> để mở cửa sổ cập nhật thông tin.
               </p>
             </div>
-            {editingId && (
-              <button type="button" className="btn btn-outline" onClick={handleCancelEdit}>
-                <X size={18} /> Hủy sửa
-              </button>
-            )}
-          </div>
 
-          {editingWorker && (
-            <div className="workers-editing-banner">
-              <div>
-                <strong>Đang sửa:</strong> {editingWorker.name}
-              </div>
-              <div className="workers-editing-meta">
-                <span>{editingWorker.phone || 'Chưa có số điện thoại'}</span>
-                <span>{formatVndCurrency(editingWorker.dailyRate)}</span>
-              </div>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="workers-form-grid">
-            <div className="form-group workers-field-span-2">
-              <label className="form-label">Họ và tên</label>
-              <div className="workers-input-shell">
-                <UserRound size={18} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <div className="workers-search">
+                <Search size={18} />
                 <input
                   type="text"
-                  name="name"
-                  className="form-input workers-shell-input"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  placeholder="Ví dụ: Nguyễn Văn A"
-                  required
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Tìm theo tên, SĐT, CCCD, STK, ngân hàng..."
                 />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Số điện thoại</label>
-              <div className="workers-input-shell">
-                <Phone size={18} />
-                <input
-                  type="text"
-                  name="phone"
-                  className="form-input workers-shell-input"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  placeholder="0987 654 321"
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">CCCD / CMND</label>
-              <div className="workers-input-shell">
-                <CreditCard size={18} />
-                <input
-                  type="text"
-                  name="cccd"
-                  className="form-input workers-shell-input"
-                  value={formData.cccd}
-                  onChange={handleInputChange}
-                  placeholder="012345678912"
-                />
-              </div>
-            </div>
-
-            <div className="form-group workers-field-span-2">
-              <label className="form-label">Lương mặc định / ngày</label>
-              <CurrencyInput
-                name="dailyRate"
-                value={formData.dailyRate}
-                onValueChange={(amount) => setFormData((current) => ({ ...current, dailyRate: amount }))}
-                icon={Wallet}
-                iconSize={18}
-                wrapperClassName="workers-input-shell"
-                inputClassName="form-input workers-shell-input"
-                suffix="VND"
-                placeholder="650.000"
-                required
-              />
-            </div>
-
-            <div className="form-group workers-field-span-2">
-              <label className="form-label">Trạng thái hoạt động</label>
-              <div className="workers-input-shell">
-                <select
-                  name="status"
-                  className="form-input workers-shell-input"
-                  value={formData.status || 'working'}
-                  onChange={handleInputChange}
-                  style={{ border: 'none', background: 'transparent', width: '100%', outline: 'none', paddingLeft: '0', cursor: 'pointer', height: '100%' }}
-                >
-                  <option value="working">Đang làm việc</option>
-                  <option value="resigned">Đã nghỉ làm</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Thông tin tài khoản ngân hàng & VietQR */}
-            <div
-              className="form-group workers-field-span-2"
-              style={{
-                background: 'linear-gradient(135deg, rgba(15, 118, 110, 0.05) 0%, rgba(2, 132, 199, 0.05) 100%)',
-                border: '1.5px solid rgba(15, 118, 110, 0.3)',
-                borderRadius: '12px',
-                padding: '16px',
-                marginTop: '10px'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
-                <label className="form-label" style={{ fontWeight: '800', fontSize: '0.95rem', color: 'var(--primary, #0f766e)', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-                  <Landmark size={18} /> TÀI KHOẢN NGÂN HÀNG (STK & VIETQR CHUYỂN LƯƠNG)
-                </label>
-                {formData.bankAccount && (formData.bankBin || formData.bankShortName) && (
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    onClick={() => setQrModalWorker({
-                      ...formData,
-                      name: formData.name || 'Công nhân'
-                    })}
-                    style={{ padding: '4px 12px', fontSize: '0.8rem', height: '28px', display: 'flex', alignItems: 'center', gap: '4px', background: '#ffffff' }}
-                  >
-                    <QrCode size={14} /> Xem thử mã QR
+                {searchTerm && (
+                  <button type="button" className="workers-search-clear" onClick={() => setSearchTerm('')}>
+                    <X size={16} />
                   </button>
                 )}
               </div>
-              <p style={{ fontSize: '0.82rem', color: 'var(--text-muted, #64748b)', margin: '0 0 12px 0' }}>
-                Mỗi công nhân có số tài khoản ngân hàng riêng. Thông tin này sẽ tự động gắn vào báo cáo Word/Excel và tạo mã QR để chuyển khoản lương nhanh.
-              </p>
 
-              <div style={{ marginBottom: '12px' }}>
-                <label className="form-label" style={{ fontSize: '0.84rem', fontWeight: '600', marginBottom: '4px' }}>
-                  Ngân hàng thụ hưởng
-                </label>
-                <BankSelector
-                  banks={banks}
-                  selectedBin={formData.bankBin}
-                  selectedShortName={formData.bankShortName}
-                  onSelectBank={(b) => {
-                    setFormData((curr) => ({
-                      ...curr,
-                      bankBin: b.bin || '',
-                      bankName: b.name || '',
-                      bankShortName: b.shortName || b.code || ''
-                    }));
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-                <div>
-                  <label className="form-label" style={{ fontSize: '0.84rem', fontWeight: '600', marginBottom: '4px' }}>
-                    Số tài khoản (STK)
-                  </label>
-                  <div className="workers-input-shell" style={{ background: '#ffffff' }}>
-                    <CreditCard size={18} color="var(--primary)" />
-                    <input
-                      type="text"
-                      name="bankAccount"
-                      className="form-input workers-shell-input"
-                      value={formData.bankAccount}
-                      onChange={handleInputChange}
-                      placeholder="Nhập số tài khoản ngân hàng..."
-                      style={{ fontWeight: '600', letterSpacing: '0.5px' }}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="form-label" style={{ fontSize: '0.84rem', fontWeight: '600', marginBottom: '4px' }}>
-                    Tên người thụ hưởng (Chủ tài khoản)
-                  </label>
-                  <div className="workers-input-shell" style={{ background: '#ffffff' }}>
-                    <UserCheck size={18} color="var(--primary)" />
-                    <input
-                      type="text"
-                      name="bankAccountHolder"
-                      className="form-input workers-shell-input"
-                      value={formData.bankAccountHolder}
-                      onChange={handleInputChange}
-                      placeholder="Tự động theo tên hoặc nhập NGUYEN VAN A"
-                      style={{ textTransform: 'uppercase', fontWeight: '600' }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="workers-form-actions">
-              <button type="submit" className="btn btn-primary" disabled={saving}>
-                {editingId ? <Check size={18} /> : <Plus size={18} />}
-                {saving ? 'Đang lưu...' : editingId ? 'Lưu thay đổi' : 'Thêm công nhân'}
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleOpenAdd}
+                style={{
+                  padding: '9px 16px',
+                  fontSize: '0.88rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  borderRadius: '10px'
+                }}
+              >
+                <Plus size={16} /> Thêm mới
               </button>
-              {!editingId && (
-                <button type="button" className="btn btn-outline" onClick={() => setFormData(emptyForm)}>
-                  Xóa form
-                </button>
-              )}
-            </div>
-          </form>
-        </section>
-
-        <section className="card workers-list-card">
-          <div className="workers-card-head workers-list-head">
-            <div>
-              <div className="workers-section-kicker">Danh sách hiện tại</div>
-              <h2 className="workers-section-title">Tìm Kiếm Và Chọn Nhanh</h2>
-              <p className="workers-section-note workers-list-note">
-                Bấm vào một công nhân để nạp thông tin sang khung chỉnh sửa.
-              </p>
-            </div>
-            <div className="workers-search">
-              <Search size={18} />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Tìm theo tên, số điện thoại, CCCD, STK, ngân hàng..."
-              />
-              {searchTerm && (
-                <button type="button" className="workers-search-clear" onClick={() => setSearchTerm('')}>
-                  <X size={16} />
-                </button>
-              )}
             </div>
           </div>
 
-          <div className="workers-results-bar">
-            <span>{filteredWorkers.length} công nhân</span>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '10px 14px',
+              background: '#f8fafc',
+              borderRadius: '10px',
+              marginBottom: '16px',
+              fontSize: '0.86rem',
+              color: 'var(--text-muted, #64748b)'
+            }}
+          >
+            <span>
+              Hiển thị <strong>{filteredWorkers.length}</strong> / {workers.length} công nhân
+            </span>
             {searchTerm && <span>Từ khóa: “{searchTerm}”</span>}
-            {editingWorker && <span>Đang chọn: {editingWorker.name}</span>}
           </div>
 
           {loading ? (
             <div className="workers-empty-state">Đang tải dữ liệu công nhân...</div>
           ) : filteredWorkers.length === 0 ? (
-            <div className="workers-empty-state">
-              {workers.length === 0
-                ? 'Chưa có công nhân nào. Hãy thêm người đầu tiên ở khung bên trái.'
-                : 'Không tìm thấy công nhân phù hợp với từ khóa đang tìm.'}
+            <div className="workers-empty-state" style={{ padding: '40px 20px', textAlign: 'center' }}>
+              <p style={{ fontSize: '1rem', color: 'var(--text-muted, #64748b)', marginBottom: '14px' }}>
+                {workers.length === 0
+                  ? 'Chưa có công nhân nào trong hệ thống.'
+                  : 'Không tìm thấy công nhân phù hợp với từ khóa đang tìm.'}
+              </p>
+              {workers.length === 0 && (
+                <button type="button" className="btn btn-primary" onClick={handleOpenAdd}>
+                  <Plus size={18} /> Thêm công nhân đầu tiên
+                </button>
+              )}
             </div>
           ) : (
             <div className="workers-list">
               {filteredWorkers.map((worker) => {
-                const isEditing = editingId === worker.id;
-
                 return (
                   <article
                     key={worker.id}
-                    className={`worker-row-card ${isEditing ? 'is-editing' : ''}`}
-                    onClick={() => handleEditClick(worker)}
+                    className="worker-row-card"
+                    onClick={() => handleOpenEdit(worker)}
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        handleEditClick(worker);
+                        handleOpenEdit(worker);
                       }
                     }}
+                    style={{ cursor: 'pointer' }}
                   >
                     <div className="worker-row-main">
                       <div className="worker-avatar">
                         {(worker.name || '?').trim().charAt(0).toUpperCase()}
                       </div>
                       <div className="worker-main-copy">
-                        <div className="worker-name-line" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                          <h3>{worker.name}</h3>
+                        <div
+                          className="worker-name-line"
+                          style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}
+                        >
+                          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '700' }}>{worker.name}</h3>
                           {worker.status === 'resigned' ? (
-                            <span className="status-badge resigned-badge" style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '12px', background: '#fee2e2', color: '#991b1b', fontWeight: 'bold' }}>Đã nghỉ làm</span>
+                            <span
+                              className="status-badge resigned-badge"
+                              style={{
+                                fontSize: '0.75rem',
+                                padding: '2px 8px',
+                                borderRadius: '12px',
+                                background: '#fee2e2',
+                                color: '#991b1b',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              Đã nghỉ làm
+                            </span>
                           ) : (
-                            <span className="status-badge working-badge" style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '12px', background: '#dcfce7', color: '#15803d', fontWeight: 'bold' }}>Đang làm việc</span>
+                            <span
+                              className="status-badge working-badge"
+                              style={{
+                                fontSize: '0.75rem',
+                                padding: '2px 8px',
+                                borderRadius: '12px',
+                                background: '#dcfce7',
+                                color: '#15803d',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              Đang làm việc
+                            </span>
                           )}
-                          {isEditing && <span className="worker-edit-badge">Đang sửa</span>}
                         </div>
-                        <div className="worker-meta-grid">
-                          <span><Phone size={14} /> {worker.phone || 'Chưa có số điện thoại'}</span>
-                          <span><CreditCard size={14} /> {worker.cccd || 'Chưa có CCCD'}</span>
+
+                        <div className="worker-meta-grid" style={{ marginTop: '6px' }}>
+                          <span>
+                            <Phone size={14} /> {worker.phone || 'Chưa có số điện thoại'}
+                          </span>
+                          <span>
+                            <CreditCard size={14} /> {worker.cccd || 'Chưa có CCCD'}
+                          </span>
+
                           <div style={{ gridColumn: 'span 2', marginTop: '4px' }}>
                             {worker.bankAccount ? (
-                              <div style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                background: 'rgba(15, 118, 110, 0.08)',
-                                border: '1px solid rgba(15, 118, 110, 0.25)',
-                                padding: '3px 10px',
-                                borderRadius: '8px',
-                                fontSize: '0.85rem'
-                              }}>
+                              <div
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  background: 'rgba(15, 118, 110, 0.08)',
+                                  border: '1px solid rgba(15, 118, 110, 0.25)',
+                                  padding: '4px 10px',
+                                  borderRadius: '8px',
+                                  fontSize: '0.85rem'
+                                }}
+                              >
                                 <Landmark size={14} color="var(--primary, #0f766e)" />
                                 <strong style={{ color: 'var(--primary, #0f766e)' }}>
                                   {worker.bankShortName || worker.bankName || 'Ngân hàng'}:
                                 </strong>
-                                <span style={{ fontFamily: 'monospace', fontWeight: '700', color: 'var(--primary, #0f766e)', letterSpacing: '0.5px' }}>
+                                <span
+                                  style={{
+                                    fontFamily: 'monospace',
+                                    fontWeight: '700',
+                                    color: 'var(--primary, #0f766e)',
+                                    letterSpacing: '0.5px'
+                                  }}
+                                >
                                   {worker.bankAccount}
                                 </span>
                                 {worker.bankAccountHolder && (
@@ -523,17 +358,19 @@ const Workers = () => {
                                 )}
                               </div>
                             ) : (
-                              <div style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                background: 'rgba(148, 163, 184, 0.08)',
-                                border: '1px dashed #cbd5e1',
-                                padding: '3px 10px',
-                                borderRadius: '8px',
-                                fontSize: '0.8rem',
-                                color: '#94a3b8'
-                              }}>
+                              <div
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  background: 'rgba(148, 163, 184, 0.08)',
+                                  border: '1px dashed #cbd5e1',
+                                  padding: '3px 10px',
+                                  borderRadius: '8px',
+                                  fontSize: '0.8rem',
+                                  color: '#94a3b8'
+                                }}
+                              >
                                 <Landmark size={13} />
                                 <span>Chưa có STK ngân hàng</span>
                               </div>
@@ -555,21 +392,35 @@ const Workers = () => {
                               setQrModalWorker(worker);
                             }}
                             className="btn btn-outline"
-                            style={{ padding: '6px 10px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                            style={{
+                              padding: '6px 12px',
+                              fontSize: '0.8rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
                             title="Xem mã VietQR chuyển khoản"
                           >
                             <QrCode size={14} /> QR Chuyển tiền
                           </button>
                         )}
                         <button
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleEditClick(worker);
+                            handleOpenEdit(worker);
                           }}
                           className="btn btn-outline worker-edit-btn"
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '0.8rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
                           title="Sửa thông tin công nhân"
                         >
-                          <Pencil size={16} /> Chỉnh sửa
+                          <Pencil size={15} /> Chỉnh sửa
                         </button>
                       </div>
                     </div>
@@ -581,6 +432,17 @@ const Workers = () => {
         </section>
       </div>
 
+      {/* Pop-up Modal Thêm / Chỉnh sửa công nhân */}
+      <WorkerModal
+        isOpen={isWorkerModalOpen}
+        worker={editingWorker}
+        banks={banks}
+        onClose={handleCloseModal}
+        onSave={handleSaveWorker}
+        onOpenQr={(w) => setQrModalWorker(w)}
+      />
+
+      {/* Pop-up Modal xem mã VietQR */}
       {qrModalWorker && (
         <VietQRModal
           worker={qrModalWorker}
