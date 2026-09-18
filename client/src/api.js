@@ -2,7 +2,7 @@ import axios from 'axios';
 import { clearAuthSession, getStoredToken } from './auth';
 import defaultBanks from './constants/banks.json';
 
-const FALLBACK_TUNNEL_API = 'https://rely-jackson-desktops-pentium.trycloudflare.com/api';
+const ATTENDANCE_API_URL = 'https://rely-jackson-desktops-pentium.trycloudflare.com/api';
 
 function resolveApiUrl() {
     if (typeof window !== 'undefined') {
@@ -19,12 +19,7 @@ function resolveApiUrl() {
         }
     }
 
-    const envApi = import.meta.env.VITE_API_URL;
-    if (envApi && !envApi.includes('cruises-chose') && !envApi.includes('disclose-blair')) {
-        return envApi;
-    }
-
-    return FALLBACK_TUNNEL_API;
+    return ATTENDANCE_API_URL;
 }
 
 const API_URL = resolveApiUrl();
