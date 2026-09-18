@@ -13,7 +13,9 @@ import {
   QrCode,
   UserCheck,
   X,
-  Trash2
+  Trash2,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import WorkerModal from './WorkerModal';
 import VietQRModal from './VietQRModal';
@@ -24,6 +26,9 @@ const Workers = () => {
   const [banks, setBanks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState(() => {
+    return localStorage.getItem('workers_view_mode') || 'grid';
+  });
 
   // Modal states
   const [isWorkerModalOpen, setIsWorkerModalOpen] = useState(false);
@@ -276,13 +281,70 @@ const Workers = () => {
               borderRadius: '10px',
               marginBottom: '16px',
               fontSize: '0.86rem',
-              color: 'var(--text-muted, #64748b)'
+              color: 'var(--text-muted, #64748b)',
+              flexWrap: 'wrap',
+              gap: '10px'
             }}
           >
-            <span>
-              Hiển thị <strong>{filteredWorkers.length}</strong> / {workers.length} công nhân
-            </span>
-            {searchTerm && <span>Từ khóa: “{searchTerm}”</span>}
+            <div>
+              <span>
+                Hiển thị <strong>{filteredWorkers.length}</strong> / {workers.length} công nhân
+              </span>
+              {searchTerm && <span style={{ marginLeft: '10px' }}>Từ khóa: “{searchTerm}”</span>}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#e2e8f0', padding: '3px', borderRadius: '8px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setViewMode('grid');
+                  localStorage.setItem('workers_view_mode', 'grid');
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '5px 10px',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  background: viewMode === 'grid' ? '#ffffff' : 'transparent',
+                  color: viewMode === 'grid' ? 'var(--primary, #0f766e)' : '#64748b',
+                  boxShadow: viewMode === 'grid' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+                title="Hiển thị dạng lưới"
+              >
+                <LayoutGrid size={15} /> Dạng lưới
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setViewMode('list');
+                  localStorage.setItem('workers_view_mode', 'list');
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '5px 10px',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  background: viewMode === 'list' ? '#ffffff' : 'transparent',
+                  color: viewMode === 'list' ? 'var(--primary, #0f766e)' : '#64748b',
+                  boxShadow: viewMode === 'list' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+                title="Hiển thị dạng danh sách"
+              >
+                <List size={15} /> Dạng danh sách
+              </button>
+            </div>
           </div>
 
           {loading ? (
@@ -299,6 +361,199 @@ const Workers = () => {
                   <Plus size={18} /> Thêm công nhân đầu tiên
                 </button>
               )}
+            </div>
+          ) : viewMode === 'grid' ? (
+            <div className="workers-grid">
+              {filteredWorkers.map((worker) => (
+                <article
+                  key={worker.id}
+                  className="worker-grid-card"
+                  onClick={() => handleOpenEdit(worker)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleOpenEdit(worker);
+                    }
+                  }}
+                >
+                  <div className="worker-grid-header">
+                    <div className="worker-grid-user">
+                      <div className="worker-grid-avatar">
+                        {(worker.name || '?').trim().charAt(0).toUpperCase()}
+                      </div>
+                      <div className="worker-grid-info">
+                        <h3 className="worker-grid-name" title={worker.name}>
+                          {worker.name}
+                        </h3>
+                        <div style={{ marginTop: '4px' }}>
+                          {worker.status === 'resigned' ? (
+                            <span
+                              style={{
+                                fontSize: '0.72rem',
+                                padding: '2px 8px',
+                                borderRadius: '10px',
+                                background: '#fee2e2',
+                                color: '#991b1b',
+                                fontWeight: '700'
+                              }}
+                            >
+                              Đã nghỉ làm
+                            </span>
+                          ) : (
+                            <span
+                              style={{
+                                fontSize: '0.72rem',
+                                padding: '2px 8px',
+                                borderRadius: '10px',
+                                background: '#dcfce7',
+                                color: '#15803d',
+                                fontWeight: '700'
+                              }}
+                            >
+                              Đang làm việc
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="worker-grid-rate-box">
+                      <div className="worker-grid-rate-label">Lương/ngày</div>
+                      <div className="worker-grid-rate-val">{formatVndCurrency(worker.dailyRate)}</div>
+                    </div>
+                  </div>
+
+                  <div className="worker-grid-body">
+                    <div className="worker-grid-item">
+                      <Phone size={14} color="#94a3b8" />
+                      <span style={{ color: worker.phone ? 'inherit' : '#94a3b8' }}>
+                        {worker.phone || 'Chưa có SĐT'}
+                      </span>
+                    </div>
+                    <div className="worker-grid-item">
+                      <CreditCard size={14} color="#94a3b8" />
+                      <span style={{ color: worker.cccd ? 'inherit' : '#94a3b8' }}>
+                        {worker.cccd ? `CCCD: ${worker.cccd}` : 'Chưa có CCCD'}
+                      </span>
+                    </div>
+                    <div className="worker-grid-bank">
+                      {worker.bankAccount ? (
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: 'rgba(15, 118, 110, 0.08)',
+                            border: '1px solid rgba(15, 118, 110, 0.25)',
+                            padding: '6px 10px',
+                            borderRadius: '8px',
+                            fontSize: '0.82rem'
+                          }}
+                        >
+                          <Landmark size={14} color="var(--primary, #0f766e)" style={{ flexShrink: 0 }} />
+                          <div style={{ minWidth: 0, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <strong style={{ color: 'var(--primary, #0f766e)' }}>
+                              {worker.bankShortName || worker.bankName || 'Ngân hàng'}:
+                            </strong>{' '}
+                            <span style={{ fontFamily: 'monospace', fontWeight: '700', color: 'var(--primary, #0f766e)', letterSpacing: '0.3px' }}>
+                              {worker.bankAccount}
+                            </span>
+                            {worker.bankAccountHolder && (
+                              <span style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.76rem', marginLeft: '5px' }}>
+                                • {worker.bankAccountHolder}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: '#f8fafc',
+                            border: '1px dashed #cbd5e1',
+                            padding: '4px 10px',
+                            borderRadius: '8px',
+                            fontSize: '0.78rem',
+                            color: '#94a3b8'
+                          }}
+                        >
+                          <Landmark size={13} />
+                          <span>Chưa có STK ngân hàng</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="worker-grid-actions">
+                    {worker.bankAccount && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setQrModalWorker(worker);
+                          }}
+                          className="btn btn-outline"
+                          style={{
+                            padding: '5px 9px',
+                            fontSize: '0.78rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            borderRadius: '8px'
+                          }}
+                          title="Xem mã VietQR chuyển khoản"
+                        >
+                          <QrCode size={14} /> QR Lương
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleQuickDeleteBankAccount(worker);
+                          }}
+                          className="btn btn-outline"
+                          style={{
+                            padding: '5px 8px',
+                            fontSize: '0.78rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            color: '#dc2626',
+                            borderColor: '#fca5a5',
+                            borderRadius: '8px'
+                          }}
+                          title="Xóa số tài khoản ngân hàng của công nhân này"
+                        >
+                          <Trash2 size={13} /> Xóa STK
+                        </button>
+                      </>
+                    )}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenEdit(worker);
+                      }}
+                      className="btn btn-outline worker-edit-btn"
+                      style={{
+                        padding: '5px 12px',
+                        fontSize: '0.8rem',
+                        borderRadius: '8px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                      }}
+                    >
+                      <Pencil size={14} /> Chỉnh sửa
+                    </button>
+                  </div>
+                </article>
+              ))}
             </div>
           ) : (
             <div className="workers-list">
