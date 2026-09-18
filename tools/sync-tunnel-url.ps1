@@ -196,6 +196,22 @@ $lastSyncedUrl = if (Test-Path $StateFile) {
 
 Write-Host "Watching for a healthy public backend tunnel..."
 
+function Get-VercelCurrentApiUrl([hashtable]$Config) {
+    try {
+        $token = $Config['VERCEL_TOKEN']
+        $projectId = $Config['VERCEL_PROJECT_ID']
+        $orgId = $Config['VERCEL_ORG_ID']
+        if (-not $token -or -not $projectId) { return $null }
+        $teamParam = if ($orgId) { "?teamId=$orgId" } else { "" }
+        $headers = @{ Authorization = "Bearer $token" }
+        $envResponse = Invoke-RestMethod -Uri "https://api.vercel.com/v9/projects/$projectId/env$teamParam" -Headers $headers -Method Get
+        $current = $envResponse.envs | Where-Object { $_.key -eq 'VITE_API_URL' } | Select-Object -First 1
+        return $current.value
+    } catch {
+        return $null
+    }
+}
+
 while ($true) {
     $iterationSucceeded = $true
     $tunnelUrl = $null
@@ -204,11 +220,25 @@ while ($true) {
 
         if (-not $tunnelUrl) {
             Write-Host "No healthy tunnel found; retrying in 15 seconds."
-        } elseif ($tunnelUrl -eq $lastSyncedUrl) {
-            Write-Host "Tunnel is healthy and already synced: $tunnelUrl"
         } else {
-            Sync-Vercel $config $tunnelUrl
-            $lastSyncedUrl = $tunnelUrl
+            $targetApiUrl = "$($tunnelUrl.TrimEnd('/'))/api"
+            $vercelNeedsSync = $false
+            if ($tunnelUrl -ne $lastSyncedUrl) {
+                $vercelNeedsSync = $true
+            } else {
+                $actualVercelUrl = Get-VercelCurrentApiUrl $config
+                if ($actualVercelUrl -and $actualVercelUrl -ne $targetApiUrl) {
+                    Write-Host "Vercel VITE_API_URL is out of sync ($actualVercelUrl vs $targetApiUrl). Re-syncing..."
+                    $vercelNeedsSync = $true
+                }
+            }
+
+            if ($vercelNeedsSync) {
+                Sync-Vercel $config $tunnelUrl
+                $lastSyncedUrl = $tunnelUrl
+            } else {
+                Write-Host "Tunnel is healthy and already synced: $tunnelUrl"
+            }
         }
     } catch {
         $iterationSucceeded = $false
