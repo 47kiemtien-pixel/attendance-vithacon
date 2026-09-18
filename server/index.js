@@ -850,8 +850,26 @@ async function createServer(options = {}) {
 
 async function startServer(options = {}) {
     const { app, port } = await createServer(options);
-    return app.listen(port, '0.0.0.0', () => { console.log(`Server started on ${port}`); });
+    return new Promise((resolve, reject) => {
+        const server = app.listen(port, '0.0.0.0', () => {
+            console.log(`Server started on ${port}`);
+            resolve(server);
+        });
+        server.on('error', (err) => {
+            reject(err);
+        });
+    });
 }
 
 module.exports = { createServer, startServer };
-if (require.main === module) startServer();
+if (require.main === module) {
+    startServer().catch(err => {
+        if (err.code === 'EADDRINUSE') {
+            const p = process.env.ATTENDANCE_SERVER_PORT || 5005;
+            console.log(`[INFO] Server is already active on port ${p} (running via PM2 / background service).`);
+        } else {
+            console.error('Server startup error:', err);
+            process.exit(1);
+        }
+    });
+}

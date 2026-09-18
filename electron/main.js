@@ -109,19 +109,39 @@ function createMainWindow(apiUrl) {
     });
 }
 
+function checkHealthyApi(port) {
+    return new Promise((resolve) => {
+        const http = require('http');
+        const req = http.get(`http://127.0.0.1:${port}/api/workers`, (res) => {
+            resolve(res.statusCode === 200);
+        });
+        req.setTimeout(1500, () => {
+            req.destroy();
+            resolve(false);
+        });
+        req.on('error', () => resolve(false));
+    });
+}
+
 async function bootstrap() {
     const dataDir = path.join(app.getPath('userData'), 'data');
     const apiUrl = `http://127.0.0.1:${SERVER_PORT}/api`;
 
-    try {
-        serverInstance = await startServer({
-            port: SERVER_PORT,
-            dataDir
-        });
-    } catch (error) {
-        dialog.showErrorBox('Server startup failed', error.message);
-        app.quit();
-        return;
+    const isAlreadyRunning = await checkHealthyApi(SERVER_PORT);
+    if (!isAlreadyRunning) {
+        try {
+            serverInstance = await startServer({
+                port: SERVER_PORT,
+                dataDir
+            });
+        } catch (error) {
+            const nowRunning = await checkHealthyApi(SERVER_PORT);
+            if (!nowRunning) {
+                dialog.showErrorBox('Server startup failed', error.message);
+                app.quit();
+                return;
+            }
+        }
     }
 
     createMainWindow(apiUrl);
