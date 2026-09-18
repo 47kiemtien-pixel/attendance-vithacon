@@ -58,13 +58,6 @@ function AppShell({ activeTab, setActiveTab, currentUser, onLogout }) {
           </div>
         </div>
 
-        <div style={{ padding: '0 4px', marginBottom: '8px' }}>
-          <div className="server-status-pill">
-            <span className="server-status-dot"></span>
-            <span>Máy chủ trực tuyến • 5005</span>
-          </div>
-        </div>
-
         <div className="sidebar-section-label">Điều hướng</div>
         <nav className="sidebar-nav">
           {tabs.map((tab) => {

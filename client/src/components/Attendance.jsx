@@ -133,20 +133,6 @@ const Attendance = () => {
   };
 
   const todayIso = dayjs().format('YYYY-MM-DD');
-  const todaySummary = useMemo(() => {
-    const todayData = attendance.find((item) => item.date === todayIso);
-    let full = 0;
-    let half = 0;
-    let absent = 0;
-    if (todayData?.records) {
-      for (const r of todayData.records) {
-        if (r.status === 'Full') full++;
-        else if (r.status === 'Half') half++;
-        else if (r.status === 'Absent' || r.status === 'Leave') absent++;
-      }
-    }
-    return { full, half, absent };
-  }, [attendance, todayIso]);
 
   const getDayRecord = (workerId, dateStr) => {
     const dayData = attendance.find((item) => item.date === dateStr);
@@ -328,46 +314,6 @@ const Attendance = () => {
 
   return (
     <div className="screen-page">
-      {/* KPI Cards Summary */}
-      <div className="kpi-grid">
-        <div className="kpi-card">
-          <div className="kpi-icon" style={{ background: 'rgba(15, 118, 110, 0.1)', color: 'var(--primary)' }}>
-            <Users size={22} />
-          </div>
-          <div>
-            <div className="kpi-val">{activeWorkers.length}</div>
-            <div className="kpi-label">Tổng thợ đang làm</div>
-          </div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-icon" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-            <CalendarCheck size={22} />
-          </div>
-          <div>
-            <div className="kpi-val">{todaySummary.full}</div>
-            <div className="kpi-label">Đủ công hôm nay</div>
-          </div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-icon" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
-            <Clock size={22} />
-          </div>
-          <div>
-            <div className="kpi-val">{todaySummary.half}</div>
-            <div className="kpi-label">Nửa công hôm nay</div>
-          </div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-icon" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
-            <UserX size={22} />
-          </div>
-          <div>
-            <div className="kpi-val">{todaySummary.absent}</div>
-            <div className="kpi-label">Vắng / Nghỉ phép</div>
-          </div>
-        </div>
-      </div>
-
       <section className="panel compact-panel">
         <div className="toolbar-row">
           <div>
