@@ -39,7 +39,7 @@ function loadQrImage(url) {
   });
 }
 
-export async function generateWorkerPayrollCanvas(worker, dateRange, attendance) {
+export async function generateWorkerPayrollCanvas(worker, dateRange, attendance, index = null) {
   const rows = [];
   let current = dayjs(dateRange.start);
   const end = dayjs(dateRange.end);
@@ -195,7 +195,11 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
   y += 24;
   // Sub-bar with Period and Reference Code
   const periodStr = `Kỳ lương: ${dayjs(dateRange.start).format('DD/MM/YYYY')} - ${dayjs(dateRange.end).format('DD/MM/YYYY')}`;
-  const refCodeStr = `Mã phiếu: PL-${String(worker.id).padStart(3, '0')}/${dayjs(dateRange.end).format('MMYY')}`;
+  const rawWorkerId = String(worker.id || '');
+  const numId = index != null
+    ? String(index).padStart(3, '0')
+    : (rawWorkerId.length > 4 ? rawWorkerId.slice(-4) : (rawWorkerId || '1').padStart(3, '0'));
+  const refCodeStr = `Mã phiếu: PL-${numId}/${dayjs(dateRange.end).format('MMYY')}`;
 
   ctx.textAlign = 'center';
   ctx.fillStyle = '#475569';
@@ -635,8 +639,8 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
   return canvas;
 }
 
-export async function downloadWorkerPayrollImage(worker, dateRange, attendance) {
-  const canvas = await generateWorkerPayrollCanvas(worker, dateRange, attendance);
+export async function downloadWorkerPayrollImage(worker, dateRange, attendance, index = null) {
+  const canvas = await generateWorkerPayrollCanvas(worker, dateRange, attendance, index);
   return new Promise((resolve) => {
     canvas.toBlob((blob) => {
       if (!blob) return resolve(false);
@@ -658,7 +662,7 @@ export async function downloadMultipleWorkersPayrollImages(workersList, dateRang
   for (let i = 0; i < workersList.length; i++) {
     const worker = workersList[i];
     if (onProgress) onProgress(i + 1, workersList.length, worker.name);
-    await downloadWorkerPayrollImage(worker, dateRange, attendance);
+    await downloadWorkerPayrollImage(worker, dateRange, attendance, i + 1);
     // Pause between downloads so browser does not throttle or drop downloads
     if (i < workersList.length - 1) {
       await new Promise((r) => setTimeout(r, 400));
