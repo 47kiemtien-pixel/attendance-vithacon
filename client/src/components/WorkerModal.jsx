@@ -13,14 +13,11 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
-  Trash2,
-  RefreshCw,
-  CheckCircle2
+  Trash2
 } from 'lucide-react';
 import CurrencyInput from './CurrencyInput';
 import BankSelector from './BankSelector';
 import { parseVndAmount } from '../utils/currency';
-import { lookupBankAccount } from '../api';
 
 function formatBeneficiaryName(str) {
   if (!str) return '';
@@ -61,10 +58,6 @@ const WorkerModal = ({
   const [formData, setFormData] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [lookupLoading, setLookupLoading] = useState(false);
-  const [lookupStatus, setLookupStatus] = useState(null);
-  const lookupTimerRef = useRef(null);
-  const lastLookedUpRef = useRef('');
 
   const isEditing = Boolean(worker && worker.id);
 
@@ -72,9 +65,7 @@ const WorkerModal = ({
     if (!isOpen) return;
 
     setErrorMsg('');
-    setLookupStatus(null);
     if (worker) {
-      lastLookedUpRef.current = worker.bankAccount ? `${worker.bankBin}:${worker.bankAccount}` : '';
       setFormData({
         name: worker.name || '',
         phone: worker.phone || '',
@@ -88,59 +79,9 @@ const WorkerModal = ({
         bankAccountHolder: worker.bankAccountHolder || ''
       });
     } else {
-      lastLookedUpRef.current = '';
       setFormData(emptyForm);
     }
   }, [isOpen, worker]);
-
-  const triggerLookup = async (bin, accountNumber, force = false, workerName = null) => {
-    const cleanBin = String(bin || '').trim();
-    const cleanAcc = String(accountNumber || '').trim().replace(/\s+/g, '');
-    if (!cleanBin || cleanAcc.length < 6) return;
-
-    const currentWorkerName = workerName !== null ? workerName : (formData.name || '');
-    const key = `${cleanBin}:${cleanAcc}:${currentWorkerName}`;
-    if (!force && lastLookedUpRef.current === key) return;
-
-    setLookupLoading(true);
-    setLookupStatus(null);
-    try {
-      const res = await lookupBankAccount(cleanBin, cleanAcc, currentWorkerName);
-      lastLookedUpRef.current = key;
-      if (res && res.success && res.accountName) {
-        setFormData((curr) => ({
-          ...curr,
-          bankAccountHolder: res.accountName
-        }));
-        setLookupStatus({ type: 'success', message: 'Đã trích xuất tên từ ngân hàng' });
-      } else if (res && !res.notConfigured) {
-        setLookupStatus({ type: 'error', message: res.message || 'Không tìm thấy tên tài khoản' });
-      }
-    } catch (err) {
-      console.warn('Bank lookup error:', err);
-    } finally {
-      setLookupLoading(false);
-    }
-  };
-
-  // Debounced auto-lookup on STK, bank or worker name change
-  useEffect(() => {
-    if (!isOpen) return;
-    if (lookupTimerRef.current) clearTimeout(lookupTimerRef.current);
-
-    const cleanBin = String(formData.bankBin || '').trim();
-    const cleanAcc = String(formData.bankAccount || '').trim().replace(/\s+/g, '');
-
-    if (cleanBin && cleanAcc.length >= 6) {
-      lookupTimerRef.current = setTimeout(() => {
-        triggerLookup(cleanBin, cleanAcc, false, formData.name);
-      }, 550);
-    }
-
-    return () => {
-      if (lookupTimerRef.current) clearTimeout(lookupTimerRef.current);
-    };
-  }, [formData.bankBin, formData.bankAccount, formData.name, isOpen]);
 
   // Handle ESC key to close
   useEffect(() => {
@@ -160,17 +101,12 @@ const WorkerModal = ({
     const { name, value } = e.target;
     if (name === 'bankAccountHolder') {
       setFormData((current) => ({ ...current, [name]: value.toUpperCase() }));
-    } else if (name === 'bankAccount') {
-      setFormData((current) => ({ ...current, [name]: value }));
-      setLookupStatus(null);
     } else {
       setFormData((current) => ({ ...current, [name]: value }));
     }
   };
 
   const handleClearBankInfo = () => {
-    setLookupStatus(null);
-    lastLookedUpRef.current = '';
     setFormData((current) => ({
       ...current,
       bankBin: '',
@@ -635,21 +571,9 @@ const WorkerModal = ({
                 </div>
 
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <label className="form-label" style={{ fontSize: '0.84rem', fontWeight: '600', margin: 0 }}>
-                      Tên người thụ hưởng
-                    </label>
-                    {lookupLoading && (
-                      <span style={{ fontSize: '0.78rem', color: 'var(--primary, #0f766e)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <RefreshCw size={12} className="spin-animate" /> Đang nhận diện...
-                      </span>
-                    )}
-                    {!lookupLoading && lookupStatus?.type === 'success' && (
-                      <span style={{ fontSize: '0.78rem', color: '#16a34a', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}>
-                        <CheckCircle2 size={13} /> Đã nhận diện
-                      </span>
-                    )}
-                  </div>
+                  <label className="form-label" style={{ fontSize: '0.84rem', fontWeight: '600', marginBottom: '4px', display: 'block' }}>
+                    Tên người thụ hưởng
+                  </label>
                   <div className="workers-input-shell" style={{ background: '#ffffff', height: '44px' }}>
                     <UserCheck size={18} color="var(--primary)" />
                     <input
