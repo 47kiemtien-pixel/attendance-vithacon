@@ -164,7 +164,7 @@ async function buildWorkerReportChildren(worker, dateRange, attendance, options 
         if (qrBuffer) {
             qrImageRun = new ImageRun({
                 data: qrBuffer,
-                transformation: { width: 220, height: 220 },
+                transformation: { width: 220, height: 260 },
             });
         }
 
