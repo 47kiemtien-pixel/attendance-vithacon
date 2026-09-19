@@ -124,7 +124,7 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
   const rowHeight = 32;
   const tableHeight = tableHeaderHeight + rows.length * rowHeight + 38; // + summary row
   const netSalaryHeight = 72;
-  const bankSectionHeight = qrImage ? 190 : worker.bankAccount ? 120 : 60;
+  const bankSectionHeight = qrImage ? 300 : worker.bankAccount ? 130 : 60;
   const footerHeight = 60;
 
   const canvasHeight = headerHeight + workerInfoHeight + tableHeight + netSalaryHeight + bankSectionHeight + footerHeight + 40;
@@ -382,7 +382,7 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
   y += 76;
 
   // 5. Bank Account & VietQR Section
-  const bankCardHeight = qrImage ? 170 : worker.bankAccount ? 110 : 50;
+  const bankCardHeight = qrImage ? 280 : worker.bankAccount ? 120 : 50;
   ctx.fillStyle = '#f8fafc';
   ctx.beginPath();
   ctx.roundRect(paddingX, y, contentWidth, bankCardHeight, 10);
@@ -394,17 +394,16 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
     ctx.textAlign = 'left';
     ctx.fillStyle = '#0f766e';
     ctx.font = 'bold 14px Inter, Arial, sans-serif';
-    ctx.fillText('💳 THÔNG TIN CHUYỂN KHOẢN LƯƠNG', paddingX + 18, y + 28);
+    ctx.fillText('💳 THÔNG TIN CHUYỂN KHOẢN LƯƠNG', paddingX + 18, y + 26);
 
     const bankName = worker.bankShortName
       ? `${worker.bankShortName} - ${worker.bankName || ''}`
       : (worker.bankName || 'Ngân hàng');
 
+    const textOffset = qrImage ? 260 : 20;
+
     ctx.fillStyle = '#475569';
     ctx.font = '500 13px Inter, Arial, sans-serif';
-
-    const textOffset = qrImage ? 190 : 20;
-
     ctx.fillText('Ngân hàng thụ hưởng:', paddingX + textOffset, y + 56);
     ctx.fillStyle = '#0f172a';
     ctx.font = '600 13px Inter, Arial, sans-serif';
@@ -412,30 +411,37 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
 
     ctx.fillStyle = '#475569';
     ctx.font = '500 13px Inter, Arial, sans-serif';
-    ctx.fillText('Số tài khoản (STK):', paddingX + textOffset, y + 82);
+    ctx.fillText('Số tài khoản (STK):', paddingX + textOffset, y + 88);
     ctx.fillStyle = '#0f766e';
-    ctx.font = 'bold 16px monospace, Inter, Arial, sans-serif';
-    ctx.fillText(worker.bankAccount, paddingX + textOffset + 155, y + 82);
+    ctx.font = 'bold 18px monospace, Inter, Arial, sans-serif';
+    ctx.fillText(worker.bankAccount, paddingX + textOffset + 155, y + 88);
 
     ctx.fillStyle = '#475569';
     ctx.font = '500 13px Inter, Arial, sans-serif';
-    ctx.fillText('Chủ tài khoản:', paddingX + textOffset, y + 108);
+    ctx.fillText('Chủ tài khoản:', paddingX + textOffset, y + 120);
     ctx.fillStyle = '#0f172a';
-    ctx.font = 'bold 13px Inter, Arial, sans-serif';
-    ctx.fillText((worker.bankAccountHolder || worker.name || '').toUpperCase(), paddingX + textOffset + 155, y + 108);
+    ctx.font = 'bold 14px Inter, Arial, sans-serif';
+    ctx.fillText((worker.bankAccountHolder || worker.name || '').toUpperCase(), paddingX + textOffset + 155, y + 120);
 
     ctx.fillStyle = '#475569';
     ctx.font = '500 13px Inter, Arial, sans-serif';
-    ctx.fillText('Nội dung chuyển tiền:', paddingX + textOffset, y + 134);
+    ctx.fillText('Số tiền chuyển lương:', paddingX + textOffset, y + 152);
+    ctx.fillStyle = '#15803d';
+    ctx.font = 'bold 16px Inter, Arial, sans-serif';
+    ctx.fillText(formatVndCurrency(netSalary) + ' VNĐ', paddingX + textOffset + 155, y + 152);
+
+    ctx.fillStyle = '#475569';
+    ctx.font = '500 13px Inter, Arial, sans-serif';
+    ctx.fillText('Nội dung chuyển tiền:', paddingX + textOffset, y + 184);
     ctx.fillStyle = '#1e293b';
     ctx.font = '600 13px Inter, Arial, sans-serif';
-    ctx.fillText(`Luong ${worker.name}`, paddingX + textOffset + 155, y + 134);
+    ctx.fillText(`Luong ${worker.name}`, paddingX + textOffset + 155, y + 184);
 
-    // Draw QR Code on the left side
+    // Draw QR Code on the left side (significantly enlarged to 220px)
     if (qrImage) {
       const qrBoxX = paddingX + 18;
       const qrBoxY = y + 36;
-      const qrSize = 120;
+      const qrSize = 220;
 
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
@@ -448,8 +454,8 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
 
       ctx.textAlign = 'center';
       ctx.fillStyle = '#0f766e';
-      ctx.font = 'bold 10px Inter, Arial, sans-serif';
-      ctx.fillText('QUÉT MÃ VIETQR', qrBoxX + qrSize / 2, qrBoxY + qrSize + 14);
+      ctx.font = 'bold 11px Inter, Arial, sans-serif';
+      ctx.fillText('QUÉT MÃ VIETQR CHUYỂN TIỀN', qrBoxX + qrSize / 2, qrBoxY + qrSize + 16);
     }
   } else {
     ctx.textAlign = 'left';

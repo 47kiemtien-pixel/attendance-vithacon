@@ -168,7 +168,7 @@ async function buildWorkerReportChildren(worker, dateRange, attendance, options 
         if (qrBuffer) {
             qrImageRun = new ImageRun({
                 data: qrBuffer,
-                transformation: { width: 135, height: 135 },
+                transformation: { width: 220, height: 220 },
             });
         }
 
@@ -252,13 +252,13 @@ async function buildWorkerReportChildren(worker, dateRange, attendance, options 
                 new TableRow({
                     children: [
                         new TableCell({
-                            width: { size: 68, type: WidthType.PERCENTAGE },
+                            width: { size: 60, type: WidthType.PERCENTAGE },
                             children: infoCells,
                             shading: { fill: 'F8FAFC' },
                             verticalAlign: VerticalAlign.CENTER
                         }),
                         new TableCell({
-                            width: { size: 32, type: WidthType.PERCENTAGE },
+                            width: { size: 40, type: WidthType.PERCENTAGE },
                             children: qrCellChildren,
                             shading: { fill: 'FFFFFF' },
                             verticalAlign: VerticalAlign.CENTER
@@ -615,6 +615,11 @@ async function addWorkerReportSheet(workbook, worker, dateRange, attendance, ind
     sheet.addRow(['Người thụ hưởng:', (worker.bankAccountHolder || worker.name || '').toUpperCase()]);
     sheet.addRow(['Số tiền chuyển:', netSalary]);
     sheet.addRow(['Nội dung CK:', `Luong ${worker.name}`]);
+    sheet.addRow([]);
+    sheet.addRow([]);
+    sheet.addRow([]);
+    sheet.addRow([]);
+    sheet.addRow([]);
 
     if (worker.bankAccount && (worker.bankBin || worker.bankShortName || worker.bankName)) {
         try {
@@ -633,7 +638,7 @@ async function addWorkerReportSheet(workbook, worker, dateRange, attendance, ind
                 });
                 sheet.addImage(imageId, {
                     tl: { col: 3.5, row: paymentHeaderRow.number - 1 },
-                    ext: { width: 140, height: 140 }
+                    ext: { width: 220, height: 220 }
                 });
             }
         } catch (e) {

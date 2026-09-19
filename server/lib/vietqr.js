@@ -166,7 +166,7 @@ async function getVietQRImageBuffer({ bin, accountNumber, amount, memo, accountN
         try {
             return await QRCode.toBuffer(emvPayload, {
                 type: 'png',
-                width: 320,
+                width: 480,
                 margin: 2,
                 errorCorrectionLevel: 'M'
             });
