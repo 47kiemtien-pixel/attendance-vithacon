@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { downloadReport, downloadWorkersReport, downloadWorkersReportDocx, getWorkers, getAttendance } from '../api';
+import { downloadWorkersReport, downloadWorkersReportDocx, getWorkers, getAttendance } from '../api';
 import dayjs from 'dayjs';
-import { FileSpreadsheet, Download, CalendarRange, FolderDown, User, Calendar, FileText, QrCode, Image as ImageIcon } from 'lucide-react';
+import { CalendarRange, User, FileText, QrCode, Image as ImageIcon } from 'lucide-react';
 import VietQRModal from './VietQRModal';
 import { downloadMultipleWorkersPayrollImages } from '../utils/payrollImage';
 import { useToast } from './Toast';
@@ -28,11 +28,6 @@ function calculateWorkerSalary(worker, dateRange, attendance) {
 
 const Reports = () => {
   const toast = useToast();
-  const currentMonth = dayjs().format('MM');
-  const currentYear = dayjs().format('YYYY');
-
-  const [month, setMonth] = useState(currentMonth);
-  const [year, setYear] = useState(currentYear);
   
   // State for individual report
   const [workers, setWorkers] = useState([]);
@@ -64,20 +59,6 @@ const Reports = () => {
 
   const toggleAllWorkers = () => {
     setSelectedWorkerIds(allWorkersSelected ? [] : workers.map((worker) => String(worker.id)));
-  };
-
-  const handleExport = () => {
-    if (!month || !year) {
-      toast.error('Vui lòng chọn tháng và năm.');
-      return;
-    }
-
-    downloadReport(month, year)
-      .then(() => toast.success(`Đã xuất bảng chấm công tháng ${month}/${year}!`))
-      .catch((error) => {
-        console.error('Error exporting report:', error);
-        toast.error('Không thể tải file Excel. Vui lòng thử lại.');
-      });
   };
 
   const handleWorkerExportImage = async () => {
@@ -201,10 +182,6 @@ const Reports = () => {
     }
   };
 
-  const months = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
-  const currentYearNum = parseInt(currentYear, 10);
-  const years = [currentYearNum - 1, currentYearNum, currentYearNum + 1];
-
   return (
     <div className="screen-page">
       <section className="screen-hero">
@@ -212,12 +189,12 @@ const Reports = () => {
           <div className="screen-kicker">Báo cáo</div>
           <h1 className="screen-title">Xuất file báo cáo</h1>
           <p className="screen-subtitle">
-            Hỗ trợ xuất bảng công tổng hợp hàng tháng hoặc báo cáo chi tiết cho từng cá nhân.
+            Hỗ trợ xuất báo cáo chi tiết, xuất file Word và ảnh thanh toán VietQR cho từng cá nhân.
           </p>
         </div>
       </section>
 
-      <section className="panel reports-panel" style={{ marginBottom: '2rem' }}>
+      <section className="panel reports-panel">
         <div className="panel-head">
           <div>
             <div className="panel-kicker">Báo cáo cá nhân</div>
@@ -356,55 +333,6 @@ const Reports = () => {
                 <QrCode size={18} /> Quét QR Chuyển Lương Trực Tiếp
               </button>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="panel reports-panel">
-        <div className="panel-head">
-          <div>
-            <div className="panel-kicker">Báo cáo tổng hợp</div>
-            <h2 className="panel-title">Xuất bảng công toàn bộ tháng</h2>
-          </div>
-        </div>
-
-        <div className="reports-layout">
-          <div className="report-info-card">
-            <div className="report-info-icon">
-              <FileSpreadsheet size={22} />
-            </div>
-            <h3>File dùng để đối soát lương</h3>
-            <p>Hệ thống xuất sẵn bảng công chi tiết theo ngày, tổng công và thành tiền cho từng công nhân.</p>
-            <div className="report-note-list">
-              <span><CalendarRange size={14} /> Chọn đúng tháng cần tổng hợp</span>
-              <span><FolderDown size={14} /> File sẽ tải trực tiếp về máy</span>
-            </div>
-          </div>
-
-          <div className="report-form-card">
-            <div className="form-row report-form-row">
-              <div className="form-group report-select-group">
-                <label className="form-label">Tháng</label>
-                <select className="form-select" value={month} onChange={(e) => setMonth(e.target.value)}>
-                  {months.map((value) => (
-                    <option key={value} value={value}>Tháng {value}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group report-select-group">
-                <label className="form-label">Năm</label>
-                <select className="form-select" value={year} onChange={(e) => setYear(e.target.value)}>
-                  {years.map((value) => (
-                    <option key={value} value={value}>Năm {value}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <button className="btn btn-outline report-download-btn" onClick={handleExport}>
-              <Download size={18} /> Tải về bảng công tháng
-            </button>
           </div>
         </div>
       </section>
