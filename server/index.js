@@ -82,7 +82,6 @@ async function buildWorkerReportChildren(worker, dateRange, attendance, options 
                 new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'TRẠNG THÁI', bold: true, color: 'FFFFFF' })], alignment: AlignmentType.CENTER })], shading: { fill: navy }, verticalAlign: VerticalAlign.CENTER }),
                 new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'LƯƠNG NGÀY', bold: true, color: 'FFFFFF' })], alignment: AlignmentType.CENTER })], shading: { fill: navy }, verticalAlign: VerticalAlign.CENTER }),
                 new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'TIỀN CÔNG', bold: true, color: 'FFFFFF' })], alignment: AlignmentType.CENTER })], shading: { fill: navy }, verticalAlign: VerticalAlign.CENTER }),
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'TIỀN XE', bold: true, color: 'FFFFFF' })], alignment: AlignmentType.CENTER })], shading: { fill: navy }, verticalAlign: VerticalAlign.CENTER }),
                 new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'GHI CHÚ', bold: true, color: 'FFFFFF' })], alignment: AlignmentType.CENTER })], shading: { fill: navy }, verticalAlign: VerticalAlign.CENTER }),
             ],
             height: { value: 500, rule: HeightRule.ATLEAST },
@@ -90,7 +89,6 @@ async function buildWorkerReportChildren(worker, dateRange, attendance, options 
     ];
 
     let totalFull = 0;
-    let totalTravelCost = 0;
     let totalWage = 0;
     for (let i = 0; i < daysCount; i++) {
         const d = startDate.add(i, 'day');
@@ -101,7 +99,6 @@ async function buildWorkerReportChildren(worker, dateRange, attendance, options 
         let dailyRateText = '-';
         let wageText = '-';
         if (rec) {
-            totalTravelCost += Number(rec.travelCost || 0);
             const rate = Number(rec.dailyRate || 0);
             let wage = 0;
             if (rec.status === 'Full') {
@@ -136,14 +133,13 @@ async function buildWorkerReportChildren(worker, dateRange, attendance, options 
                 new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: statusText, bold: true, color: statusColor })], alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER, borders: { left: BorderStyle.NONE, right: BorderStyle.NONE, top: { style: BorderStyle.SINGLE, color: borderGray }, bottom: { style: BorderStyle.SINGLE, color: borderGray } } }),
                 new TableCell({ children: [new Paragraph({ text: dailyRateText, alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER, borders: { left: BorderStyle.NONE, right: BorderStyle.NONE, top: { style: BorderStyle.SINGLE, color: borderGray }, bottom: { style: BorderStyle.SINGLE, color: borderGray } } }),
                 new TableCell({ children: [new Paragraph({ text: wageText, alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER, borders: { left: BorderStyle.NONE, right: BorderStyle.NONE, top: { style: BorderStyle.SINGLE, color: borderGray }, bottom: { style: BorderStyle.SINGLE, color: borderGray } } }),
-                new TableCell({ children: [new Paragraph({ text: rec?.travelCost > 0 ? `${rec.travelCost.toLocaleString('vi-VN')}đ` : '-', alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER, borders: { left: BorderStyle.NONE, right: BorderStyle.NONE, top: { style: BorderStyle.SINGLE, color: borderGray }, bottom: { style: BorderStyle.SINGLE, color: borderGray } } }),
                 new TableCell({ children: [new Paragraph({ text: rec?.note || '-', alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER, borders: { left: BorderStyle.NONE, right: BorderStyle.NONE, top: { style: BorderStyle.SINGLE, color: borderGray }, bottom: { style: BorderStyle.SINGLE, color: borderGray } } }),
             ],
             height: { value: 450, rule: HeightRule.ATLEAST },
         }));
     }
 
-    const netSalary = totalWage + totalTravelCost;
+    const netSalary = totalWage;
 
     // Build VietQR and Payment Box
     let paymentSection = null;
@@ -321,19 +317,13 @@ async function buildWorkerReportChildren(worker, dateRange, attendance, options 
                             children: [
                                 new Paragraph({
                                     children: [
-                                        new TextRun({ text: 'Tiền xe/Di chuyển: ', size: 20, color: slate }),
-                                        new TextRun({ text: `${totalTravelCost.toLocaleString('vi-VN')}đ`, bold: true, size: 20, color: 'B45309' }),
-                                    ],
-                                    alignment: AlignmentType.RIGHT,
-                                }),
-                                new Paragraph({
-                                    children: [
                                         new TextRun({ text: 'Thực nhận: ', bold: true, size: 22, color: slate }),
                                         new TextRun({ text: `${netSalary.toLocaleString('vi-VN')}đ`, bold: true, size: 26, color: '15803d' }),
                                     ],
                                     alignment: AlignmentType.RIGHT,
                                 })
-                            ] 
+                            ],
+                            verticalAlign: VerticalAlign.CENTER
                         }),
                     ]
                 })
@@ -555,12 +545,11 @@ function addWorkersSummarySheet(workbook, workers, dateRange, attendance) {
 
 async function addWorkerReportSheet(workbook, worker, dateRange, attendance, index) {
     const sheet = workbook.addWorksheet(getSafeSheetName(worker, index));
-    sheet.addRow(['THỨ / NGÀY', 'ĐỊA ĐIỂM', 'TRẠNG THÁI', 'LƯƠNG NGÀY', 'TIỀN CÔNG', 'TIỀN XE', 'GHI CHÚ']);
+    sheet.addRow(['THỨ / NGÀY', 'ĐỊA ĐIỂM', 'TRẠNG THÁI', 'LƯƠNG NGÀY', 'TIỀN CÔNG', 'GHI CHÚ']);
 
     let current = dayjs(dateRange.start);
     const end = dayjs(dateRange.end);
     let total = 0;
-    let travelTotal = 0;
     let wageTotal = 0;
 
     while(current.isBefore(end) || current.isSame(end)) {
@@ -577,8 +566,6 @@ async function addWorkerReportSheet(workbook, worker, dateRange, attendance, ind
         else if(rec?.status === 'Holiday') { status = 'NGHỈ LỄ'; }
         else if(rec?.status === 'Leave') { status = 'PHÉP'; }
         
-        const tCost = Number(rec?.travelCost || 0);
-        travelTotal += tCost;
         wageTotal += wage;
         
         sheet.addRow([
@@ -587,17 +574,16 @@ async function addWorkerReportSheet(workbook, worker, dateRange, attendance, ind
             status,
             rate > 0 ? rate : '-',
             wage > 0 ? wage : '-',
-            tCost > 0 ? tCost : '-',
             rec?.note || '-'
         ]);
         current = current.add(1, 'day');
     }
 
-    const netSalary = wageTotal + travelTotal;
+    const netSalary = wageTotal;
 
     sheet.addRow([]);
-    sheet.addRow(['TỔNG CỘNG', '', total, 'Tổng lương:', wageTotal, 'Tổng tiền xe:', travelTotal]);
-    sheet.addRow(['THỰC NHẬN', '', '', '', netSalary, '', '']);
+    sheet.addRow(['TỔNG CỘNG', '', total, 'Tổng lương:', wageTotal, '']);
+    sheet.addRow(['THỰC NHẬN', '', '', '', netSalary, '']);
     sheet.columns.forEach((column) => {
         column.width = 18;
     });
@@ -743,17 +729,15 @@ async function createServer(options = {}) {
 
             const workbook = new ExcelJS.Workbook();
             const sheet = workbook.addWorksheet(`Tháng ${month}-${year}`);
-            sheet.addRow(['STT', 'Họ và tên', ...Array.from({ length: 31 }, (_, i) => i + 1), 'Tổng công', 'Tổng tiền công', 'Tổng tiền xe', 'Thực nhận', 'Ngân hàng', 'Số tài khoản', 'Tên thụ hưởng']);
+            sheet.addRow(['STT', 'Họ và tên', ...Array.from({ length: 31 }, (_, i) => i + 1), 'Tổng công', 'Tổng tiền công', 'Thực nhận', 'Ngân hàng', 'Số tài khoản', 'Tên thụ hưởng']);
             workers.forEach((w, idx) => {
                 let total = 0;
-                let travelTotal = 0;
                 let wageTotal = 0;
                 const rowData = [idx + 1, w.name];
                 for(let d=1; d<=31; d++) {
                     const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                     const att = attendance.find(a => a.date === dateStr);
                     const rec = att?.records.find(r => String(r.workerId) === String(w.id));
-                    travelTotal += Number(rec?.travelCost || 0);
                     if (rec?.status === 'Full') {
                         total += 1;
                         wageTotal += Number(rec.dailyRate || 0);
@@ -771,8 +755,7 @@ async function createServer(options = {}) {
                 }
                 rowData.push(total);
                 rowData.push(wageTotal);
-                rowData.push(travelTotal);
-                rowData.push(wageTotal + travelTotal);
+                rowData.push(wageTotal);
                 rowData.push(w.bankShortName || w.bankName || '');
                 rowData.push(w.bankAccount || '');
                 rowData.push(w.bankAccountHolder || w.name || '');

@@ -46,7 +46,6 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
 
   let totalWorkDays = 0;
   let totalWage = 0;
-  let totalTravelCost = 0;
 
   while (current.isBefore(end) || current.isSame(end)) {
     const dateStr = current.format('YYYY-MM-DD');
@@ -82,8 +81,6 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
       statusType = 'leave';
     }
 
-    const tCost = Number(rec?.travelCost || 0);
-    totalTravelCost += tCost;
     totalWage += wage;
 
     rows.push({
@@ -94,14 +91,13 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
       statusType,
       rate,
       wage,
-      travelCost: tCost,
       note: rec?.note || ''
     });
 
     current = current.add(1, 'day');
   }
 
-  const netSalary = totalWage + totalTravelCost;
+  const netSalary = totalWage;
 
   // Prepare QR Code if bank account exists
   let qrImage = null;
@@ -218,15 +214,14 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
   y += 88;
 
   // 3. Attendance Table
-  // Column definitions
+  // Column definitions (removed TIỀN XE)
   const cols = [
     { label: 'STT', width: 44, align: 'center' },
-    { label: 'THỨ / NGÀY', width: 140, align: 'left' },
-    { label: 'ĐỊA ĐIỂM', width: 160, align: 'left' },
-    { label: 'TRẠNG THÁI', width: 104, align: 'center' },
-    { label: 'TIỀN CÔNG', width: 110, align: 'right' },
-    { label: 'TIỀN XE', width: 90, align: 'right' },
-    { label: 'GHI CHÚ', width: contentWidth - 44 - 140 - 160 - 104 - 110 - 90, align: 'left' }
+    { label: 'THỨ / NGÀY', width: 150, align: 'left' },
+    { label: 'ĐỊA ĐIỂM', width: 190, align: 'left' },
+    { label: 'TRẠNG THÁI', width: 110, align: 'center' },
+    { label: 'TIỀN CÔNG', width: 130, align: 'right' },
+    { label: 'GHI CHÚ', width: contentWidth - 44 - 150 - 190 - 110 - 130, align: 'left' }
   ];
 
   // Draw Table Header
@@ -282,7 +277,7 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
     ctx.textAlign = 'left';
     ctx.fillStyle = '#334155';
     ctx.font = '12px Inter, Arial, sans-serif';
-    const locText = row.location.length > 20 ? row.location.slice(0, 18) + '...' : row.location;
+    const locText = row.location.length > 24 ? row.location.slice(0, 22) + '...' : row.location;
     ctx.fillText(locText, curX + 8, y + 20);
     curX += cols[2].width;
 
@@ -311,13 +306,6 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
     ctx.font = '600 12px Inter, Arial, sans-serif';
     ctx.fillText(row.wage > 0 ? formatVndCurrency(row.wage) : '-', curX + cols[4].width - 8, y + 20);
     curX += cols[4].width;
-
-    // Tiền xe
-    ctx.textAlign = 'right';
-    ctx.fillStyle = row.travelCost > 0 ? '#b45309' : '#94a3b8';
-    ctx.font = '600 12px Inter, Arial, sans-serif';
-    ctx.fillText(row.travelCost > 0 ? formatVndCurrency(row.travelCost) : '-', curX + cols[5].width - 8, y + 20);
-    curX += cols[5].width;
 
     // Ghi chú
     ctx.textAlign = 'left';
@@ -351,9 +339,6 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
   ctx.textAlign = 'right';
   ctx.fillStyle = '#0f766e';
   ctx.fillText(formatVndCurrency(totalWage), paddingX + cols[0].width + cols[1].width + cols[2].width + cols[3].width + cols[4].width - 8, y + 23);
-
-  ctx.fillStyle = '#b45309';
-  ctx.fillText(formatVndCurrency(totalTravelCost), paddingX + cols[0].width + cols[1].width + cols[2].width + cols[3].width + cols[4].width + cols[5].width - 8, y + 23);
 
   y += 48;
 

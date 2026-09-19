@@ -10,14 +10,12 @@ function calculateWorkerSalary(worker, dateRange, attendance) {
   let current = dayjs(dateRange.start);
   const end = dayjs(dateRange.end);
   let totalWage = 0;
-  let totalTravelCost = 0;
 
   while (current.isBefore(end) || current.isSame(end)) {
     const dateStr = current.format('YYYY-MM-DD');
     const dayRec = attendance.find((a) => a.date === dateStr);
     const rec = dayRec?.records.find((r) => String(r.workerId) === String(worker.id));
     if (rec) {
-      totalTravelCost += Number(rec.travelCost || 0);
       const rate = Number(rec.dailyRate || 0);
       if (rec.status === 'Full') totalWage += rate;
       else if (rec.status === 'Half') totalWage += rate * 0.5;
@@ -25,7 +23,7 @@ function calculateWorkerSalary(worker, dateRange, attendance) {
     current = current.add(1, 'day');
   }
 
-  return totalWage + totalTravelCost;
+  return totalWage;
 }
 
 const Reports = () => {
@@ -233,7 +231,7 @@ const Reports = () => {
               <User size={22} />
             </div>
             <h3>Báo cáo chi tiết theo mẫu</h3>
-            <p>Xuất ảnh bảng lương có kèm mã QR VietQR, hoặc file Word chi tiết cho từng cá nhân, hiển thị đầy đủ ngày công, tiền xe và tổng lương thực nhận.</p>
+            <p>Xuất ảnh bảng lương có kèm mã QR VietQR, hoặc file Word chi tiết cho từng cá nhân, hiển thị đầy đủ ngày công và tổng lương thực nhận.</p>
             <div className="report-note-list">
               <span><CalendarRange size={14} /> Chọn công nhân và khoảng thời gian</span>
               <span><QrCode size={14} /> Tích hợp mã VietQR chuyển lương</span>

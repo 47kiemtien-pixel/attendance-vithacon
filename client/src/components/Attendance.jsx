@@ -3,7 +3,7 @@ import { getWorkers, getAttendance, saveAttendanceRecord, getSettings } from '..
 import dayjs from 'dayjs';
 import { 
   CalendarCheck, ChevronLeft, ChevronRight, X, User, 
-  Briefcase, MapPin, Wallet, Truck, Search, Users, Clock, UserX, CheckCircle2
+  Briefcase, MapPin, Wallet, Search, Users, Clock, UserX, CheckCircle2
 } from 'lucide-react';
 import CurrencyInput from './CurrencyInput';
 import { parseVndAmount } from '../utils/currency';
@@ -29,9 +29,8 @@ const quickStatuses = [
   { value: 'Travel', label: 'Đi' }
 ];
 
-const buildAttendancePayload = ({ status, dailyRate, position, location, note, travelCost }) => {
+const buildAttendancePayload = ({ status, dailyRate, position, location, note }) => {
   const normalizedNote = typeof note === 'string' ? note.trim() : '';
-  const normalizedTravelCost = parseVndAmount(travelCost);
 
   if (WORK_DETAIL_STATUSES.has(status)) {
     return {
@@ -40,18 +39,7 @@ const buildAttendancePayload = ({ status, dailyRate, position, location, note, t
       position: typeof position === 'string' ? position.trim() : '',
       location: typeof location === 'string' ? location.trim() : '',
       note: normalizedNote,
-      travelCost: normalizedTravelCost
-    };
-  }
-
-  if (status === 'Travel') {
-    return {
-      status,
-      dailyRate: 0,
-      position: '',
-      location: '',
-      note: normalizedNote,
-      travelCost: normalizedTravelCost
+      travelCost: 0
     };
   }
 
@@ -79,7 +67,6 @@ const Attendance = () => {
   const [editPosition, setEditPosition] = useState('');
   const [editLocation, setEditLocation] = useState('');
   const [editNote, setEditNote] = useState('');
-  const [editTravelCost, setEditTravelCost] = useState('');
   const [selectedPresetId, setSelectedPresetId] = useState('');
   const [saving, setSaving] = useState(false);
   const [viewMode, setViewMode] = useState('week');
@@ -226,7 +213,6 @@ const Attendance = () => {
     setEditPosition(record?.position ?? '');
     setEditLocation(record?.location ?? '');
     setEditNote(record?.note ?? '');
-    setEditTravelCost(record?.travelCost ?? '');
     setSelectedPresetId('');
     setIsModalOpen(true);
   };
@@ -252,8 +238,7 @@ const Attendance = () => {
         dailyRate: WORK_DETAIL_STATUSES.has(status) ? (currentRecord?.dailyRate || worker.dailyRate || '') : '',
         position: currentRecord?.position || '',
         location: currentRecord?.location || '',
-        note: currentRecord?.note || '',
-        travelCost: currentRecord?.travelCost || ''
+        note: currentRecord?.note || ''
       });
 
       await saveAttendanceRecord(
@@ -264,7 +249,7 @@ const Attendance = () => {
         recordPayload.position,
         recordPayload.location,
         recordPayload.note,
-        recordPayload.travelCost
+        0
       );
       await fetchData();
       toast.success(`Đã cập nhật công cho ${worker.name}`);
@@ -287,8 +272,7 @@ const Attendance = () => {
           : editRate,
         position: editPosition,
         location: editLocation,
-        note: editNote,
-        travelCost: editTravelCost
+        note: editNote
       });
 
       await saveAttendanceRecord(
@@ -299,7 +283,7 @@ const Attendance = () => {
         recordPayload.position,
         recordPayload.location,
         recordPayload.note,
-        recordPayload.travelCost
+        0
       );
       await fetchData();
       setIsModalOpen(false);
@@ -497,7 +481,6 @@ const Attendance = () => {
                 const record = getDayRecord(worker.id, mobileDateIso);
                 const status = record?.status;
                 const statusLabel = quickStatuses.find((item) => item.value === status)?.label || 'Chưa chấm';
-                const travelCost = Number(record?.travelCost || 0);
                 return (
                   <article key={worker.id} className={`mobile-attendance-card ${record ? 'is-done' : ''}`}>
                     <div className="mobile-attendance-card-head">
@@ -509,11 +492,10 @@ const Attendance = () => {
                       <span className={`mobile-status-pill status-${status ? status.toLowerCase() : 'empty'}`}>{statusLabel}</span>
                     </div>
 
-                    {(record?.location || record?.position || record?.note || travelCost > 0) && (
+                    {(record?.location || record?.position || record?.note) && (
                       <div className="mobile-attendance-details">
                         {record.location && <span><MapPin size={13} /> {record.location}</span>}
                         {record.position && <span><Briefcase size={13} /> {record.position}</span>}
-                        {travelCost > 0 && <span><Truck size={13} /> {travelCost.toLocaleString('vi-VN')}đ</span>}
                         {record.note && <span>{record.note}</span>}
                       </div>
                     )}
@@ -582,7 +564,6 @@ const Attendance = () => {
                       const record = getDayRecord(worker.id, item.iso);
                       const status = record?.status;
                       const showWorkDetails = WORK_DETAIL_STATUSES.has(status);
-                      const travelCost = Number(record?.travelCost || 0);
                       const dailyRate = Number(record?.dailyRate || 0);
                       const isToday = item.iso === todayIso;
                       const tone = 
@@ -622,9 +603,6 @@ const Attendance = () => {
                                   <div className="cell-amount">
                                     {dailyRate.toLocaleString('vi-VN')}đ
                                   </div>
-                                )}
-                                {travelCost > 0 && (
-                                  <div className="cell-detail-line"><Truck size={10} /> {travelCost.toLocaleString('vi-VN')}đ</div>
                                 )}
                                 {record.note && (
                                   <div className="cell-note" title={record.note}>
@@ -729,29 +707,16 @@ const Attendance = () => {
                     </div>
                   </div>
 
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label">Mức lương / ngày</label>
-                      <CurrencyInput
-                        value={editRate}
-                        onValueChange={setEditRate}
-                        icon={Wallet}
-                        wrapperClassName="input-with-icon"
-                        inputClassName="form-input embedded-input"
-                        placeholder="650.000"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Tiền xe / Di chuyển</label>
-                      <CurrencyInput
-                        value={editTravelCost}
-                        onValueChange={setEditTravelCost}
-                        icon={Truck}
-                        wrapperClassName="input-with-icon"
-                        inputClassName="form-input embedded-input"
-                        placeholder="0"
-                      />
-                    </div>
+                  <div className="form-group">
+                    <label className="form-label">Mức lương / ngày</label>
+                    <CurrencyInput
+                      value={editRate}
+                      onValueChange={setEditRate}
+                      icon={Wallet}
+                      wrapperClassName="input-with-icon"
+                      inputClassName="form-input embedded-input"
+                      placeholder="650.000"
+                    />
                   </div>
 
                   <div className="form-group">
@@ -769,19 +734,6 @@ const Attendance = () => {
 
               {showSupplementaryForm && (
                 <div className="attendance-form-stack">
-                  {editStatus === 'Travel' && (
-                    <div className="form-group">
-                    <label className="form-label">Tiền xe / Di chuyển</label>
-                      <CurrencyInput
-                        value={editTravelCost}
-                        onValueChange={setEditTravelCost}
-                        icon={Truck}
-                        wrapperClassName="input-with-icon"
-                        inputClassName="form-input embedded-input"
-                        placeholder="0"
-                      />
-                    </div>
-                  )}
                   <div className="form-group">
                     <label className="form-label">Ghi chú</label>
                     <textarea 
