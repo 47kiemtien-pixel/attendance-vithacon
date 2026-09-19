@@ -157,7 +157,7 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
   ctx.fillStyle = '#0f766e';
   ctx.font = 'bold 15px Inter, "Segoe UI", Arial, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('CÔNG TY TNHH MTV ĐẦU TƯ XÂY DỰNG VITHA CONS', canvasWidth / 2, y);
+  ctx.fillText('CÔNG TY TNHH CƠ KHÍ XÂY DỰNG THƯƠNG MẠI VIỆT THÀNH', canvasWidth / 2, y);
 
   y += 24;
   ctx.fillStyle = '#1e293b';
@@ -464,7 +464,7 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
   ctx.textAlign = 'left';
   ctx.fillStyle = '#94a3b8';
   ctx.font = 'italic 11px Inter, Arial, sans-serif';
-  ctx.fillText(`Xuất từ Hệ thống Chấm công & Bảng lương Vitha Cons • ${dayjs().format('DD/MM/YYYY HH:mm')}`, paddingX, y + 14);
+  ctx.fillText(`Xuất từ Hệ thống Chấm công & Bảng lương Việt Thành • ${dayjs().format('DD/MM/YYYY HH:mm')}`, paddingX, y + 14);
 
   return canvas;
 }
