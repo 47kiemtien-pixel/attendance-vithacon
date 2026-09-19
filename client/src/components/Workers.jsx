@@ -13,7 +13,6 @@ import {
   QrCode,
   UserCheck,
   X,
-  Trash2,
   LayoutGrid,
   List,
   Copy,
@@ -168,32 +167,6 @@ const Workers = () => {
     }
   };
 
-  const handleQuickDeleteBankAccount = async (worker) => {
-    const confirmDelete = window.confirm(
-      `Bạn có chắc chắn muốn xóa thông tin tài khoản ngân hàng (${worker.bankShortName || worker.bankName || 'Ngân hàng'}: ${worker.bankAccount}) của công nhân "${worker.name}"?`
-    );
-    if (!confirmDelete) return;
-
-    try {
-      await updateWorker(worker.id, {
-        name: worker.name,
-        phone: worker.phone || '',
-        cccd: worker.cccd || '',
-        dailyRate: worker.dailyRate,
-        status: worker.status || 'working',
-        bankBin: '',
-        bankName: '',
-        bankShortName: '',
-        bankAccount: '',
-        bankAccountHolder: ''
-      });
-      await fetchWorkers();
-      toast.success(`Đã xóa thông tin STK của "${worker.name}"!`);
-    } catch (err) {
-      console.error('Error removing bank info:', err);
-      toast.error('Không thể xóa thông tin tài khoản ngân hàng. Vui lòng thử lại.');
-    }
-  };
 
   return (
     <div className="workers-page">
@@ -587,48 +560,25 @@ const Workers = () => {
 
                   <div className="worker-grid-actions">
                     {worker.bankAccount && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setQrModalWorker(worker);
-                          }}
-                          className="btn btn-outline"
-                          style={{
-                            padding: '5px 9px',
-                            fontSize: '0.78rem',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            borderRadius: '8px'
-                          }}
-                          title="Xem mã VietQR chuyển khoản"
-                        >
-                          <QrCode size={14} /> QR Lương
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleQuickDeleteBankAccount(worker);
-                          }}
-                          className="btn btn-outline"
-                          style={{
-                            padding: '5px 8px',
-                            fontSize: '0.78rem',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            color: '#dc2626',
-                            borderColor: '#fca5a5',
-                            borderRadius: '8px'
-                          }}
-                          title="Xóa số tài khoản ngân hàng của công nhân này"
-                        >
-                          <Trash2 size={13} /> Xóa STK
-                        </button>
-                      </>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setQrModalWorker(worker);
+                        }}
+                        className="btn btn-outline"
+                        style={{
+                          padding: '5px 9px',
+                          fontSize: '0.78rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          borderRadius: '8px'
+                        }}
+                        title="Xem mã VietQR chuyển khoản"
+                      >
+                        <QrCode size={14} /> QR Lương
+                      </button>
                     )}
                     <button
                       type="button"
@@ -793,46 +743,24 @@ const Workers = () => {
                       <div className="worker-rate-value">{formatVndCurrency(worker.dailyRate)}</div>
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                         {worker.bankAccount && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setQrModalWorker(worker);
-                              }}
-                              className="btn btn-outline"
-                              style={{
-                                padding: '6px 12px',
-                                fontSize: '0.8rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px'
-                              }}
-                              title="Xem mã VietQR chuyển khoản"
-                            >
-                              <QrCode size={14} /> QR Chuyển tiền
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleQuickDeleteBankAccount(worker);
-                              }}
-                              className="btn btn-outline"
-                              style={{
-                                padding: '6px 10px',
-                                fontSize: '0.8rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                color: '#dc2626',
-                                borderColor: '#fca5a5'
-                              }}
-                              title="Xóa số tài khoản ngân hàng của công nhân này"
-                            >
-                              <Trash2 size={14} /> Xóa STK
-                            </button>
-                          </>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setQrModalWorker(worker);
+                            }}
+                            className="btn btn-outline"
+                            style={{
+                              padding: '6px 12px',
+                              fontSize: '0.8rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                            title="Xem mã VietQR chuyển khoản"
+                          >
+                            <QrCode size={14} /> QR Lương
+                          </button>
                         )}
                         <button
                           type="button"
