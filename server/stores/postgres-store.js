@@ -125,10 +125,13 @@ async function createPostgresStore(options = {}) {
                 full_name TEXT NOT NULL DEFAULT '',
                 email TEXT NOT NULL UNIQUE,
                 password_hash TEXT NOT NULL,
-                role TEXT NOT NULL DEFAULT 'admin',
-                is_active BOOLEAN NOT NULL DEFAULT TRUE,
                 created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+
+            CREATE TABLE IF NOT EXISTS app_settings (
+                key TEXT PRIMARY KEY,
+                value JSONB NOT NULL DEFAULT '{}'::jsonb
             );
         `);
 
@@ -385,7 +388,24 @@ async function createPostgresStore(options = {}) {
                  ORDER BY created_at ASC, id ASC`
             );
 
+            let appConfig = {};
+            try {
+                const configRes = await query(`SELECT value FROM app_settings WHERE key = 'app_config'`);
+                if (configRes.rows.length > 0) {
+                    appConfig = configRes.rows[0].value || {};
+                }
+            } catch (e) {
+                // Fallback to reading data/settings.json if app_settings table is not yet queryable
+                try {
+                    const fallbackPath = path.join(dataDir, 'settings.json');
+                    if (fs.existsSync(fallbackPath)) {
+                        appConfig = JSON.parse(fs.readFileSync(fallbackPath, 'utf8'));
+                    }
+                } catch (err) {}
+            }
+
             return {
+                ...appConfig,
                 presetJobs: result.rows.map((row) => ({
                     id: row.id,
                     name: row.name || buildPresetName(row),
@@ -397,8 +417,15 @@ async function createPostgresStore(options = {}) {
         },
         async saveSettings(settings) {
             const presetJobs = settings?.presetJobs || [];
+            const { presetJobs: _, ...restSettings } = settings || {};
 
             await transaction(async (client) => {
+                await client.query(
+                    `INSERT INTO app_settings (key, value)
+                     VALUES ('app_config', $1)
+                     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
+                    [JSON.stringify(restSettings)]
+                );
                 await client.query('DELETE FROM preset_jobs');
                 for (const preset of presetJobs) {
                     await client.query(
@@ -414,6 +441,12 @@ async function createPostgresStore(options = {}) {
                     );
                 }
             });
+
+            // Đồng bộ ra file data/settings.json để các module phụ trợ đọc
+            try {
+                const settingsPath = path.join(dataDir, 'settings.json');
+                fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+            } catch (e) {}
         },
         async getAttendance() {
             return groupAttendanceRows();

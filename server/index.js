@@ -17,6 +17,7 @@ const {
     getVietQRImageBuffer,
     lookupBankAccount
 } = require('./lib/vietqr');
+const { verifyCasConnection, lookupAccountWithCas } = require('./lib/cas');
 
 async function createStore(options = {}) {
     const dataDir = options.dataDir || path.join(__dirname, 'data');
@@ -692,6 +693,17 @@ async function createServer(options = {}) {
         }
     });
 
+    app.post('/api/cas/verify', async (req, res) => {
+        try {
+            const { clientId, secretKey, environment } = req.body;
+            const result = await verifyCasConnection({ clientId, secretKey, environment });
+            res.json(result);
+        } catch (err) {
+            console.error('Cas verify route error:', err);
+            res.status(500).json({ success: false, message: err.message });
+        }
+    });
+
     // Workers
     app.get('/api/workers', async (req, res) => res.json(await store.getWorkers()));
     app.post('/api/workers', async (req, res) => res.json(await store.createWorker(req.body)));
@@ -721,7 +733,10 @@ async function createServer(options = {}) {
 
     // Settings
     app.get('/api/settings', async (req, res) => res.json(await store.getSettings()));
-    app.post('/api/settings', async (req, res) => res.json(await store.saveSettings(req.body)));
+    app.post('/api/settings', async (req, res) => {
+        const result = await store.saveSettings(req.body);
+        res.json(result || { success: true });
+    });
     app.get('/api/auth/status', (req, res) => res.json({ authRequired: false }));
 
     // Export Excel (All)

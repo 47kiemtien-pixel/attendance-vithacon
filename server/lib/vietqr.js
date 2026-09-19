@@ -183,79 +183,8 @@ async function getVietQRImageBuffer({ bin, accountNumber, amount, memo, accountN
 }
 
 async function lookupBankAccount({ bin, accountNumber }) {
-    if (!bin || !accountNumber) {
-        return { success: false, message: 'Vui lòng chọn ngân hàng và nhập số tài khoản hợp lệ' };
-    }
-    const cleanBin = String(bin).trim();
-    const cleanAcc = String(accountNumber).trim();
-
-    let clientId = process.env.VIETQR_CLIENT_ID || '';
-    let apiKey = process.env.VIETQR_API_KEY || '';
-
-    if (!clientId || !apiKey) {
-        try {
-            const settingsPath = path.join(__dirname, '..', 'data', 'settings.json');
-            if (fs.existsSync(settingsPath)) {
-                const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-                clientId = clientId || settings.vietqrClientId || '';
-                apiKey = apiKey || settings.vietqrApiKey || '';
-            }
-        } catch (e) {}
-    }
-
-    if (clientId && apiKey) {
-        try {
-            const postData = JSON.stringify({ bin: cleanBin, accountNumber: cleanAcc });
-            const result = await new Promise((resolve, reject) => {
-                const req = https.request({
-                    hostname: 'api.vietqr.io',
-                    path: '/v2/lookup',
-                    method: 'POST',
-                    headers: {
-                        'x-client-id': clientId,
-                        'x-api-key': apiKey,
-                        'Content-Type': 'application/json',
-                        'Content-Length': Buffer.byteLength(postData)
-                    },
-                    timeout: 5000
-                }, res => {
-                    let body = '';
-                    res.on('data', chunk => body += chunk);
-                    res.on('end', () => {
-                        try {
-                            const data = JSON.parse(body);
-                            resolve(data);
-                        } catch (e) {
-                            reject(new Error('Invalid JSON response'));
-                        }
-                    });
-                });
-                req.on('error', reject);
-                req.on('timeout', () => { req.destroy(); reject(new Error('Hết thời gian kết nối (Timeout)')); });
-                req.write(postData);
-                req.end();
-            });
-
-            if (result && result.code === '00' && result.data?.accountName) {
-                return {
-                    success: true,
-                    accountName: String(result.data.accountName).trim().toUpperCase()
-                };
-            }
-            return {
-                success: false,
-                message: result?.desc || 'Không tìm thấy tên chủ tài khoản từ ngân hàng'
-            };
-        } catch (e) {
-            console.error('VietQR lookup error:', e);
-            return { success: false, message: e.message };
-        }
-    }
-
-    return {
-        success: false,
-        message: 'Hệ thống chưa kết nối được máy chủ tra cứu tự động. Vui lòng nhập tay tên người thụ hưởng.'
-    };
+    const { lookupAccountWithCas } = require('./cas');
+    return await lookupAccountWithCas({ bin, accountNumber });
 }
 
 module.exports = {

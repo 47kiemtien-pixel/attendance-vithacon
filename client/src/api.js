@@ -114,6 +114,15 @@ export const lookupBankAccount = async (bin, accountNumber) => {
     }
 };
 
+export const verifyCasConnection = async (credentials) => {
+    try {
+        const response = await apiClient.post('/cas/verify', credentials);
+        return response.data;
+    } catch (e) {
+        return { success: false, message: e.response?.data?.message || e.message };
+    }
+};
+
 export const getWorkers = async () => {
     const response = await apiClient.get('/workers');
     return response.data;
