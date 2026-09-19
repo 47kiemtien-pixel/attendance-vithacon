@@ -464,13 +464,29 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
     ctx.fillText('Hình thức thanh toán: Tiền mặt (Chưa cập nhật tài khoản ngân hàng)', paddingX + 18, y + 30);
   }
 
-  y += bankCardHeight + 20;
+  y += bankCardHeight + 22;
 
-  // 6. Signatures / Footer
+  // 6. Professional Footer Divider & Metadata
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(paddingX, y);
+  ctx.lineTo(paddingX + contentWidth, y);
+  ctx.stroke();
+
+  y += 18;
+
+  // Left: Document Classification Note
   ctx.textAlign = 'left';
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = 'italic 11px Inter, Arial, sans-serif';
-  ctx.fillText(`Xuất từ Hệ thống Chấm công & Bảng lương Việt Thành • ${dayjs().format('DD/MM/YYYY HH:mm')}`, paddingX, y + 14);
+  ctx.fillStyle = '#64748b';
+  ctx.font = '500 12px Inter, "Segoe UI", Arial, sans-serif';
+  ctx.fillText('Chứng từ xác nhận thanh toán lương nội bộ', paddingX, y);
+
+  // Right: Generation Timestamp
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#64748b';
+  ctx.font = '500 12px Inter, "Segoe UI", Arial, sans-serif';
+  ctx.fillText(`Thời gian lập: ${dayjs().format('DD/MM/YYYY HH:mm')}`, paddingX + contentWidth, y);
 
   return canvas;
 }
