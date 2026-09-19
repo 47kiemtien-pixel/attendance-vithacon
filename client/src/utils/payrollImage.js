@@ -533,19 +533,6 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
       ctx.font = 'bold 18px "Plus Jakarta Sans", Arial, sans-serif';
       ctx.fillText(formatVndCurrency(netSalary), textOffsetX, rowY + 20);
 
-      // Subtle note box
-      const noteY = rowY + 32;
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.roundRect(textOffsetX, noteY, textAvailableWidth, 32, 6);
-      ctx.fill();
-      ctx.strokeStyle = '#e2e8f0';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-
-      ctx.fillStyle = '#64748b';
-      ctx.font = 'italic 11px "Plus Jakarta Sans", Arial, sans-serif';
-      ctx.fillText('Lưu ý: Người chuyển tự nhập số tiền và nội dung chuyển khoản theo nhu cầu.', textOffsetX + 10, noteY + 20);
     } else {
       // 2-Column layout when QR is not displayed
       const c1X = paddingX + 24;
