@@ -536,28 +536,9 @@ const WorkerModal = ({
                 }}
               >
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <label className="form-label" style={{ fontSize: '0.84rem', fontWeight: '600', margin: 0 }}>
-                      Số tài khoản (STK)
-                    </label>
-                    {formData.bankAccount && (
-                      <button
-                        type="button"
-                        onClick={() => setFormData((c) => ({ ...c, bankAccount: '' }))}
-                        style={{
-                          border: 'none',
-                          background: 'transparent',
-                          color: '#dc2626',
-                          fontSize: '0.78rem',
-                          cursor: 'pointer',
-                          padding: 0,
-                          fontWeight: '600'
-                        }}
-                      >
-                        Xóa số này
-                      </button>
-                    )}
-                  </div>
+                  <label className="form-label" style={{ fontSize: '0.84rem', fontWeight: '600', marginBottom: '4px' }}>
+                    Số tài khoản (STK)
+                  </label>
                   <div className="workers-input-shell" style={{ background: '#ffffff', height: '44px', display: 'flex', alignItems: 'center', paddingRight: '8px' }}>
                     <CreditCard size={18} color="var(--primary)" />
                     <input
