@@ -686,13 +686,14 @@ async function createServer(options = {}) {
     app.put('/api/workers/:id', async (req, res) => res.json(await store.updateWorker(req.params.id, req.body)));
     app.delete('/api/workers/:id', async (req, res) => {
         try {
-            const success = await store.deleteWorker(req.params.id);
-            if (!success) {
+            // Không xóa vĩnh viễn công nhân để bảo toàn lịch sử chấm công & tiền lương, chỉ chuyển sang ẩn (resigned)
+            const updated = await store.updateWorker(req.params.id, { status: 'resigned' });
+            if (!updated) {
                 return res.status(404).json({ error: 'Worker not found' });
             }
-            res.json({ success: true, id: req.params.id });
+            res.json({ success: true, id: req.params.id, status: 'resigned', message: 'Worker hidden successfully' });
         } catch (err) {
-            console.error('Error deleting worker:', err);
+            console.error('Error hiding worker:', err);
             res.status(500).json({ error: err.message });
         }
     });

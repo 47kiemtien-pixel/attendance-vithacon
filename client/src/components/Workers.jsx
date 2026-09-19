@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { getWorkers, addWorker, updateWorker, deleteWorker, getBanks } from '../api';
+import { getWorkers, addWorker, updateWorker, getBanks } from '../api';
 import {
   Users,
   Plus,
@@ -139,21 +139,32 @@ const Workers = () => {
     }
   };
 
-  const handleDeleteWorker = async (workerId) => {
+  const handleToggleHideWorker = async (workerId) => {
     const worker = workers.find((w) => String(w.id) === String(workerId));
-    const confirmDelete = window.confirm(
-      `Bạn có chắc chắn muốn xóa hoàn toàn hồ sơ công nhân "${worker?.name || ''}" khỏi hệ thống?`
+    if (!worker) return;
+    const isCurrentlyResigned = worker.status === 'resigned';
+    const confirmAction = window.confirm(
+      isCurrentlyResigned
+        ? `Bạn có chắc muốn hiển thị lại công nhân "${worker.name}" trên bảng chấm công?`
+        : `Bạn có chắc chắn muốn ẩn công nhân "${worker.name}" khỏi bảng chấm công?\n(Toàn bộ lịch sử công và lương cũ vẫn được bảo toàn an toàn tuyệt đối).`
     );
-    if (!confirmDelete) return;
+    if (!confirmAction) return;
 
     try {
-      await deleteWorker(workerId);
+      await updateWorker(workerId, {
+        ...worker,
+        status: isCurrentlyResigned ? 'working' : 'resigned'
+      });
       await fetchWorkers();
       handleCloseModal();
-      toast.success(`Đã xóa hồ sơ "${worker?.name || ''}"!`);
+      toast.success(
+        isCurrentlyResigned
+          ? `Đã hiển thị lại công nhân "${worker.name}"!`
+          : `Đã ẩn công nhân "${worker.name}" khỏi bảng chấm công!`
+      );
     } catch (err) {
-      console.error('Error deleting worker:', err);
-      toast.error('Không thể xóa công nhân. Vui lòng thử lại.');
+      console.error('Error updating worker status:', err);
+      toast.error('Không thể cập nhật trạng thái công nhân. Vui lòng thử lại.');
     }
   };
 
@@ -334,7 +345,7 @@ const Workers = () => {
               className={`filter-pill-btn ${filterStatus === 'resigned' ? 'active' : ''}`}
               onClick={() => setFilterStatus('resigned')}
             >
-              Đã nghỉ <span className="pill-count">{counts.resigned}</span>
+              Đã ẩn / Nghỉ <span className="pill-count">{counts.resigned}</span>
             </button>
             <button
               type="button"
@@ -868,7 +879,7 @@ const Workers = () => {
         banks={banks}
         onClose={handleCloseModal}
         onSave={handleSaveWorker}
-        onDelete={handleDeleteWorker}
+        onToggleStatus={handleToggleHideWorker}
         onOpenQr={(w) => setQrModalWorker(w)}
       />
 

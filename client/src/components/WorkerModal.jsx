@@ -11,7 +11,8 @@ import {
   UserCheck,
   QrCode,
   AlertCircle,
-  Trash2
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import CurrencyInput from './CurrencyInput';
 import BankSelector from './BankSelector';
@@ -32,9 +33,9 @@ function formatBeneficiaryName(str) {
 
 const emptyForm = {
   name: '',
+  dailyRate: '',
   phone: '',
   cccd: '',
-  dailyRate: '',
   status: 'working',
   bankBin: '',
   bankName: '',
@@ -50,6 +51,7 @@ const WorkerModal = ({
   onClose,
   onSave,
   onOpenQr,
+  onToggleStatus,
   onDelete
 }) => {
   const [formData, setFormData] = useState(emptyForm);
@@ -401,8 +403,8 @@ const WorkerModal = ({
                       fontSize: '0.95rem'
                     }}
                   >
-                    <option value="working">Đang làm việc</option>
-                    <option value="resigned">Đã nghỉ làm</option>
+                    <option value="working">Đang làm việc (Hiển thị trên bảng công)</option>
+                    <option value="resigned">Tạm ẩn / Đã nghỉ việc (Ẩn khỏi bảng công)</option>
                   </select>
                 </div>
               </div>
@@ -607,24 +609,46 @@ const WorkerModal = ({
               gap: '12px'
             }}
           >
-            {isEditing && onDelete ? (
-              <button
-                type="button"
-                className="btn btn-outline"
-                onClick={() => onDelete(worker.id)}
-                disabled={saving}
-                style={{
-                  color: '#dc2626',
-                  borderColor: '#fca5a5',
-                  background: '#fff',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontWeight: '600'
-                }}
-              >
-                <Trash2 size={16} /> Xóa công nhân này
-              </button>
+            {isEditing && (onToggleStatus || onDelete) ? (
+              formData.status === 'resigned' ? (
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => (onToggleStatus ? onToggleStatus(worker.id) : onDelete(worker.id))}
+                  disabled={saving}
+                  style={{
+                    color: '#15803d',
+                    borderColor: '#86efac',
+                    background: '#f0fdf4',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontWeight: '600'
+                  }}
+                  title="Hiện lại công nhân này trên bảng chấm công"
+                >
+                  <Eye size={16} /> Hiện lại công nhân
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => (onToggleStatus ? onToggleStatus(worker.id) : onDelete(worker.id))}
+                  disabled={saving}
+                  style={{
+                    color: '#b45309',
+                    borderColor: '#fde68a',
+                    background: '#fffbeb',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontWeight: '600'
+                  }}
+                  title="Ẩn công nhân khỏi bảng chấm công (lịch sử công và lương cũ vẫn được bảo toàn)"
+                >
+                  <EyeOff size={16} /> Ẩn công nhân này
+                </button>
+              )
             ) : <div />}
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
