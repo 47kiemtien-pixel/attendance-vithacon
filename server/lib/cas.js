@@ -153,18 +153,7 @@ async function lookupAccountWithCas({ bin, accountNumber, workerName = '', clien
     const cleanBin = String(bin).trim();
     const cleanAcc = String(accountNumber).trim().replace(/\s+/g, '');
 
-    // 1. Kiểm tra tài khoản kiểm thử / tài khoản chủ lực (TPBank 10220062002 / 1022006200)
-    if (cleanBin === '970423' && (cleanAcc === '10220062002' || cleanAcc === '1022006200')) {
-        return {
-            success: true,
-            accountName: 'NGUYEN MINH THIEN',
-            bankBin: cleanBin,
-            accountNumber: cleanAcc,
-            source: 'cas'
-        };
-    }
-
-    // 2. Tra cứu từ cơ sở dữ liệu hệ thống (nếu tài khoản đã từng được lưu cho công nhân nào)
+    // 1. Tra cứu từ cơ sở dữ liệu hệ thống nếu tài khoản này đã từng được lưu thông tin công nhân
     try {
         if (store && typeof store.getWorkers === 'function') {
             const workers = await store.getWorkers();
@@ -190,14 +179,14 @@ async function lookupAccountWithCas({ bin, accountNumber, workerName = '', clien
         console.warn('Internal store lookup error:', e.message);
     }
 
-    // 3. Tra cứu qua Cas Open Banking / VietQR nếu có API Key
+    // 2. Tra cứu qua Cas Open Banking / VietQR nếu đã cấu hình API Key
     const creds = getCasCredentials();
     const activeClientId = (clientId || creds.clientId || '').trim();
     const activeSecretKey = (secretKey || creds.secretKey || '').trim();
     const activeEnv = environment || creds.environment || 'production';
 
     if (activeClientId && activeSecretKey) {
-        // A. Ưu tiên tra cứu qua VietQR API
+        // A. Thử qua VietQR API
         try {
             const vqrRes = await fetch(`${VIETQR_API_URL}/v2/lookup`, {
                 method: 'POST',
@@ -225,7 +214,7 @@ async function lookupAccountWithCas({ bin, accountNumber, workerName = '', clien
             console.warn('VietQR lookup call failed, fallback to Cas Open Banking...', err.message);
         }
 
-        // B. Tra cứu qua Cas Open Banking Identity / Accounts Lookup
+        // B. Thử qua Cas Open Banking Identity / Accounts Lookup
         try {
             const baseUrl = activeEnv === 'sandbox' ? CAS_SANDBOX_URL : CAS_PROD_URL;
             const casRes = await fetch(`${baseUrl}/accounts/lookup`, {
@@ -257,47 +246,9 @@ async function lookupAccountWithCas({ bin, accountNumber, workerName = '', clien
         }
     }
 
-    // 4. Nếu có truyền tên công nhân từ form (workerName), hỗ trợ tự động chuẩn hoá tên thụ hưởng không dấu
-    if (workerName && typeof workerName === 'string' && workerName.trim().length >= 2) {
-        const cleanName = workerName.trim();
-        // Nếu tên là "Thiện" hoặc "Minh Thiện" và ngân hàng là TPBank
-        if (cleanBin === '970423' && /thi[eệ]n/i.test(cleanName)) {
-            return {
-                success: true,
-                accountName: 'NGUYEN MINH THIEN',
-                bankBin: cleanBin,
-                accountNumber: cleanAcc,
-                source: 'cas'
-            };
-        }
-
-        // Nếu công nhân có họ tên đầy đủ (ít nhất 2 từ), tự động chuẩn hoá dạng in hoa không dấu
-        const parts = cleanName.split(/\s+/).filter(Boolean);
-        if (parts.length >= 2) {
-            const normalized = cleanName
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .replace(/đ/g, 'd')
-                .replace(/Đ/g, 'D')
-                .replace(/[^a-zA-Z\s]/g, '')
-                .trim()
-                .toUpperCase();
-
-            if (normalized) {
-                return {
-                    success: true,
-                    accountName: normalized,
-                    bankBin: cleanBin,
-                    accountNumber: cleanAcc,
-                    source: 'smart_name'
-                };
-            }
-        }
-    }
-
     return {
         success: false,
-        message: 'Không tìm thấy tên chủ tài khoản từ ngân hàng. Vui lòng kiểm tra lại STK hoặc nhập tay.'
+        message: 'Ngân hàng chưa hỗ trợ tra cứu tự động công khai hoặc STK chưa đúng. Vui lòng nhập trực tiếp tên người thụ hưởng.'
     };
 }
 
