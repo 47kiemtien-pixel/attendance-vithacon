@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { getSettings, saveSettings, exportBackup, importBackup, verifyCasConnection } from '../api';
-import { Settings, Plus, Trash2, Save, Download, Upload, Database, Landmark, KeyRound, CheckCircle2, AlertCircle, ExternalLink, RefreshCw } from 'lucide-react';
+import { getSettings, saveSettings, exportBackup, importBackup } from '../api';
+import { Settings, Plus, Trash2, Save, Download, Upload, Database, Landmark } from 'lucide-react';
 import CurrencyInput from './CurrencyInput';
 import { useToast } from './Toast';
 
@@ -17,8 +17,6 @@ const SettingsComponent = () => {
   const [casClientId, setCasClientId] = useState('');
   const [casSecretKey, setCasSecretKey] = useState('');
   const [casEnvironment, setCasEnvironment] = useState('production');
-  const [verifying, setVerifying] = useState(false);
-  const [verifyStatus, setVerifyStatus] = useState(null); // { success: boolean, message: string }
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -38,33 +36,6 @@ const SettingsComponent = () => {
       console.error('Error fetching settings:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleVerifyCas = async () => {
-    if (!casClientId.trim() || !casSecretKey.trim()) {
-      toast.error('Vui lòng nhập Client ID và Secret Key trước khi kiểm tra.');
-      return;
-    }
-    setVerifying(true);
-    setVerifyStatus(null);
-    try {
-      const res = await verifyCasConnection({
-        clientId: casClientId.trim(),
-        secretKey: casSecretKey.trim(),
-        environment: casEnvironment
-      });
-      setVerifyStatus(res);
-      if (res.success) {
-        toast.success(res.message || 'Kết nối API Cas / VietQR thành công!');
-      } else {
-        toast.error(res.message || 'Kết nối thất bại. Vui lòng kiểm tra lại thông tin.');
-      }
-    } catch (err) {
-      setVerifyStatus({ success: false, message: err.message });
-      toast.error('Lỗi khi kiểm tra kết nối API: ' + err.message);
-    } finally {
-      setVerifying(false);
     }
   };
 
@@ -232,95 +203,52 @@ const SettingsComponent = () => {
       <section className="panel compact-panel" style={{ marginTop: '20px' }}>
         <div className="toolbar-row">
           <div>
-            <div className="panel-kicker">Cổng thanh toán & Ngân hàng Mở</div>
+            <div className="panel-kicker">Cổng kết nối ngân hàng</div>
             <h2 className="page-title compact-title" style={{ fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Landmark size={20} color="var(--primary)" /> Kết nối API Cas (cas.so / bankHub) & VietQR
+              <Landmark size={20} color="var(--primary)" /> Tự động nhận diện tên chủ tài khoản (Cas.so / VietQR)
             </h2>
-          </div>
-
-          <div className="toolbar-actions">
-            <button
-              type="button"
-              className="btn btn-outline"
-              onClick={handleVerifyCas}
-              disabled={verifying || !casClientId || !casSecretKey}
-              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-            >
-              {verifying ? <RefreshCw size={15} className="spin-animate" /> : <KeyRound size={15} />}
-              {verifying ? 'Đang kiểm tra...' : 'Kiểm tra kết nối API'}
-            </button>
           </div>
         </div>
 
         <div className="toolbar-meta" style={{ marginBottom: '16px' }}>
           <span>
-            Tự động trích xuất tên chủ tài khoản từ ngân hàng khi nhập số tài khoản công nhân.
-            Đăng ký và lấy thông tin tại <a href="https://console.bankhub.dev" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '600', textDecoration: 'underline' }}>console.bankhub.dev</a> (hoặc <a href="https://cas.so" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '600', textDecoration: 'underline' }}>cas.so</a> / <a href="https://my.vietqr.io" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '600', textDecoration: 'underline' }}>my.vietqr.io</a>).
+            Hệ thống sẽ tự động tra cứu tên người thụ hưởng khi nhập số tài khoản ngân hàng của công nhân. Nếu không dùng hoặc chưa đăng ký tài khoản tại <a href="https://console.bankhub.dev" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '600' }}>Cas (cas.so)</a> / <a href="https://my.vietqr.io" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '600' }}>VietQR</a>, bạn chỉ cần để trống và nhập tay bình thường.
           </span>
         </div>
 
-        {verifyStatus && (
-          <div
-            style={{
-              padding: '10px 14px',
-              borderRadius: '8px',
-              marginBottom: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              fontSize: '0.9rem',
-              background: verifyStatus.success ? '#ecfdf5' : '#fef2f2',
-              color: verifyStatus.success ? '#065f46' : '#991b1b',
-              border: `1px solid ${verifyStatus.success ? '#a7f3d0' : '#fecaca'}`
-            }}
-          >
-            {verifyStatus.success ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
-            <span>{verifyStatus.message}</span>
-          </div>
-        )}
-
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '15px' }}>
           <div>
-            <label className="form-label" style={{ fontWeight: '600', marginBottom: '6px' }}>Client ID (x-client-id)</label>
+            <label className="form-label" style={{ fontWeight: '600', marginBottom: '6px' }}>Client ID</label>
             <input
               type="text"
               className="form-input"
               value={casClientId}
-              onChange={(e) => {
-                setCasClientId(e.target.value);
-                setVerifyStatus(null);
-              }}
-              placeholder="Nhập Client ID từ Cas / VietQR..."
+              onChange={(e) => setCasClientId(e.target.value)}
+              placeholder="Nhập Client ID (nếu có)..."
             />
           </div>
 
           <div>
-            <label className="form-label" style={{ fontWeight: '600', marginBottom: '6px' }}>Secret Key / API Key (x-secret-key)</label>
+            <label className="form-label" style={{ fontWeight: '600', marginBottom: '6px' }}>Secret Key / API Key</label>
             <input
               type="password"
               className="form-input"
               value={casSecretKey}
-              onChange={(e) => {
-                setCasSecretKey(e.target.value);
-                setVerifyStatus(null);
-              }}
-              placeholder="Nhập Secret Key hoặc API Key..."
+              onChange={(e) => setCasSecretKey(e.target.value)}
+              placeholder="Nhập Secret Key / API Key (nếu có)..."
             />
           </div>
 
           <div>
-            <label className="form-label" style={{ fontWeight: '600', marginBottom: '6px' }}>Môi trường kết nối</label>
+            <label className="form-label" style={{ fontWeight: '600', marginBottom: '6px' }}>Môi trường</label>
             <select
               className="form-input"
               value={casEnvironment}
-              onChange={(e) => {
-                setCasEnvironment(e.target.value);
-                setVerifyStatus(null);
-              }}
+              onChange={(e) => setCasEnvironment(e.target.value)}
               style={{ cursor: 'pointer' }}
             >
-              <option value="production">Production (Hệ thống thực tế - Khuyến nghị)</option>
-              <option value="sandbox">Sandbox (Môi trường kiểm thử)</option>
+              <option value="production">Production (Thực tế)</option>
+              <option value="sandbox">Sandbox (Thử nghiệm)</option>
             </select>
           </div>
         </div>

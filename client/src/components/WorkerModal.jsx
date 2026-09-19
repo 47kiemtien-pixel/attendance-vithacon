@@ -638,38 +638,16 @@ const WorkerModal = ({
                     <label className="form-label" style={{ fontSize: '0.84rem', fontWeight: '600', margin: 0 }}>
                       Tên người thụ hưởng
                     </label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      {lookupLoading && (
-                        <span style={{ fontSize: '0.78rem', color: 'var(--primary, #0f766e)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '500' }}>
-                          <RefreshCw size={12} className="spin-animate" /> Đang kiểm tra...
-                        </span>
-                      )}
-                      {!lookupLoading && lookupStatus?.type === 'success' && (
-                        <span style={{ fontSize: '0.78rem', color: '#16a34a', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}>
-                          <CheckCircle2 size={13} /> Đã trích xuất từ ngân hàng
-                        </span>
-                      )}
-                      {!lookupLoading && formData.bankBin && formData.bankAccount && formData.bankAccount.length >= 6 && (
-                        <button
-                          type="button"
-                          onClick={() => triggerLookup(formData.bankBin, formData.bankAccount, true)}
-                          style={{
-                            border: 'none',
-                            background: 'transparent',
-                            color: 'var(--primary, #0f766e)',
-                            cursor: 'pointer',
-                            padding: '0 2px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            fontSize: '0.76rem',
-                            fontWeight: '600'
-                          }}
-                          title="Tra cứu lại tên từ ngân hàng"
-                        >
-                          <RefreshCw size={12} style={{ marginRight: '3px' }} /> Tra lại
-                        </button>
-                      )}
-                    </div>
+                    {lookupLoading && (
+                      <span style={{ fontSize: '0.78rem', color: 'var(--primary, #0f766e)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <RefreshCw size={12} className="spin-animate" /> Đang nhận diện...
+                      </span>
+                    )}
+                    {!lookupLoading && lookupStatus?.type === 'success' && (
+                      <span style={{ fontSize: '0.78rem', color: '#16a34a', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}>
+                        <CheckCircle2 size={13} /> Đã nhận diện
+                      </span>
+                    )}
                   </div>
                   <div className="workers-input-shell" style={{ background: '#ffffff', height: '44px' }}>
                     <UserCheck size={18} color="var(--primary)" />
@@ -679,15 +657,10 @@ const WorkerModal = ({
                       className="form-input workers-shell-input"
                       value={formData.bankAccountHolder}
                       onChange={handleInputChange}
-                      placeholder="Tự động trích xuất hoặc nhập tay..."
+                      placeholder="Ví dụ: NGUYEN VAN A"
                       style={{ textTransform: 'uppercase', fontWeight: '600' }}
                     />
                   </div>
-                  {lookupStatus?.type === 'error' && (
-                    <div style={{ fontSize: '0.76rem', color: '#e11d48', marginTop: '3px' }}>
-                      {lookupStatus.message}
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
