@@ -162,22 +162,30 @@ const BankSelector = ({
             <button
               type="button"
               onClick={handleClear}
-              title="Xóa chọn ngân hàng"
+              title="Bỏ chọn ngân hàng"
               style={{
                 border: 'none',
-                background: '#fee2e2',
-                cursor: 'pointer',
-                padding: '3px 8px',
-                borderRadius: '6px',
-                color: '#dc2626',
+                background: '#f1f5f9',
+                borderRadius: '50%',
+                width: '24px',
+                height: '24px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '3px',
-                fontSize: '0.78rem',
-                fontWeight: '600'
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: '#64748b',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#fee2e2';
+                e.currentTarget.style.color = '#ef4444';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#f1f5f9';
+                e.currentTarget.style.color = '#64748b';
               }}
             >
-              <X size={14} /> Bỏ chọn
+              <X size={14} />
             </button>
           )}
           <ChevronDown
