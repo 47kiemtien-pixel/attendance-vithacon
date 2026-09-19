@@ -732,7 +732,6 @@ const WorkerModal = ({
                       className="form-input workers-shell-input"
                       value={formData.bankAccountHolder}
                       onChange={handleInputChange}
-                      placeholder="Nhập họ tên người thụ hưởng (nếu khác tên công nhân)..."
                       style={{ textTransform: 'uppercase', fontWeight: '600' }}
                     />
                   </div>
