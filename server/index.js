@@ -151,7 +151,7 @@ async function buildWorkerReportChildren(worker, dateRange, attendance, options 
             qrBuffer = await getVietQRImageBuffer({
                 bin: worker.bankBin,
                 accountNumber: worker.bankAccount,
-                amount: netSalary > 0 ? netSalary : 0,
+                amount: 0,
                 memo: '',
                 accountName: worker.bankAccountHolder || '',
                 bankCode: worker.bankShortName || worker.bankCode
@@ -602,7 +602,7 @@ async function addWorkerReportSheet(workbook, worker, dateRange, attendance, ind
     sheet.addRow(['Số tài khoản (STK):', worker.bankAccount || 'Chưa cập nhật']);
     sheet.addRow(['Người thụ hưởng:', (worker.bankAccountHolder || '-').toUpperCase()]);
     sheet.addRow(['Số tiền chuyển:', netSalary]);
-    sheet.addRow(['Nội dung CK:', `Luong ${worker.name}`]);
+    sheet.addRow(['Nội dung CK:', '']);
     sheet.addRow([]);
     sheet.addRow([]);
     sheet.addRow([]);
@@ -614,7 +614,7 @@ async function addWorkerReportSheet(workbook, worker, dateRange, attendance, ind
             const qrBuffer = await getVietQRImageBuffer({
                 bin: worker.bankBin,
                 accountNumber: worker.bankAccount,
-                amount: netSalary > 0 ? netSalary : 0,
+                amount: 0,
                 memo: '',
                 accountName: worker.bankAccountHolder || '',
                 bankCode: worker.bankShortName || worker.bankCode

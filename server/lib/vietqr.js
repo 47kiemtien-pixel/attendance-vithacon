@@ -66,11 +66,19 @@ function getVietQRImageUrl({ bin, accountNumber, amount, memo, accountName, temp
     const cleanMemo = memo ? removeVietnameseTones(memo).slice(0, 25) : '';
     const cleanName = accountName ? removeVietnameseTones(accountName) : '';
 
-    let url = `https://img.vietqr.io/image/${cleanBin}-${cleanAcc}-${template}.png?amount=${cleanAmount}&accountName=${encodeURIComponent(cleanName)}`;
-    if (cleanMemo) {
-        url += `&addInfo=${encodeURIComponent(cleanMemo)}`;
+    const params = [];
+    if (cleanAmount > 0) {
+        params.push(`amount=${cleanAmount}`);
     }
-    return url;
+    if (cleanName) {
+        params.push(`accountName=${encodeURIComponent(cleanName)}`);
+    }
+    if (cleanMemo) {
+        params.push(`addInfo=${encodeURIComponent(cleanMemo)}`);
+    }
+
+    const query = params.length > 0 ? `?${params.join('&')}` : '';
+    return `https://img.vietqr.io/image/${cleanBin}-${cleanAcc}-${template}.png${query}`;
 }
 
 function fetchHttpBuffer(url, timeoutMs = 4000) {

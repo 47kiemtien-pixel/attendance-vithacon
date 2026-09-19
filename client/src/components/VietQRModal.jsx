@@ -40,10 +40,12 @@ const VietQRModal = ({
 
   let qrImageUrl = '';
   if (bin && accountNumber) {
-    qrImageUrl = `https://img.vietqr.io/image/${bin}-${accountNumber}-compact2.png?amount=${cleanAmount > 0 ? cleanAmount : ''}&accountName=${encodeURIComponent(accountHolder)}`;
-    if (cleanMemo) {
-      qrImageUrl += `&addInfo=${encodeURIComponent(cleanMemo)}`;
-    }
+    const params = [];
+    if (cleanAmount > 0) params.push(`amount=${cleanAmount}`);
+    if (accountHolder) params.push(`accountName=${encodeURIComponent(accountHolder)}`);
+    if (cleanMemo) params.push(`addInfo=${encodeURIComponent(cleanMemo)}`);
+    const query = params.length > 0 ? `?${params.join('&')}` : '';
+    qrImageUrl = `https://img.vietqr.io/image/${bin}-${accountNumber}-compact2.png${query}`;
   }
 
   const handleCopy = (text, field) => {

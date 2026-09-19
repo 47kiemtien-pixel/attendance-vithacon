@@ -149,10 +149,9 @@ const Reports = () => {
     if (!selectedWorkers.length) return;
 
     const preparedList = selectedWorkers.map((w) => {
-      const salary = calculateWorkerSalary(w, { start: startDate, end: endDate }, attendance);
       return {
         ...w,
-        amount: salary,
+        amount: 0,
         memo: ''
       };
     });

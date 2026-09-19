@@ -103,7 +103,8 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
   let qrImage = null;
   if (worker.bankAccount && (worker.bankBin || worker.bankShortName)) {
     const accountHolder = (worker.bankAccountHolder || '').toUpperCase();
-    const qrUrl = `https://img.vietqr.io/image/${worker.bankBin}-${worker.bankAccount}-compact2.png?amount=${netSalary > 0 ? netSalary : ''}&accountName=${encodeURIComponent(accountHolder)}`;
+    const query = accountHolder ? `?accountName=${encodeURIComponent(accountHolder)}` : '';
+    const qrUrl = `https://img.vietqr.io/image/${worker.bankBin}-${worker.bankAccount}-compact2.png${query}`;
     qrImage = await loadQrImage(qrUrl);
   }
 
