@@ -105,6 +105,15 @@ export const getVietQRInfo = async (params) => {
     return response.data;
 };
 
+export const lookupBankAccount = async (bin, accountNumber) => {
+    try {
+        const response = await apiClient.post('/bank-lookup', { bin, accountNumber });
+        return response.data;
+    } catch (e) {
+        return { success: false, message: e.response?.data?.message || e.message };
+    }
+};
+
 export const getWorkers = async () => {
     const response = await apiClient.get('/workers');
     return response.data;

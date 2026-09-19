@@ -14,7 +14,8 @@ const {
     generateVietQREmvCo,
     getVietQRImageUrl,
     getBankLogoBuffer,
-    getVietQRImageBuffer
+    getVietQRImageBuffer,
+    lookupBankAccount
 } = require('./lib/vietqr');
 
 async function createStore(options = {}) {
@@ -151,7 +152,7 @@ async function buildWorkerReportChildren(worker, dateRange, attendance, options 
                 accountNumber: worker.bankAccount,
                 amount: netSalary > 0 ? netSalary : 0,
                 memo: `Luong ${worker.name}`,
-                accountName: worker.bankAccountHolder || worker.name,
+                accountName: worker.bankAccountHolder || '',
                 bankCode: worker.bankShortName || worker.bankCode
             });
         } catch (e) {
@@ -201,7 +202,7 @@ async function buildWorkerReportChildren(worker, dateRange, attendance, options 
             new Paragraph({
                 children: [
                     new TextRun({ text: 'Người thụ hưởng: ', size: 18, color: slate }),
-                    new TextRun({ text: (worker.bankAccountHolder || worker.name).toUpperCase(), bold: true, size: 18, color: '000000' }),
+                    new TextRun({ text: worker.bankAccountHolder ? worker.bankAccountHolder.toUpperCase() : '-', bold: true, size: 18, color: '000000' }),
                 ],
                 spacing: { after: 50 }
             }),
@@ -383,7 +384,7 @@ function buildWorkersSummaryChildren(workers, dateRange, attendance) {
                 worker.name,
                 worker.bankShortName || worker.bankName || '-',
                 worker.bankAccount || '-',
-                (worker.bankAccountHolder || worker.name || '-').toUpperCase(),
+                (worker.bankAccountHolder || '-').toUpperCase(),
                 `${workTotal}`,
                 `${wageTotal.toLocaleString('vi-VN')}đ`,
             ].map((text) => new TableCell({
@@ -523,7 +524,7 @@ function addWorkersSummarySheet(workbook, workers, dateRange, attendance) {
             worker.name,
             worker.bankShortName || worker.bankName || '-',
             worker.bankAccount || '-',
-            (worker.bankAccountHolder || worker.name || '-').toUpperCase(),
+            (worker.bankAccountHolder || '-').toUpperCase(),
             workTotal,
             wageTotal
         ]);
@@ -598,7 +599,7 @@ async function addWorkerReportSheet(workbook, worker, dateRange, attendance, ind
         : (worker.bankName || 'Chưa cập nhật');
     sheet.addRow(['Ngân hàng:', bankDisplay]);
     sheet.addRow(['Số tài khoản (STK):', worker.bankAccount || 'Chưa cập nhật']);
-    sheet.addRow(['Người thụ hưởng:', (worker.bankAccountHolder || worker.name || '').toUpperCase()]);
+    sheet.addRow(['Người thụ hưởng:', (worker.bankAccountHolder || '-').toUpperCase()]);
     sheet.addRow(['Số tiền chuyển:', netSalary]);
     sheet.addRow(['Nội dung CK:', `Luong ${worker.name}`]);
     sheet.addRow([]);
@@ -614,7 +615,7 @@ async function addWorkerReportSheet(workbook, worker, dateRange, attendance, ind
                 accountNumber: worker.bankAccount,
                 amount: netSalary > 0 ? netSalary : 0,
                 memo: `Luong ${worker.name}`,
-                accountName: worker.bankAccountHolder || worker.name,
+                accountName: worker.bankAccountHolder || '',
                 bankCode: worker.bankShortName || worker.bankCode
             });
             if (qrBuffer) {
@@ -678,6 +679,17 @@ async function createServer(options = {}) {
         const url = getVietQRImageUrl({ bin, accountNumber, amount, memo, accountName });
         const emv = generateVietQREmvCo({ bin, accountNumber, amount, memo });
         res.json({ url, emv });
+    });
+
+    app.post('/api/bank-lookup', async (req, res) => {
+        try {
+            const { bin, accountNumber } = req.body;
+            const result = await lookupBankAccount({ bin, accountNumber });
+            res.json(result);
+        } catch (err) {
+            console.error('Bank lookup route error:', err);
+            res.status(500).json({ success: false, message: err.message });
+        }
     });
 
     // Workers
@@ -759,7 +771,7 @@ async function createServer(options = {}) {
                 rowData.push(wageTotal);
                 rowData.push(w.bankShortName || w.bankName || '');
                 rowData.push(w.bankAccount || '');
-                rowData.push(w.bankAccountHolder || w.name || '');
+                rowData.push(w.bankAccountHolder || '');
                 sheet.addRow(rowData);
             });
             res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

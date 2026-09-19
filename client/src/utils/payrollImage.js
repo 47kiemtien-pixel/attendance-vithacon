@@ -103,7 +103,7 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
   let qrImage = null;
   if (worker.bankAccount && (worker.bankBin || worker.bankShortName)) {
     const cleanMemo = `Luong ${worker.name} ${dayjs(dateRange.start).format('DD/MM')}-${dayjs(dateRange.end).format('DD/MM')}`.slice(0, 25);
-    const accountHolder = (worker.bankAccountHolder || worker.name || '').toUpperCase();
+    const accountHolder = (worker.bankAccountHolder || '').toUpperCase();
     const qrUrl = `https://img.vietqr.io/image/${worker.bankBin}-${worker.bankAccount}-compact2.png?amount=${netSalary > 0 ? netSalary : ''}&addInfo=${encodeURIComponent(cleanMemo)}&accountName=${encodeURIComponent(accountHolder)}`;
     qrImage = await loadQrImage(qrUrl);
   }
@@ -421,7 +421,7 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
     ctx.fillText('Người thụ hưởng:', paddingX + textOffset, rowY3);
     ctx.fillStyle = '#0f172a';
     ctx.font = 'bold 15px Inter, Arial, sans-serif';
-    ctx.fillText((worker.bankAccountHolder || worker.name || '').toUpperCase(), paddingX + textOffset + 155, rowY3);
+    ctx.fillText(worker.bankAccountHolder ? worker.bankAccountHolder.toUpperCase() : '-', paddingX + textOffset + 155, rowY3);
 
     ctx.fillStyle = '#475569';
     ctx.font = '500 13px Inter, Arial, sans-serif';

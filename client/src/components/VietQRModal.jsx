@@ -34,7 +34,7 @@ const VietQRModal = ({
 
   const bin = currentWorker.bankBin || '';
   const accountNumber = currentWorker.bankAccount || '';
-  const accountHolder = (currentWorker.bankAccountHolder || currentWorker.name || '').toUpperCase();
+  const accountHolder = (currentWorker.bankAccountHolder || '').toUpperCase();
   const bankName = currentWorker.bankShortName || currentWorker.bankName || 'Ngân hàng';
   const cleanMemo = currentWorker.memo || memo || `Luong ${currentWorker.name}`;
   const cleanAmount = Number(currentWorker.amount ?? amount ?? 0);
