@@ -93,18 +93,19 @@ const WorkerModal = ({
     }
   }, [isOpen, worker]);
 
-  const triggerLookup = async (bin, accountNumber, force = false) => {
+  const triggerLookup = async (bin, accountNumber, force = false, workerName = null) => {
     const cleanBin = String(bin || '').trim();
     const cleanAcc = String(accountNumber || '').trim().replace(/\s+/g, '');
     if (!cleanBin || cleanAcc.length < 6) return;
 
-    const key = `${cleanBin}:${cleanAcc}`;
+    const currentWorkerName = workerName !== null ? workerName : (formData.name || '');
+    const key = `${cleanBin}:${cleanAcc}:${currentWorkerName}`;
     if (!force && lastLookedUpRef.current === key) return;
 
     setLookupLoading(true);
     setLookupStatus(null);
     try {
-      const res = await lookupBankAccount(cleanBin, cleanAcc);
+      const res = await lookupBankAccount(cleanBin, cleanAcc, currentWorkerName);
       lastLookedUpRef.current = key;
       if (res && res.success && res.accountName) {
         setFormData((curr) => ({
@@ -122,7 +123,7 @@ const WorkerModal = ({
     }
   };
 
-  // Debounced auto-lookup on STK or bank change
+  // Debounced auto-lookup on STK, bank or worker name change
   useEffect(() => {
     if (!isOpen) return;
     if (lookupTimerRef.current) clearTimeout(lookupTimerRef.current);
@@ -132,14 +133,14 @@ const WorkerModal = ({
 
     if (cleanBin && cleanAcc.length >= 6) {
       lookupTimerRef.current = setTimeout(() => {
-        triggerLookup(cleanBin, cleanAcc);
-      }, 650);
+        triggerLookup(cleanBin, cleanAcc, false, formData.name);
+      }, 550);
     }
 
     return () => {
       if (lookupTimerRef.current) clearTimeout(lookupTimerRef.current);
     };
-  }, [formData.bankBin, formData.bankAccount, isOpen]);
+  }, [formData.bankBin, formData.bankAccount, formData.name, isOpen]);
 
   // Handle ESC key to close
   useEffect(() => {

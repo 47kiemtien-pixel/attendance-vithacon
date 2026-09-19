@@ -684,8 +684,8 @@ async function createServer(options = {}) {
 
     app.post('/api/bank-lookup', async (req, res) => {
         try {
-            const { bin, accountNumber } = req.body;
-            const result = await lookupBankAccount({ bin, accountNumber });
+            const { bin, accountNumber, workerName } = req.body;
+            const result = await lookupBankAccount({ bin, accountNumber, workerName, store });
             res.json(result);
         } catch (err) {
             console.error('Bank lookup route error:', err);

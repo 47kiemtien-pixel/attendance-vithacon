@@ -182,9 +182,9 @@ async function getVietQRImageBuffer({ bin, accountNumber, amount, memo, accountN
     return null;
 }
 
-async function lookupBankAccount({ bin, accountNumber }) {
+async function lookupBankAccount({ bin, accountNumber, workerName, store }) {
     const { lookupAccountWithCas } = require('./cas');
-    return await lookupAccountWithCas({ bin, accountNumber });
+    return await lookupAccountWithCas({ bin, accountNumber, workerName, store });
 }
 
 module.exports = {
