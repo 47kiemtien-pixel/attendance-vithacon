@@ -75,7 +75,7 @@ const Reports = () => {
     }
 
     let label = '';
-    if (exportType === 'week') {
+    if (exportType === 'week' || exportType === 'last_week') {
       label = `Tuần ${dayjs(startDate).format('DD/MM')} - ${dayjs(endDate).format('DD/MM/YYYY')}`;
     } else if (exportType === 'month') {
       label = `Tháng ${dayjs(startDate).format('MM/YYYY')}`;
@@ -98,6 +98,9 @@ const Reports = () => {
     if (type === 'week') {
       setStartDate(dayjs().startOf('week').add(1, 'day').format('YYYY-MM-DD')); // Monday
       setEndDate(dayjs().startOf('week').add(7, 'day').format('YYYY-MM-DD')); // Sunday
+    } else if (type === 'last_week') {
+      setStartDate(dayjs().subtract(1, 'week').startOf('week').add(1, 'day').format('YYYY-MM-DD')); // Monday last week
+      setEndDate(dayjs().subtract(1, 'week').startOf('week').add(7, 'day').format('YYYY-MM-DD')); // Sunday last week
     } else if (type === 'month') {
       setStartDate(dayjs().startOf('month').format('YYYY-MM-DD'));
       setEndDate(dayjs().endOf('month').format('YYYY-MM-DD'));
@@ -191,6 +194,13 @@ const Reports = () => {
                   onClick={() => handleExportTypeChange('week')}
                 >
                   Theo tuần
+                </button>
+                <button 
+                  type="button"
+                  className={`segment-btn ${exportType === 'last_week' ? 'active' : ''}`} 
+                  onClick={() => handleExportTypeChange('last_week')}
+                >
+                  Tuần trước
                 </button>
                 <button 
                   type="button"
