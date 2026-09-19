@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getSettings, saveSettings, exportBackup, importBackup } from '../api';
-import { Settings, Plus, Trash2, Save, Download, Upload, Database } from 'lucide-react';
+import { Settings, Plus, Trash2, Save, Download, Upload, Database, Landmark, KeyRound } from 'lucide-react';
 import CurrencyInput from './CurrencyInput';
 import { useToast } from './Toast';
 
@@ -14,6 +14,8 @@ const normalizePreset = (preset) => ({
 const SettingsComponent = () => {
   const toast = useToast();
   const [presets, setPresets] = useState([]);
+  const [vietqrClientId, setVietqrClientId] = useState('');
+  const [vietqrApiKey, setVietqrApiKey] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -26,6 +28,8 @@ const SettingsComponent = () => {
     try {
       const data = await getSettings();
       setPresets((data.presetJobs || []).map(normalizePreset));
+      setVietqrClientId(data.vietqrClientId || '');
+      setVietqrApiKey(data.vietqrApiKey || '');
     } catch (error) {
       console.error('Error fetching settings:', error);
     } finally {
@@ -40,7 +44,9 @@ const SettingsComponent = () => {
         presetJobs: presets.map((preset) => ({
           ...preset,
           name: [preset.position, preset.location].filter(Boolean).join(' - ')
-        }))
+        })),
+        vietqrClientId: vietqrClientId.trim(),
+        vietqrApiKey: vietqrApiKey.trim()
       });
       toast.success('Đã lưu cấu hình thành công!');
     } catch (error) {
@@ -185,6 +191,43 @@ const SettingsComponent = () => {
             </table>
           </div>
         )}
+      </section>
+
+      <section className="panel compact-panel" style={{ marginTop: '20px' }}>
+        <div className="toolbar-row">
+          <div>
+            <div className="panel-kicker">Tùy chọn nâng cao</div>
+            <h2 className="page-title compact-title" style={{ fontSize: '18px' }}>
+              <Landmark size={20} color="var(--primary)" /> Kết nối API VietQR (Tra cứu STK tự động)
+            </h2>
+          </div>
+        </div>
+        <div className="toolbar-meta" style={{ marginBottom: '15px' }}>
+          <span>Nếu có tài khoản tại <strong>my.vietqr.io</strong> (Casso), bạn có thể nhập Client ID và API Key để hệ thống tự trích xuất tên chủ tài khoản từ ngân hàng. Nếu không dùng, bạn chỉ cần nhập tay hoặc bấm nút lấy theo tên công nhân.</span>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '15px' }}>
+          <div>
+            <label className="form-label">Client ID (x-client-id)</label>
+            <input
+              type="text"
+              className="form-input"
+              value={vietqrClientId}
+              onChange={(e) => setVietqrClientId(e.target.value)}
+              placeholder="Nhập Client ID..."
+            />
+          </div>
+          <div>
+            <label className="form-label">API Key (x-api-key)</label>
+            <input
+              type="password"
+              className="form-input"
+              value={vietqrApiKey}
+              onChange={(e) => setVietqrApiKey(e.target.value)}
+              placeholder="Nhập API Key..."
+            />
+          </div>
+        </div>
       </section>
 
       <section className="panel compact-panel" style={{ marginTop: '20px' }}>

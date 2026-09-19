@@ -15,7 +15,8 @@ import {
   EyeOff,
   Trash2,
   Loader2,
-  Search
+  Search,
+  Copy
 } from 'lucide-react';
 import CurrencyInput from './CurrencyInput';
 import BankSelector from './BankSelector';
@@ -102,26 +103,30 @@ const WorkerModal = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  const triggerAccountLookup = async (targetBin, targetAccount) => {
+  const triggerAccountLookup = async (targetBin, targetAccount, isAuto = false) => {
     const bin = targetBin || formData.bankBin;
     const account = targetAccount || formData.bankAccount;
     if (!bin) {
-      setLookupStatus({
-        type: 'warning',
-        message: 'Vui lòng chọn ngân hàng trước khi tra cứu STK.'
-      });
+      if (!isAuto) {
+        setLookupStatus({
+          type: 'warning',
+          message: 'Vui lòng chọn ngân hàng trước khi tra cứu STK.'
+        });
+      }
       return;
     }
     if (!account || account.trim().length < 5) {
-      setLookupStatus({
-        type: 'warning',
-        message: 'Vui lòng nhập số tài khoản hợp lệ (tối thiểu 5 số).'
-      });
+      if (!isAuto) {
+        setLookupStatus({
+          type: 'warning',
+          message: 'Vui lòng nhập số tài khoản hợp lệ (tối thiểu 5 số).'
+        });
+      }
       return;
     }
 
     setIsLookingUp(true);
-    setLookupStatus(null);
+    if (!isAuto) setLookupStatus(null);
     try {
       const res = await lookupBankAccount(bin, account.trim());
       if (res && res.success && res.accountName) {
@@ -131,20 +136,32 @@ const WorkerModal = ({
           type: 'success',
           message: `✓ Đã tự động trích xuất: ${uppercaseName}`
         });
-      } else {
+      } else if (!isAuto) {
         setLookupStatus({
           type: 'warning',
           message: res?.message || 'Không thể tự trích xuất từ ngân hàng. Vui lòng nhập tay tên người thụ hưởng.'
         });
       }
     } catch (err) {
-      setLookupStatus({
-        type: 'warning',
-        message: 'Hệ thống chưa thể tự trích xuất lúc này. Vui lòng nhập tay tên người thụ hưởng.'
-      });
+      if (!isAuto) {
+        setLookupStatus({
+          type: 'warning',
+          message: 'Hệ thống chưa thể tự trích xuất lúc này. Vui lòng nhập tay tên người thụ hưởng.'
+        });
+      }
     } finally {
       setIsLookingUp(false);
     }
+  };
+
+  const handleCopyWorkerName = () => {
+    if (!formData.name) return;
+    const formatted = formatBeneficiaryName(formData.name);
+    setFormData((c) => ({ ...c, bankAccountHolder: formatted }));
+    setLookupStatus({
+      type: 'success',
+      message: `✓ Đã lấy theo tên công nhân: ${formatted}`
+    });
   };
 
   // Debounced auto-lookup when bank account is entered and bank is selected
@@ -158,7 +175,7 @@ const WorkerModal = ({
       return;
     }
     const timer = setTimeout(() => {
-      triggerAccountLookup(formData.bankBin, formData.bankAccount);
+      triggerAccountLookup(formData.bankBin, formData.bankAccount, true);
     }, 600);
     return () => clearTimeout(timer);
   }, [formData.bankBin, formData.bankAccount]);
@@ -593,7 +610,7 @@ const WorkerModal = ({
                       bankShortName: b.shortName || b.code || ''
                     }));
                     if (newBin && formData.bankAccount && formData.bankAccount.trim().length >= 6) {
-                      triggerAccountLookup(newBin, formData.bankAccount);
+                      triggerAccountLookup(newBin, formData.bankAccount, true);
                     }
                   }}
                 />
@@ -624,7 +641,10 @@ const WorkerModal = ({
                     {formData.bankAccount && (
                       <button
                         type="button"
-                        onClick={() => setFormData((c) => ({ ...c, bankAccount: '', bankAccountHolder: '' }))}
+                        onClick={() => {
+                          setFormData((c) => ({ ...c, bankAccount: '', bankAccountHolder: '' }));
+                          setLookupStatus(null);
+                        }}
                         style={{
                           border: 'none',
                           background: '#f1f5f9',
@@ -646,40 +666,63 @@ const WorkerModal = ({
                 </div>
 
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', flexWrap: 'wrap', gap: '6px' }}>
                     <label className="form-label" style={{ fontSize: '0.84rem', fontWeight: '600', margin: 0 }}>
                       Tên người thụ hưởng
                     </label>
-                    {formData.bankBin && formData.bankAccount && (
-                      <button
-                        type="button"
-                        onClick={() => triggerAccountLookup(formData.bankBin, formData.bankAccount)}
-                        disabled={isLookingUp}
-                        style={{
-                          border: 'none',
-                          background: 'transparent',
-                          color: isLookingUp ? '#94a3b8' : 'var(--primary, #0f766e)',
-                          fontSize: '0.78rem',
-                          fontWeight: '600',
-                          cursor: isLookingUp ? 'not-allowed' : 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: 0
-                        }}
-                        title="Bấm để hệ thống tự động trích xuất tên chủ tài khoản từ ngân hàng"
-                      >
-                        {isLookingUp ? (
-                          <>
-                            <Loader2 size={13} className="animate-spin" /> Đang trích xuất...
-                          </>
-                        ) : (
-                          <>
-                            <Search size={13} /> Trích xuất tên
-                          </>
-                        )}
-                      </button>
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {formData.name && (
+                        <button
+                          type="button"
+                          onClick={handleCopyWorkerName}
+                          style={{
+                            border: 'none',
+                            background: 'transparent',
+                            color: '#0284c7',
+                            fontSize: '0.78rem',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                            padding: 0
+                          }}
+                          title="Bấm để lấy theo tên công nhân (chữ in hoa chuẩn)"
+                        >
+                          <Copy size={12} /> Lấy theo tên công nhân
+                        </button>
+                      )}
+                      {formData.bankBin && formData.bankAccount && (
+                        <button
+                          type="button"
+                          onClick={() => triggerAccountLookup(formData.bankBin, formData.bankAccount, false)}
+                          disabled={isLookingUp}
+                          style={{
+                            border: 'none',
+                            background: 'transparent',
+                            color: isLookingUp ? '#94a3b8' : 'var(--primary, #0f766e)',
+                            fontSize: '0.78rem',
+                            fontWeight: '600',
+                            cursor: isLookingUp ? 'not-allowed' : 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                            padding: 0
+                          }}
+                          title="Bấm để hệ thống tra cứu tên chủ tài khoản từ ngân hàng"
+                        >
+                          {isLookingUp ? (
+                            <>
+                              <Loader2 size={12} className="animate-spin" /> Đang tra cứu...
+                            </>
+                          ) : (
+                            <>
+                              <Search size={12} /> Trích xuất tên
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="workers-input-shell" style={{ background: '#ffffff', height: '44px' }}>
                     <UserCheck size={18} color="var(--primary)" />
@@ -689,7 +732,7 @@ const WorkerModal = ({
                       className="form-input workers-shell-input"
                       value={formData.bankAccountHolder}
                       onChange={handleInputChange}
-                      placeholder="Tự động trích xuất hoặc nhập tay..."
+                      placeholder="Nhập họ tên người thụ hưởng (nếu khác tên công nhân)..."
                       style={{ textTransform: 'uppercase', fontWeight: '600' }}
                     />
                   </div>
