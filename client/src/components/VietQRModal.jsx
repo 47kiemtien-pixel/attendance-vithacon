@@ -35,13 +35,16 @@ const VietQRModal = ({
   const bin = currentWorker.bankBin || '';
   const accountNumber = currentWorker.bankAccount || '';
   const accountHolder = (currentWorker.bankAccountHolder || '').toUpperCase();
-  const bankName = currentWorker.bankShortName || currentWorker.bankName || 'Ngân hàng';
-  const cleanMemo = currentWorker.memo || memo || `Luong ${currentWorker.name}`;
+  const cleanMemo = currentWorker.memo || memo || '';
   const cleanAmount = Number(currentWorker.amount ?? amount ?? 0);
 
-  const qrImageUrl = bin && accountNumber
-    ? `https://img.vietqr.io/image/${bin}-${accountNumber}-compact2.png?amount=${cleanAmount > 0 ? cleanAmount : ''}&addInfo=${encodeURIComponent(cleanMemo)}&accountName=${encodeURIComponent(accountHolder)}`
-    : '';
+  let qrImageUrl = '';
+  if (bin && accountNumber) {
+    qrImageUrl = `https://img.vietqr.io/image/${bin}-${accountNumber}-compact2.png?amount=${cleanAmount > 0 ? cleanAmount : ''}&accountName=${encodeURIComponent(accountHolder)}`;
+    if (cleanMemo) {
+      qrImageUrl += `&addInfo=${encodeURIComponent(cleanMemo)}`;
+    }
+  }
 
   const handleCopy = (text, field) => {
     if (!text) return;
@@ -387,35 +390,37 @@ const VietQRModal = ({
               </div>
             )}
 
-            {/* Nội dung chuyển khoản */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Nội dung CK:</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                  {cleanMemo}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleCopy(cleanMemo, 'memo')}
-                  title="Sao chép nội dung"
-                  style={{
-                    border: 'none',
-                    background: 'rgba(15, 118, 110, 0.1)',
-                    color: 'var(--primary, #0f766e)',
-                    padding: '3px 8px',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '0.75rem',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  {copiedField === 'memo' ? <Check size={12} /> : <Copy size={12} />}
-                  {copiedField === 'memo' ? 'Đã chép' : 'Chép'}
-                </button>
+            {/* Nội dung chuyển khoản (nếu có) */}
+            {cleanMemo ? (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Nội dung CK:</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                    {cleanMemo}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(cleanMemo, 'memo')}
+                    title="Sao chép nội dung"
+                    style={{
+                      border: 'none',
+                      background: 'rgba(15, 118, 110, 0.1)',
+                      color: 'var(--primary, #0f766e)',
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '0.75rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    {copiedField === 'memo' ? <Check size={12} /> : <Copy size={12} />}
+                    {copiedField === 'memo' ? 'Đã chép' : 'Chép'}
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
         </div>
 

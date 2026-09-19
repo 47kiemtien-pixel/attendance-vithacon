@@ -148,21 +148,12 @@ const Reports = () => {
     const selectedWorkers = workers.filter((w) => workerIds.includes(String(w.id)));
     if (!selectedWorkers.length) return;
 
-    let memoLabel = '';
-    if (exportType === 'week') {
-      memoLabel = `Luong ${dayjs(startDate).format('DD/MM')}-${dayjs(endDate).format('DD/MM')}`;
-    } else if (exportType === 'month') {
-      memoLabel = `Luong T${dayjs(startDate).format('MM/YYYY')}`;
-    } else {
-      memoLabel = `Luong ${dayjs(startDate).format('DD/MM')}-${dayjs(endDate).format('DD/MM')}`;
-    }
-
     const preparedList = selectedWorkers.map((w) => {
       const salary = calculateWorkerSalary(w, { start: startDate, end: endDate }, attendance);
       return {
         ...w,
         amount: salary,
-        memo: `${memoLabel} ${w.name}`.slice(0, 25)
+        memo: ''
       };
     });
 

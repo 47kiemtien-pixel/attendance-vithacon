@@ -151,7 +151,7 @@ async function buildWorkerReportChildren(worker, dateRange, attendance, options 
                 bin: worker.bankBin,
                 accountNumber: worker.bankAccount,
                 amount: netSalary > 0 ? netSalary : 0,
-                memo: `Luong ${worker.name}`,
+                memo: '',
                 accountName: worker.bankAccountHolder || '',
                 bankCode: worker.bankShortName || worker.bankCode
             });
@@ -614,7 +614,7 @@ async function addWorkerReportSheet(workbook, worker, dateRange, attendance, ind
                 bin: worker.bankBin,
                 accountNumber: worker.bankAccount,
                 amount: netSalary > 0 ? netSalary : 0,
-                memo: `Luong ${worker.name}`,
+                memo: '',
                 accountName: worker.bankAccountHolder || '',
                 bankCode: worker.bankShortName || worker.bankCode
             });

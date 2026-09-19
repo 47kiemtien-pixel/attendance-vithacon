@@ -102,9 +102,8 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
   // Prepare QR Code if bank account exists
   let qrImage = null;
   if (worker.bankAccount && (worker.bankBin || worker.bankShortName)) {
-    const cleanMemo = `Luong ${worker.name} ${dayjs(dateRange.start).format('DD/MM')}-${dayjs(dateRange.end).format('DD/MM')}`.slice(0, 25);
     const accountHolder = (worker.bankAccountHolder || '').toUpperCase();
-    const qrUrl = `https://img.vietqr.io/image/${worker.bankBin}-${worker.bankAccount}-compact2.png?amount=${netSalary > 0 ? netSalary : ''}&addInfo=${encodeURIComponent(cleanMemo)}&accountName=${encodeURIComponent(accountHolder)}`;
+    const qrUrl = `https://img.vietqr.io/image/${worker.bankBin}-${worker.bankAccount}-compact2.png?amount=${netSalary > 0 ? netSalary : ''}&accountName=${encodeURIComponent(accountHolder)}`;
     qrImage = await loadQrImage(qrUrl);
   }
 
@@ -396,11 +395,10 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
 
     const textOffset = qrImage ? (qrBoxWidth + 30) : 20;
 
-    const rowY1 = qrImage ? y + 54 : y + 28;
-    const rowY2 = qrImage ? y + 128 : y + 58;
-    const rowY3 = qrImage ? y + 202 : y + 88;
-    const rowY4 = qrImage ? y + 278 : y + 118;
-    const rowY5 = qrImage ? y + 352 : y + 148;
+    const rowY1 = qrImage ? y + 68 : y + 32;
+    const rowY2 = qrImage ? y + 155 : y + 68;
+    const rowY3 = qrImage ? y + 242 : y + 104;
+    const rowY4 = qrImage ? y + 330 : y + 140;
 
     ctx.fillStyle = '#475569';
     ctx.font = '500 13px Inter, Arial, sans-serif';
@@ -429,13 +427,6 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
     ctx.fillStyle = '#15803d';
     ctx.font = 'bold 20px Inter, Arial, sans-serif';
     ctx.fillText(formatVndCurrency(netSalary) + ' VNĐ', paddingX + textOffset + 155, rowY4);
-
-    ctx.fillStyle = '#475569';
-    ctx.font = '500 13px Inter, Arial, sans-serif';
-    ctx.fillText('Nội dung chuyển tiền:', paddingX + textOffset, rowY5);
-    ctx.fillStyle = '#1e293b';
-    ctx.font = '600 14px Inter, Arial, sans-serif';
-    ctx.fillText(`Luong ${worker.name}`, paddingX + textOffset + 155, rowY5);
 
     // Draw QR Code on the left side (maximally enlarged and tall to match VietQR natural portrait ratio)
     if (qrImage) {
