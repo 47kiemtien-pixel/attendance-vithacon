@@ -323,9 +323,9 @@ const VietQRModal = ({
               </div>
             </div>
 
-            {/* Chủ tài khoản */}
+            {/* Người thụ hưởng */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Chủ tài khoản:</span>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Người thụ hưởng:</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontWeight: '600', fontSize: '0.9rem', color: 'var(--text)' }}>
                   {accountHolder || '-'}
@@ -334,7 +334,7 @@ const VietQRModal = ({
                   <button
                     type="button"
                     onClick={() => handleCopy(accountHolder, 'name')}
-                    title="Sao chép tên chủ tài khoản"
+                    title="Sao chép tên người thụ hưởng"
                     style={{
                       border: 'none',
                       background: 'rgba(15, 118, 110, 0.1)',

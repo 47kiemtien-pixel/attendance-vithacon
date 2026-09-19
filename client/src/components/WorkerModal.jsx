@@ -595,7 +595,7 @@ const WorkerModal = ({
 
                 <div>
                   <label className="form-label" style={{ fontSize: '0.84rem', fontWeight: '600', marginBottom: '4px' }}>
-                    Tên người thụ hưởng (Chủ tài khoản)
+                    Tên người thụ hưởng
                   </label>
                   <div className="workers-input-shell" style={{ background: '#ffffff', height: '44px' }}>
                     <UserCheck size={18} color="var(--primary)" />

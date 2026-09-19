@@ -406,7 +406,7 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
 
     ctx.fillStyle = '#475569';
     ctx.font = '500 13px Inter, Arial, sans-serif';
-    ctx.fillText('Chủ tài khoản:', paddingX + textOffset, rowY3);
+    ctx.fillText('Người thụ hưởng:', paddingX + textOffset, rowY3);
     ctx.fillStyle = '#0f172a';
     ctx.font = 'bold 14px Inter, Arial, sans-serif';
     ctx.fillText((worker.bankAccountHolder || worker.name || '').toUpperCase(), paddingX + textOffset + 155, rowY3);
