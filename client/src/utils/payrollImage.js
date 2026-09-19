@@ -58,7 +58,7 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
     let wage = 0;
 
     if (rec?.status === 'Full') {
-      statusText = 'CÔNG';
+      statusText = 'ĐỦ CÔNG';
       statusType = 'full';
       totalWorkDays += 1;
       wage = rate;
@@ -99,42 +99,47 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
 
   const netSalary = totalWage;
 
-  // Prepare QR Code if bank account exists (without pre-filled amount and memo)
+  // Prepare QR Code if bank account exists
+  // Uses 'compact' template so that NO 'Số tiền: 0đ' or memo footer is generated
   let qrImage = null;
   if (worker.bankAccount && (worker.bankBin || worker.bankShortName)) {
     const accountHolder = (worker.bankAccountHolder || '').toUpperCase();
     const query = accountHolder ? `?accountName=${encodeURIComponent(accountHolder)}` : '';
-    const qrUrl = `https://img.vietqr.io/image/${worker.bankBin}-${worker.bankAccount}-compact2.png${query}`;
+    // template 'compact' has VietQR header & Bank/Napas footer, without any default amount box
+    const qrUrl = `https://img.vietqr.io/image/${worker.bankBin}-${worker.bankAccount}-compact.png${query}`;
     qrImage = await loadQrImage(qrUrl);
   }
 
   // Layout Dimensions & Scale
   const scale = 2; // High-resolution retina export
-  const canvasWidth = 860;
-  const paddingX = 36;
-  const contentWidth = canvasWidth - paddingX * 2;
+  const canvasWidth = 880;
+  const paddingX = 40;
+  const contentWidth = canvasWidth - paddingX * 2; // 800px
 
-  // Natural aspect ratio of VietQR compact2 image (~540x640 => ~1.185)
-  const naturalAspect = (qrImage && qrImage.height && qrImage.width)
-    ? (qrImage.height / qrImage.width)
-    : (640 / 540);
-
-  const qrDrawWidth = 280;
-  const qrDrawHeight = Math.round(qrDrawWidth * naturalAspect); // ~332px
-  const qrBoxWidth = qrDrawWidth + 24; // 304px
-  const qrBoxHeight = qrDrawHeight + 24; // ~356px
+  // QR display dimensions (square for compact template: 540x540)
+  const qrBoxSize = 250;
+  const qrImageSize = 230;
 
   const topPadding = 32;
-  const headerSectionHeight = 84;
-  const workerCardHeight = 82;
-  const tableHeaderHeight = 38;
-  const rowHeight = 32;
-  const tableTotalHeight = tableHeaderHeight + rows.length * rowHeight + 38;
-  const netSalaryHeight = 64;
-  const paymentSectionHeight = qrImage ? (qrBoxHeight + 52) : (worker.bankAccount ? 150 : 64);
-  const footerHeight = 44;
+  const headerSectionHeight = 118;
+  const workerCardHeight = 84;
+  const tableHeaderHeight = 40;
+  const rowHeight = 34;
+  const tableTotalHeight = tableHeaderHeight + rows.length * rowHeight + 40;
+  const netSalaryHeight = 60;
+  const paymentSectionHeight = qrImage ? (qrBoxSize + 48) : (worker.bankAccount ? 120 : 70);
+  const signatureSectionHeight = 100;
+  const footerHeight = 40;
 
-  const canvasHeight = topPadding + headerSectionHeight + workerCardHeight + tableTotalHeight + netSalaryHeight + paymentSectionHeight + footerHeight + 48;
+  const canvasHeight = topPadding 
+    + headerSectionHeight 
+    + workerCardHeight 
+    + tableTotalHeight 
+    + netSalaryHeight 
+    + paymentSectionHeight 
+    + signatureSectionHeight 
+    + footerHeight 
+    + 60;
 
   const canvas = document.createElement('canvas');
   canvas.width = canvasWidth * scale;
@@ -146,123 +151,148 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-  // Outer subtle border
+  // Outer elegant frame border
   ctx.strokeStyle = '#e2e8f0';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(12, 12, canvasWidth - 24, canvasHeight - 24);
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(14, 14, canvasWidth - 28, canvasHeight - 28);
 
-  // Top Accent Brand Line
-  const topGrad = ctx.createLinearGradient(12, 12, canvasWidth - 12, 12);
+  // Top Accent Brand Bar
+  const topGrad = ctx.createLinearGradient(14, 14, canvasWidth - 14, 14);
   topGrad.addColorStop(0, '#0f766e');
   topGrad.addColorStop(1, '#0e7490');
   ctx.fillStyle = topGrad;
-  ctx.fillRect(12, 12, canvasWidth - 24, 6);
+  ctx.fillRect(14, 14, canvasWidth - 28, 6);
 
-  let y = topPadding + 10;
+  let y = topPadding + 6;
 
-  // 1. Header Section: Company Name & Title
+  // 1. Header Section: Corporate Metadata & Document Title
   ctx.textAlign = 'center';
   ctx.fillStyle = '#0f766e';
-  ctx.font = 'bold 13.5px Inter, "Segoe UI", Arial, sans-serif';
+  ctx.font = 'bold 14px "Plus Jakarta Sans", "Segoe UI", Arial, sans-serif';
   ctx.letterSpacing = '0.5px';
   ctx.fillText('CÔNG TY TNHH CƠ KHÍ XÂY DỰNG THƯƠNG MẠI VIỆT THÀNH', canvasWidth / 2, y);
 
+  y += 20;
+  ctx.fillStyle = '#64748b';
+  ctx.font = '600 11px "Plus Jakarta Sans", "Segoe UI", Arial, sans-serif';
+  ctx.letterSpacing = '1px';
+  ctx.fillText('HỆ THỐNG QUẢN LÝ THI CÔNG & CHẤM CÔNG NHÂN SỰ', canvasWidth / 2, y);
+
+  y += 16;
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(paddingX + 60, y);
+  ctx.lineTo(canvasWidth - paddingX - 60, y);
+  ctx.stroke();
+
   y += 26;
   ctx.fillStyle = '#0f172a';
-  ctx.font = 'bold 22px Inter, "Segoe UI", Arial, sans-serif';
-  ctx.letterSpacing = '0.2px';
-  ctx.fillText('BẢNG THANH TOÁN TIỀN LƯƠNG', canvasWidth / 2, y);
+  ctx.font = 'bold 22px "Plus Jakarta Sans", "Segoe UI", Arial, sans-serif';
+  ctx.letterSpacing = '0.3px';
+  ctx.fillText('BẢNG THANH TOÁN TIỀN LƯƠNG CHI TIẾT', canvasWidth / 2, y);
 
-  y += 22;
-  ctx.fillStyle = '#64748b';
-  ctx.font = '500 13px Inter, "Segoe UI", Arial, sans-serif';
-  ctx.fillText(`Kỳ tính lương: Từ ngày ${dayjs(dateRange.start).format('DD/MM/YYYY')} đến ngày ${dayjs(dateRange.end).format('DD/MM/YYYY')}`, canvasWidth / 2, y);
+  y += 24;
+  // Sub-bar with Period and Reference Code
+  const periodStr = `Kỳ lương: ${dayjs(dateRange.start).format('DD/MM/YYYY')} - ${dayjs(dateRange.end).format('DD/MM/YYYY')}`;
+  const refCodeStr = `Mã phiếu: PL-${String(worker.id).padStart(3, '0')}/${dayjs(dateRange.end).format('MMYY')}`;
 
-  y += 28;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#475569';
+  ctx.font = '500 12.5px "Plus Jakarta Sans", "Segoe UI", Arial, sans-serif';
+  ctx.fillText(`${periodStr}   •   ${refCodeStr}`, canvasWidth / 2, y);
 
-  // 2. Worker Information Card (Clean, modern 4-cell grid)
+  y += 26;
+
+  // 2. Worker Information Card (Refined 2-column accounting card)
   ctx.fillStyle = '#f8fafc';
   ctx.beginPath();
-  ctx.roundRect(paddingX, y, contentWidth, 72, 8);
+  ctx.roundRect(paddingX, y, contentWidth, workerCardHeight, 10);
   ctx.fill();
   ctx.strokeStyle = '#e2e8f0';
   ctx.lineWidth = 1;
   ctx.stroke();
 
+  // Subtle vertical divider inside worker card
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(paddingX + contentWidth / 2, y + 12);
+  ctx.lineTo(paddingX + contentWidth / 2, y + workerCardHeight - 12);
+  ctx.stroke();
+
   ctx.textAlign = 'left';
-  // Row 1
+  // Column 1: Worker Info
   ctx.fillStyle = '#64748b';
-  ctx.font = '600 12.5px Inter, "Segoe UI", Arial, sans-serif';
-  ctx.fillText('Họ và tên:', paddingX + 20, y + 27);
+  ctx.font = '600 11px "Plus Jakarta Sans", Arial, sans-serif';
+  ctx.fillText('HỌ VÀ TÊN CÔNG NHÂN', paddingX + 20, y + 26);
 
   ctx.fillStyle = '#0f172a';
-  ctx.font = 'bold 15.5px Inter, "Segoe UI", Arial, sans-serif';
-  ctx.fillText(worker.name.toUpperCase(), paddingX + 95, y + 27);
+  ctx.font = 'bold 16px "Plus Jakarta Sans", Arial, sans-serif';
+  ctx.fillText(worker.name.toUpperCase(), paddingX + 20, y + 49);
 
+  ctx.fillStyle = '#475569';
+  ctx.font = '500 12px "Plus Jakarta Sans", Arial, sans-serif';
+  const phoneText = worker.phone || 'Chưa có SĐT';
+  const cccdText = worker.cccd ? `CCCD: ${worker.cccd}` : 'Chưa có CCCD';
+  ctx.fillText(`${phoneText}   •   ${cccdText}`, paddingX + 20, y + 69);
+
+  // Column 2: Salary Rate & Payment Method
+  const col2X = paddingX + contentWidth / 2 + 24;
   ctx.fillStyle = '#64748b';
-  ctx.font = '600 12.5px Inter, "Segoe UI", Arial, sans-serif';
-  ctx.fillText('Mức lương ngày:', paddingX + 450, y + 27);
+  ctx.font = '600 11px "Plus Jakarta Sans", Arial, sans-serif';
+  ctx.fillText('MỨC LƯƠNG ĐƠN GIÁ THEO NGÀY', col2X, y + 26);
 
   ctx.fillStyle = '#0f766e';
-  ctx.font = 'bold 15px Inter, "Segoe UI", Arial, sans-serif';
-  ctx.fillText(formatVndCurrency(worker.dailyRate) + ' / ngày', paddingX + 575, y + 27);
+  ctx.font = 'bold 16px "Plus Jakarta Sans", Arial, sans-serif';
+  ctx.fillText(`${formatVndCurrency(worker.dailyRate)} / ngày`, col2X, y + 49);
 
-  // Row 2
-  ctx.fillStyle = '#64748b';
-  ctx.font = '500 12.5px Inter, "Segoe UI", Arial, sans-serif';
-  ctx.fillText('Số điện thoại:', paddingX + 20, y + 53);
+  ctx.fillStyle = '#475569';
+  ctx.font = '500 12px "Plus Jakarta Sans", Arial, sans-serif';
+  const payMethodText = worker.bankAccount ? 'Hình thức: Chuyển khoản VietQR' : 'Hình thức: Tiền mặt trực tiếp';
+  ctx.fillText(payMethodText, col2X, y + 69);
 
-  ctx.fillStyle = '#1e293b';
-  ctx.font = '600 13px Inter, "Segoe UI", Arial, sans-serif';
-  ctx.fillText(worker.phone || 'Chưa cập nhật', paddingX + 115, y + 53);
+  y += workerCardHeight + 20;
 
-  ctx.fillStyle = '#64748b';
-  ctx.font = '500 12.5px Inter, "Segoe UI", Arial, sans-serif';
-  ctx.fillText('Số CCCD / CMND:', paddingX + 450, y + 53);
-
-  ctx.fillStyle = '#1e293b';
-  ctx.font = '600 13px Inter, "Segoe UI", Arial, sans-serif';
-  ctx.fillText(worker.cccd || 'Chưa cập nhật', paddingX + 575, y + 53);
-
-  y += 86;
-
-  // 3. Attendance Table
+  // 3. Attendance Detail Table
   const cols = [
-    { label: 'STT', width: 46, align: 'center' },
-    { label: 'THỨ / NGÀY', width: 154, align: 'left' },
-    { label: 'ĐỊA ĐIỂM THI CÔNG', width: 190, align: 'left' },
-    { label: 'TRẠNG THÁI', width: 110, align: 'center' },
-    { label: 'TIỀN CÔNG', width: 130, align: 'right' },
-    { label: 'GHI CHÚ', width: contentWidth - 46 - 154 - 190 - 110 - 130, align: 'left' }
+    { label: 'STT', width: 48, align: 'center' },
+    { label: 'THỨ / NGÀY', width: 160, align: 'left' },
+    { label: 'ĐỊA ĐIỂM THI CÔNG', width: 210, align: 'left' },
+    { label: 'TRẠNG THÁI', width: 120, align: 'center' },
+    { label: 'TIỀN CÔNG', width: 132, align: 'right' },
+    { label: 'GHI CHÚ', width: contentWidth - 48 - 160 - 210 - 120 - 132, align: 'left' }
   ];
 
-  // Table Header
+  // Table Header Bar
   ctx.fillStyle = '#0f766e';
   ctx.beginPath();
-  ctx.roundRect(paddingX, y, contentWidth, tableHeaderHeight, [6, 6, 0, 0]);
+  ctx.roundRect(paddingX, y, contentWidth, tableHeaderHeight, [8, 8, 0, 0]);
   ctx.fill();
 
   let colX = paddingX;
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 11.5px Inter, "Segoe UI", Arial, sans-serif';
+  ctx.font = 'bold 11.5px "Plus Jakarta Sans", Arial, sans-serif';
+  ctx.letterSpacing = '0.3px';
 
   cols.forEach((col) => {
-    let textX = colX + 10;
+    let textX = colX + 12;
     if (col.align === 'center') textX = colX + col.width / 2;
-    if (col.align === 'right') textX = colX + col.width - 10;
+    if (col.align === 'right') textX = colX + col.width - 12;
 
     ctx.textAlign = col.align;
-    ctx.fillText(col.label, textX, y + 23);
+    ctx.fillText(col.label, textX, y + 25);
     colX += col.width;
   });
 
   y += tableHeaderHeight;
 
-  // Table Rows
+  // Table Data Rows
   rows.forEach((row, i) => {
     ctx.fillStyle = i % 2 === 0 ? '#ffffff' : '#f8fafc';
     ctx.fillRect(paddingX, y, contentWidth, rowHeight);
 
+    // Row bottom border
     ctx.strokeStyle = '#e2e8f0';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -275,58 +305,76 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
     // STT
     ctx.textAlign = 'center';
     ctx.fillStyle = '#64748b';
-    ctx.font = '12px Inter, Arial, sans-serif';
-    ctx.fillText(String(i + 1), curX + cols[0].width / 2, y + 20);
+    ctx.font = '500 12px "Plus Jakarta Sans", Arial, sans-serif';
+    ctx.fillText(String(i + 1), curX + cols[0].width / 2, y + 21);
     curX += cols[0].width;
 
     // Thứ / Ngày
     ctx.textAlign = 'left';
     ctx.fillStyle = '#0f172a';
-    ctx.font = '600 12px Inter, Arial, sans-serif';
-    ctx.fillText(`${row.dayOfWeek} (${row.dateStr})`, curX + 10, y + 20);
+    ctx.font = '600 12px "Plus Jakarta Sans", Arial, sans-serif';
+    ctx.fillText(`${row.dayOfWeek} (${row.dateStr})`, curX + 12, y + 21);
     curX += cols[1].width;
 
     // Địa điểm
     ctx.textAlign = 'left';
     ctx.fillStyle = '#334155';
-    ctx.font = '12px Inter, Arial, sans-serif';
-    const locText = row.location.length > 25 ? row.location.slice(0, 23) + '...' : row.location;
-    ctx.fillText(locText, curX + 10, y + 20);
+    ctx.font = '500 12px "Plus Jakarta Sans", Arial, sans-serif';
+    const locText = row.location.length > 28 ? row.location.slice(0, 26) + '...' : row.location;
+    ctx.fillText(locText, curX + 12, y + 21);
     curX += cols[2].width;
 
     // Trạng thái badge
     ctx.textAlign = 'center';
     let badgeColor = '#64748b';
     let badgeBg = '#f1f5f9';
-    if (row.statusType === 'full') { badgeColor = '#15803d'; badgeBg = '#dcfce7'; }
-    else if (row.statusType === 'half') { badgeColor = '#0369a1'; badgeBg = '#e0f2fe'; }
-    else if (row.statusType === 'absent') { badgeColor = '#b91c1c'; badgeBg = '#fee2e2'; }
-    else if (row.statusType === 'travel') { badgeColor = '#7e22ce'; badgeBg = '#f3e8ff'; }
-    else if (row.statusType === 'holiday') { badgeColor = '#c2410c'; badgeBg = '#ffedd5'; }
-    else if (row.statusType === 'leave') { badgeColor = '#475569'; badgeBg = '#f1f5f9'; }
+    let badgeBorder = '#e2e8f0';
+
+    if (row.statusType === 'full') {
+      badgeColor = '#059669'; badgeBg = '#ecfdf5'; badgeBorder = '#a7f3d0';
+    } else if (row.statusType === 'half') {
+      badgeColor = '#0284c7'; badgeBg = '#f0f9ff'; badgeBorder = '#bae6fd';
+    } else if (row.statusType === 'absent') {
+      badgeColor = '#dc2626'; badgeBg = '#fef2f2'; badgeBorder = '#fecaca';
+    } else if (row.statusType === 'travel') {
+      badgeColor = '#9333ea'; badgeBg = '#faf5ff'; badgeBorder = '#e9d5ff';
+    } else if (row.statusType === 'holiday') {
+      badgeColor = '#ea580c'; badgeBg = '#fff7ed'; badgeBorder = '#fed7aa';
+    } else if (row.statusType === 'leave') {
+      badgeColor = '#475569'; badgeBg = '#f1f5f9'; badgeBorder = '#e2e8f0';
+    }
+
+    const badgeW = 86;
+    const badgeH = 22;
+    const badgeX = curX + (cols[3].width - badgeW) / 2;
+    const badgeY = y + (rowHeight - badgeH) / 2;
 
     ctx.fillStyle = badgeBg;
     ctx.beginPath();
-    ctx.roundRect(curX + (cols[3].width - 80) / 2, y + 6, 80, 20, 10);
+    ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 11);
     ctx.fill();
 
+    ctx.strokeStyle = badgeBorder;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
     ctx.fillStyle = badgeColor;
-    ctx.font = 'bold 10.5px Inter, Arial, sans-serif';
-    ctx.fillText(row.statusText, curX + cols[3].width / 2, y + 20);
+    ctx.font = 'bold 11px "Plus Jakarta Sans", Arial, sans-serif';
+    ctx.fillText(row.statusText, curX + cols[3].width / 2, y + 21);
     curX += cols[3].width;
 
-    // Tiền công
+    // Tiền công (clean formatted currency without double VNĐ)
     ctx.textAlign = 'right';
     ctx.fillStyle = row.wage > 0 ? '#0f766e' : '#94a3b8';
-    ctx.font = '600 12px Inter, Arial, sans-serif';
-    ctx.fillText(row.wage > 0 ? formatVndCurrency(row.wage) : '-', curX + cols[4].width - 10, y + 20);
+    ctx.font = '600 12.5px "Plus Jakarta Sans", Arial, sans-serif';
+    ctx.fillText(row.wage > 0 ? formatVndCurrency(row.wage) : '-', curX + cols[4].width - 12, y + 21);
     curX += cols[4].width;
 
     // Ghi chú
     ctx.textAlign = 'left';
     ctx.fillStyle = '#64748b';
-    ctx.font = 'italic 11px Inter, Arial, sans-serif';
-    ctx.fillText(row.note || '-', curX + 10, y + 20);
+    ctx.font = 'italic 11.5px "Plus Jakarta Sans", Arial, sans-serif';
+    ctx.fillText(row.note || '-', curX + 12, y + 21);
 
     y += rowHeight;
   });
@@ -334,150 +382,248 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
   // Table Summary Row
   ctx.fillStyle = '#f1f5f9';
   ctx.beginPath();
-  ctx.roundRect(paddingX, y, contentWidth, 38, [0, 0, 6, 6]);
+  ctx.roundRect(paddingX, y, contentWidth, 40, [0, 0, 8, 8]);
   ctx.fill();
 
   ctx.strokeStyle = '#cbd5e1';
-  ctx.lineWidth = 1.2;
+  ctx.lineWidth = 1;
   ctx.stroke();
 
   ctx.fillStyle = '#0f172a';
-  ctx.font = 'bold 12.5px Inter, Arial, sans-serif';
+  ctx.font = 'bold 12.5px "Plus Jakarta Sans", Arial, sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText('TỔNG CỘNG', paddingX + 16, y + 24);
+  ctx.fillText('TỔNG CỘNG', paddingX + 16, y + 25);
 
   ctx.fillStyle = '#0369a1';
-  ctx.font = 'bold 12.5px Inter, Arial, sans-serif';
-  ctx.fillText(`Tổng ngày công: ${totalWorkDays} công`, paddingX + 160, y + 24);
+  ctx.font = 'bold 12.5px "Plus Jakarta Sans", Arial, sans-serif';
+  ctx.fillText(`Tổng ngày công: ${totalWorkDays} công`, paddingX + 150, y + 25);
 
   ctx.textAlign = 'right';
   ctx.fillStyle = '#0f766e';
-  ctx.font = 'bold 13.5px Inter, Arial, sans-serif';
-  ctx.fillText(formatVndCurrency(totalWage) + ' VNĐ', paddingX + cols[0].width + cols[1].width + cols[2].width + cols[3].width + cols[4].width - 10, y + 24);
+  ctx.font = 'bold 14px "Plus Jakarta Sans", Arial, sans-serif';
+  // Use exact formatVndCurrency (returns '... ₫', no redundant VNĐ appended)
+  ctx.fillText(formatVndCurrency(totalWage), paddingX + cols[0].width + cols[1].width + cols[2].width + cols[3].width + cols[4].width - 12, y + 25);
 
-  y += 52;
+  y += 54;
 
-  // 4. Net Salary Banner (Clean corporate highlight banner)
+  // 4. Net Salary Banner (Tổng Lương Thực Nhận)
   const netBoxGrad = ctx.createLinearGradient(paddingX, y, paddingX + contentWidth, y);
   netBoxGrad.addColorStop(0, '#f0fdf4');
   netBoxGrad.addColorStop(1, '#ecfdf5');
   ctx.fillStyle = netBoxGrad;
   ctx.beginPath();
-  ctx.roundRect(paddingX, y, contentWidth, 54, 8);
+  ctx.roundRect(paddingX, y, contentWidth, netSalaryHeight, 10);
   ctx.fill();
+
   ctx.strokeStyle = '#86efac';
-  ctx.lineWidth = 1.2;
+  ctx.lineWidth = 1.5;
   ctx.stroke();
 
   ctx.textAlign = 'left';
   ctx.fillStyle = '#166534';
-  ctx.font = 'bold 14px Inter, Arial, sans-serif';
-  ctx.fillText('TỔNG LƯƠNG THỰC NHẬN:', paddingX + 20, y + 33);
+  ctx.font = 'bold 14px "Plus Jakarta Sans", Arial, sans-serif';
+  ctx.letterSpacing = '0.3px';
+  ctx.fillText('TỔNG TIỀN LƯƠNG THỰC NHẬN:', paddingX + 22, y + 27);
+
+  ctx.fillStyle = '#15803d';
+  ctx.font = 'italic 11.5px "Plus Jakarta Sans", Arial, sans-serif';
+  ctx.fillText('(Khoản lương thực nhận đã bao gồm tất cả các ngày công trong kỳ)', paddingX + 22, y + 46);
 
   ctx.textAlign = 'right';
   ctx.fillStyle = '#15803d';
-  ctx.font = 'bold 22px Inter, Arial, sans-serif';
-  ctx.fillText(formatVndCurrency(netSalary) + ' VNĐ', paddingX + contentWidth - 20, y + 35);
+  ctx.font = 'bold 24px "Plus Jakarta Sans", Arial, sans-serif';
+  ctx.fillText(formatVndCurrency(netSalary), paddingX + contentWidth - 22, y + 38);
 
-  y += 68;
+  y += netSalaryHeight + 18;
 
-  // 5. Payment Section (Structured card layout without icons)
+  // 5. Payment Section (THÔNG TIN THANH TOÁN TIỀN LƯƠNG)
   ctx.fillStyle = '#f8fafc';
   ctx.beginPath();
-  ctx.roundRect(paddingX, y, contentWidth, paymentSectionHeight, 8);
+  ctx.roundRect(paddingX, y, contentWidth, paymentSectionHeight, 10);
   ctx.fill();
   ctx.strokeStyle = '#e2e8f0';
   ctx.lineWidth = 1;
   ctx.stroke();
 
-  // Section Label
+  // Section Header inside card
   ctx.textAlign = 'left';
   ctx.fillStyle = '#0f766e';
-  ctx.font = 'bold 12px Inter, Arial, sans-serif';
-  ctx.fillText('THÔNG TIN THANH TOÁN', paddingX + 18, y + 24);
+  ctx.font = 'bold 12px "Plus Jakarta Sans", Arial, sans-serif';
+  ctx.letterSpacing = '0.4px';
+  ctx.fillText('THÔNG TIN THANH TOÁN TIỀN LƯƠNG', paddingX + 20, y + 24);
 
-  // Line below title
+  // Divider line below section title
   ctx.strokeStyle = '#e2e8f0';
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(paddingX + 18, y + 32);
-  ctx.lineTo(paddingX + contentWidth - 18, y + 32);
+  ctx.moveTo(paddingX + 20, y + 32);
+  ctx.lineTo(paddingX + contentWidth - 20, y + 32);
   ctx.stroke();
 
   if (worker.bankAccount) {
     const bankName = worker.bankShortName
-      ? `${worker.bankShortName} - ${worker.bankName || ''}`
-      : (worker.bankName || 'Ngân hàng');
+      ? `${worker.bankShortName} (${worker.bankName || ''})`
+      : (worker.bankName || 'Ngân hàng thụ hưởng');
 
-    const textOffset = qrImage ? (qrBoxWidth + 36) : 24;
+    const textOffsetX = qrImage ? (paddingX + qrBoxSize + 40) : (paddingX + 24);
+    const textAvailableWidth = contentWidth - (qrImage ? (qrBoxSize + 60) : 48);
 
-    const rowY1 = qrImage ? y + 68 : y + 56;
-    const rowY2 = qrImage ? y + 130 : y + 84;
-    const rowY3 = qrImage ? y + 192 : y + 112;
-    const rowY4 = qrImage ? y + 254 : y + 140;
-
-    // Ngân hàng
-    ctx.fillStyle = '#64748b';
-    ctx.font = '500 12.5px Inter, Arial, sans-serif';
-    ctx.fillText('Ngân hàng thụ hưởng:', paddingX + textOffset, rowY1);
-    ctx.fillStyle = '#0f172a';
-    ctx.font = '600 13.5px Inter, Arial, sans-serif';
-    ctx.fillText(bankName, paddingX + textOffset, rowY1 + 18);
-
-    // Số tài khoản
-    ctx.fillStyle = '#64748b';
-    ctx.font = '500 12.5px Inter, Arial, sans-serif';
-    ctx.fillText('Số tài khoản (STK):', paddingX + textOffset, rowY2);
-    ctx.fillStyle = '#0f766e';
-    ctx.font = 'bold 19px monospace, Inter, Arial, sans-serif';
-    ctx.fillText(worker.bankAccount, paddingX + textOffset, rowY2 + 20);
-
-    // Người thụ hưởng
-    ctx.fillStyle = '#64748b';
-    ctx.font = '500 12.5px Inter, Arial, sans-serif';
-    ctx.fillText('Tên người thụ hưởng:', paddingX + textOffset, rowY3);
-    ctx.fillStyle = '#0f172a';
-    ctx.font = 'bold 14px Inter, Arial, sans-serif';
-    ctx.fillText(worker.bankAccountHolder ? worker.bankAccountHolder.toUpperCase() : '-', paddingX + textOffset, rowY3 + 18);
-
-    // Số tiền lương cần chuyển
-    ctx.fillStyle = '#64748b';
-    ctx.font = '500 12.5px Inter, Arial, sans-serif';
-    ctx.fillText('Số tiền chuyển lương:', paddingX + textOffset, rowY4);
-    ctx.fillStyle = '#15803d';
-    ctx.font = 'bold 17px Inter, Arial, sans-serif';
-    ctx.fillText(formatVndCurrency(netSalary) + ' VNĐ', paddingX + textOffset, rowY4 + 20);
-
-    // QR Image Card on Left Side
     if (qrImage) {
-      const qrBoxX = paddingX + 18;
-      const qrBoxY = y + 46;
+      // Layout with QR image on left, fields on right
+      const qrBoxX = paddingX + 20;
+      const qrBoxY = y + 42;
 
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.roundRect(qrBoxX, qrBoxY, qrBoxWidth, qrBoxHeight, 8);
+      ctx.roundRect(qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 8);
       ctx.fill();
       ctx.strokeStyle = '#cbd5e1';
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      ctx.drawImage(qrImage, qrBoxX + 12, qrBoxY + 12, qrDrawWidth, qrDrawHeight);
+      // Center square QR code inside the box
+      const qrInnerPad = (qrBoxSize - qrImageSize) / 2;
+      ctx.drawImage(qrImage, qrBoxX + qrInnerPad, qrBoxY + 8, qrImageSize, qrImageSize);
 
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#475569';
-      ctx.font = '600 11px Inter, Arial, sans-serif';
-      ctx.fillText('QUÉT MÃ VIETQR QUA APP NGÂN HÀNG', qrBoxX + qrBoxWidth / 2, qrBoxY + qrBoxHeight + 18);
+      ctx.fillStyle = '#64748b';
+      ctx.font = '600 10.5px "Plus Jakarta Sans", Arial, sans-serif';
+      ctx.letterSpacing = '0.3px';
+      ctx.fillText('QUÉT MÃ VIETQR ĐỂ CHUYỂN KHOẢN', qrBoxX + qrBoxSize / 2, qrBoxY + qrBoxSize - 8);
+
+      // Payment info rows on Right
+      let rowY = y + 54;
+
+      // Ngân hàng
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#64748b';
+      ctx.font = '600 11.5px "Plus Jakarta Sans", Arial, sans-serif';
+      ctx.fillText('NGÂN HÀNG THỤ HƯỞNG:', textOffsetX, rowY);
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 14px "Plus Jakarta Sans", Arial, sans-serif';
+      ctx.fillText(bankName, textOffsetX, rowY + 18);
+
+      rowY += 46;
+
+      // Số tài khoản
+      ctx.fillStyle = '#64748b';
+      ctx.font = '600 11.5px "Plus Jakarta Sans", Arial, sans-serif';
+      ctx.fillText('SỐ TÀI KHOẢN (STK):', textOffsetX, rowY);
+      ctx.fillStyle = '#0f766e';
+      ctx.font = 'bold 20px "Consolas", monospace, Arial, sans-serif';
+      ctx.fillText(worker.bankAccount, textOffsetX, rowY + 21);
+
+      rowY += 48;
+
+      // Tên người thụ hưởng
+      ctx.fillStyle = '#64748b';
+      ctx.font = '600 11.5px "Plus Jakarta Sans", Arial, sans-serif';
+      ctx.fillText('TÊN NGƯỜI THỤ HƯỞNG:', textOffsetX, rowY);
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 15px "Plus Jakarta Sans", Arial, sans-serif';
+      ctx.fillText(worker.bankAccountHolder ? worker.bankAccountHolder.toUpperCase() : worker.name.toUpperCase(), textOffsetX, rowY + 19);
+
+      rowY += 46;
+
+      // Số tiền tham chiếu
+      ctx.fillStyle = '#64748b';
+      ctx.font = '600 11.5px "Plus Jakarta Sans", Arial, sans-serif';
+      ctx.fillText('SỐ TIỀN LƯƠNG CẦN CHUYỂN:', textOffsetX, rowY);
+      ctx.fillStyle = '#15803d';
+      ctx.font = 'bold 18px "Plus Jakarta Sans", Arial, sans-serif';
+      ctx.fillText(formatVndCurrency(netSalary), textOffsetX, rowY + 20);
+
+      // Subtle note box
+      const noteY = rowY + 32;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.roundRect(textOffsetX, noteY, textAvailableWidth, 32, 6);
+      ctx.fill();
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.fillStyle = '#64748b';
+      ctx.font = 'italic 11px "Plus Jakarta Sans", Arial, sans-serif';
+      ctx.fillText('Lưu ý: Người chuyển tự nhập số tiền và nội dung chuyển khoản theo nhu cầu.', textOffsetX + 10, noteY + 20);
+    } else {
+      // 2-Column layout when QR is not displayed
+      const c1X = paddingX + 24;
+      const c2X = paddingX + contentWidth / 2 + 16;
+      let rY = y + 54;
+
+      // Col 1 - Ngân hàng
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#64748b';
+      ctx.font = '600 11.5px "Plus Jakarta Sans", Arial, sans-serif';
+      ctx.fillText('NGÂN HÀNG THỤ HƯỞNG:', c1X, rY);
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 14px "Plus Jakarta Sans", Arial, sans-serif';
+      ctx.fillText(bankName, c1X, rY + 18);
+
+      // Col 2 - Tên người thụ hưởng
+      ctx.fillStyle = '#64748b';
+      ctx.font = '600 11.5px "Plus Jakarta Sans", Arial, sans-serif';
+      ctx.fillText('TÊN NGƯỜI THỤ HƯỞNG:', c2X, rY);
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 14px "Plus Jakarta Sans", Arial, sans-serif';
+      ctx.fillText(worker.bankAccountHolder ? worker.bankAccountHolder.toUpperCase() : worker.name.toUpperCase(), c2X, rY + 18);
+
+      rY += 46;
+
+      // Col 1 - Số tài khoản
+      ctx.fillStyle = '#64748b';
+      ctx.font = '600 11.5px "Plus Jakarta Sans", Arial, sans-serif';
+      ctx.fillText('SỐ TÀI KHOẢN (STK):', c1X, rY);
+      ctx.fillStyle = '#0f766e';
+      ctx.font = 'bold 18px "Consolas", monospace, Arial, sans-serif';
+      ctx.fillText(worker.bankAccount, c1X, rY + 20);
+
+      // Col 2 - Số tiền lương
+      ctx.fillStyle = '#64748b';
+      ctx.font = '600 11.5px "Plus Jakarta Sans", Arial, sans-serif';
+      ctx.fillText('SỐ TIỀN LƯƠNG CẦN CHUYỂN:', c2X, rY);
+      ctx.fillStyle = '#15803d';
+      ctx.font = 'bold 17px "Plus Jakarta Sans", Arial, sans-serif';
+      ctx.fillText(formatVndCurrency(netSalary), c2X, rY + 20);
     }
   } else {
     ctx.textAlign = 'left';
+    ctx.fillStyle = '#475569';
+    ctx.font = '500 13px "Plus Jakarta Sans", Arial, sans-serif';
+    ctx.fillText('Hình thức chi trả: TIỀN MẶT TRỰC TIẾP', paddingX + 24, y + 58);
     ctx.fillStyle = '#64748b';
-    ctx.font = '500 13px Inter, Arial, sans-serif';
-    ctx.fillText('Hình thức thanh toán: Tiền mặt (Chưa cập nhật số tài khoản ngân hàng)', paddingX + 20, y + 54);
+    ctx.font = 'italic 12px "Plus Jakarta Sans", Arial, sans-serif';
+    ctx.fillText('(Công nhân chưa cập nhật thông tin tài khoản ngân hàng để nhận chuyển khoản VietQR)', paddingX + 24, y + 80);
   }
 
-  y += paymentSectionHeight + 20;
+  y += paymentSectionHeight + 22;
 
-  // 6. Professional Footer Divider & Metadata (NO icons)
+  // 6. Signature Block (CHỮ KÝ XÁC NHẬN - Chuẩn chứng từ kế toán)
+  const signColWidth = contentWidth / 2;
+
+  // Left: Người lập bảng lương
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#0f172a';
+  ctx.font = 'bold 12.5px "Plus Jakarta Sans", Arial, sans-serif';
+  ctx.fillText('NGƯỜI LẬP PHIẾU', paddingX + signColWidth / 2, y + 16);
+
+  ctx.fillStyle = '#64748b';
+  ctx.font = 'italic 11px "Plus Jakarta Sans", Arial, sans-serif';
+  ctx.fillText('(Ký và ghi rõ họ tên)', paddingX + signColWidth / 2, y + 32);
+
+  // Right: Người nhận tiền lương
+  ctx.fillStyle = '#0f172a';
+  ctx.font = 'bold 12.5px "Plus Jakarta Sans", Arial, sans-serif';
+  ctx.fillText('NGƯỜI NHẬN TIỀN LƯƠNG', paddingX + signColWidth + signColWidth / 2, y + 16);
+
+  ctx.fillStyle = '#64748b';
+  ctx.font = 'italic 11px "Plus Jakarta Sans", Arial, sans-serif';
+  ctx.fillText('(Ký xác nhận đã nhận đủ tiền)', paddingX + signColWidth + signColWidth / 2, y + 32);
+
+  y += signatureSectionHeight;
+
+  // 7. Footer Divider & System Metadata (Zero icons)
   ctx.strokeStyle = '#e2e8f0';
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -490,13 +636,13 @@ export async function generateWorkerPayrollCanvas(worker, dateRange, attendance)
   // Left Note
   ctx.textAlign = 'left';
   ctx.fillStyle = '#64748b';
-  ctx.font = '500 11.5px Inter, "Segoe UI", Arial, sans-serif';
+  ctx.font = '500 11px "Plus Jakarta Sans", Arial, sans-serif';
   ctx.fillText('Chứng từ nội bộ - Công ty TNHH Cơ Khí Xây Dựng Thương Mại Việt Thành', paddingX, y);
 
-  // Right Generation Timestamp
+  // Right Timestamp
   ctx.textAlign = 'right';
   ctx.fillStyle = '#64748b';
-  ctx.font = '500 11.5px Inter, "Segoe UI", Arial, sans-serif';
+  ctx.font = '500 11px "Plus Jakarta Sans", Arial, sans-serif';
   ctx.fillText(`Thời gian lập phiếu: ${dayjs().format('DD/MM/YYYY HH:mm')}`, paddingX + contentWidth, y);
 
   return canvas;
@@ -526,7 +672,7 @@ export async function downloadMultipleWorkersPayrollImages(workersList, dateRang
     const worker = workersList[i];
     if (onProgress) onProgress(i + 1, workersList.length, worker.name);
     await downloadWorkerPayrollImage(worker, dateRange, attendance);
-    // Slight pause between downloads so browser doesn't block them
+    // Pause between downloads so browser does not throttle or drop downloads
     if (i < workersList.length - 1) {
       await new Promise((r) => setTimeout(r, 400));
     }

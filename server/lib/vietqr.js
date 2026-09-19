@@ -77,8 +77,9 @@ function getVietQRImageUrl({ bin, accountNumber, amount, memo, accountName, temp
         params.push(`addInfo=${encodeURIComponent(cleanMemo)}`);
     }
 
+    const effectiveTemplate = (cleanAmount <= 0 && template === 'compact2') ? 'compact' : template;
     const query = params.length > 0 ? `?${params.join('&')}` : '';
-    return `https://img.vietqr.io/image/${cleanBin}-${cleanAcc}-${template}.png${query}`;
+    return `https://img.vietqr.io/image/${cleanBin}-${cleanAcc}-${effectiveTemplate}.png${query}`;
 }
 
 function fetchHttpBuffer(url, timeoutMs = 4000) {
